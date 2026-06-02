@@ -62,18 +62,11 @@ class ComplaintFactSheet(BaseModel):
         description="Principal amount sued for in numeric form; null if not stated.",
     )
 
-    date_of_filing: date | None = Field(
-        default=None,
-        description=(
-            "Court file stamp or explicitly stated filing date (ISO YYYY-MM-DD). "
-            "Null if not stated — never infer."
-        ),
-    )
     date_complaint_filed: date | None = Field(
         default=None,
         description=(
             "Date the complaint document itself shows or claims as filed (ISO YYYY-MM-DD). "
-            "Null if not stated; if only one filing date appears, populate only the matching field."
+            "Null if not stated — never infer."
         ),
     )
     alleged_incident_date: date | None = Field(

@@ -20,7 +20,6 @@ def test_minimal_fact_sheet_with_null_dates():
             "defendant_names": ["ACME Collections LLC"],
             "jurisdiction": "Circuit Court of Cook County, Illinois",
             "amount_sued_for": "1250.00",
-            "date_of_filing": None,
             "date_complaint_filed": None,
             "alleged_incident_date": None,
             "date_user_failed_to_pay": None,
@@ -46,7 +45,7 @@ def test_minimal_fact_sheet_with_null_dates():
     )
     assert sheet.plaintiff_names == ["Jane Doe"]
     assert sheet.amount_sued_for == Decimal("1250.00")
-    assert sheet.date_of_filing is None
+    assert sheet.date_complaint_filed is None
     assert sheet.fdcpa.applies_or_alleged is True
 
 
@@ -54,10 +53,10 @@ def test_explicit_dates_parse():
     sheet = ComplaintFactSheet(
         plaintiff_names=["P"],
         defendant_names=["D"],
-        date_of_filing=date(2024, 3, 15),
+        date_complaint_filed=date(2024, 3, 15),
         alleged_incident_date=date(2023, 1, 10),
     )
-    assert sheet.date_of_filing == date(2024, 3, 15)
+    assert sheet.date_complaint_filed == date(2024, 3, 15)
     assert sheet.alleged_incident_date == date(2023, 1, 10)
 
 

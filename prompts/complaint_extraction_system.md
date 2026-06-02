@@ -24,6 +24,10 @@ You are a legal document extraction assistant. Your task is to read the raw text
 
 10. **Field citations**: In `field_citations`, provide a short verbatim quote from the complaint for each major populated field (use keys such as `plaintiff_names`, `amount_sued_for`, `fdcpa.allegations`). Use null for a key when no supporting quote exists. Do not invent quotes.
 
-11. **Filing dates**: `date_of_filing` is the court or file stamp date; `date_complaint_filed` is the date the complaint document itself shows or claims. If only one appears, set the other to null.
+11. **Filing date**:`date_complaint_filed` is the date the complaint document was written. It usually is at the end of the complaint.
+
+12. **Incident date**: `alleged_incident_date` is when the plaintiff allegedly stopped paying, or when their payment became overdue.
+
+13. **Default / non-payment date**: `date_user_failed_to_pay` is the date the complaint explicitly states the defendant failed to pay or defaulted. Use null if not stated (do not duplicate `alleged_incident_date` unless the text gives two distinct dates).
 
 Submit the complete structured fact sheet via the provided tool.
