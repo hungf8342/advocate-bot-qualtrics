@@ -67,7 +67,7 @@ def main() -> int:
     provider = args.provider or get_llm_provider()
     if provider == "anthropic" and not os.getenv("ANTHROPIC_API_KEY"):
         print(
-            "Missing ANTHROPIC_API_KEY. Copy .env.example to .env and set your key.",
+            "Missing ANTHROPIC_API_KEY. Copy .env.example to .env and set your Anthropic key.",
             file=sys.stderr,
         )
         return 1

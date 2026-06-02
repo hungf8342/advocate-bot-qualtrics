@@ -1,0 +1,45 @@
+{
+  "schema_version": "1.0",
+  "plaintiff_names": [
+    "SOUTHWEST COLLECTIONS, INC., AS ASSIGNEE OF MIDGARD BANK"
+  ],
+  "defendant_names": [
+    "JESSIE HINTON"
+  ],
+  "jurisdiction": "Superior Court of the State of California, County of Los Angeles",
+  "amount_sued_for": "953.10",
+  "date_complaint_filed": "2025-09-30",
+  "alleged_incident_date": "2022-08-24",
+  "date_user_failed_to_pay": "2020-12-23",
+  "causes_of_action": [
+    "Breach of Contract"
+  ],
+  "statute_of_limitations": null,
+  "failure_to_state_a_claim_mentioned": false,
+  "failure_to_state_a_claim_adequate": true,
+  "failure_to_state_a_claim_rationale": "The complaint identifies the original creditor (Midgard Bank), the account number, the date of account issuance (11/20/2019), the date of last payment (12/23/2020), the charge-off date (8/24/2022), the balance at charge-off ($953.10), the assignment chain to plaintiff, and the specific breach (failure to make payments). These allegations appear sufficient to plead the required elements of breach of contract (existence of contract, performance, breach, and damages).",
+  "original_contract_included": false,
+  "payment_or_balance_log_included": false,
+  "bill_of_assignment_or_debt_ownership_evidence": false,
+  "fdcpa": {
+    "applies_or_alleged": false,
+    "allegations": [],
+    "punishment_threatened": null
+  },
+  "amount_inconsistent_with_case": null,
+  "field_citations": {
+    "plaintiff_names": "SOUTHWEST COLLECTIONS, INC., AS ASSIGNEE OF MIDGARD BANK",
+    "defendant_names": "JESSIE HINTON, an individual",
+    "jurisdiction": "SUPERIOR COURT OF THE STATE OF CALIFORNIA, COUNTY OF LOS ANGELES",
+    "causes_of_action": "COMPLAINT FOR: 1. BREACH OF CONTRACT",
+    "amount_sued_for": "DEMAND: $953.10 ... For the damages in the principal amount of $953.10",
+    "date_complaint_filed": "Dated: 09/30/2025",
+    "alleged_incident_date": "The charge-off date was 8/24/2022.",
+    "date_user_failed_to_pay": "The date of last payment on the subject account was 12/23/2020.",
+    "original_contract_included": null,
+    "payment_or_balance_log_included": null,
+    "bill_of_assignment_or_debt_ownership_evidence": null,
+    "failure_to_state_a_claim_adequate": "Defendant breached the agreement by failing to make payments as agreed. The date of last payment on the subject account was on December 23, 2020. As a direct and proximate result thereof, Plaintiff has been damaged in the amount of $953.10.",
+    "fdcpa.applies_or_alleged": "Pursuant to California Civil Code §1788.58(a)(1), Plaintiff is a debt buyer as defined by California Civil Code §1788.50(a)."
+  }
+}

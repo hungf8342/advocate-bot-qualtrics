@@ -16,7 +16,7 @@ SYSTEM_PROMPT_PATH = PROMPTS_DIR / "complaint_extraction_system.md"
 
 MAX_COMPLAINT_CHARS = 100_000
 
-DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-20250514"
+DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-6"
 DEFAULT_OPENAI_MODEL = "gpt-4o-2024-08-06"
 
 TOOL_NAME = "submit_complaint_fact_sheet"
