@@ -1,6 +1,6 @@
 # advocate-bot-qualtrics
 
-Extract structured facts from legal complaints (`ComplaintFactSheet`) via Anthropic structured outputs, for use as input to a Python decision tree.
+Extract structured **factual** allegations from legal complaints (`ComplaintFactSheet`) via Anthropic structured outputs. Defense analysis (statute of limitations, FDCPA, failure to state a claim) belongs in your decision tree, not in this JSON.
 
 ## Setup
 
@@ -46,7 +46,6 @@ data = json.loads(Path("fixtures/complaint_fact_sheet.sample.json").read_text())
 filed = data["date_complaint_filed"]       # "YYYY-MM-DD" or null
 incident = data["alleged_incident_date"]
 default_date = data["date_user_failed_to_pay"]
-fdcpa = data["fdcpa"]["applies_or_alleged"]  # bool or null
 amount = data["amount_sued_for"]             # string decimal, e.g. "953.10"
 ```
 
@@ -54,7 +53,7 @@ amount = data["amount_sued_for"]             # string decimal, e.g. "953.10"
 
 | JSON path | Type in JSON | Notes |
 |-----------|--------------|--------|
-| `schema_version` | string | `"1.0"` |
+| `schema_version` | string | `"1.1"` |
 | `plaintiff_names` | array of strings | Empty if none |
 | `defendant_names` | array of strings | Empty if none |
 | `jurisdiction` | string or null | |
@@ -63,15 +62,10 @@ amount = data["amount_sued_for"]             # string decimal, e.g. "953.10"
 | `alleged_incident_date` | string or null | Often charge-off or breach date |
 | `date_user_failed_to_pay` | string or null | Last payment / default if stated |
 | `causes_of_action` | array of strings | |
-| `statute_of_limitations` | string or null | Free text if not a single date |
-| `failure_to_state_a_claim_*` | bool/string or null | Assessment fields — advisory |
 | `original_contract_included` | bool or null | null = not stated |
 | `payment_or_balance_log_included` | bool or null | |
 | `bill_of_assignment_or_debt_ownership_evidence` | bool or null | |
-| `fdcpa.applies_or_alleged` | bool or null | |
-| `fdcpa.allegations` | array of strings | |
-| `fdcpa.punishment_threatened` | string or null | |
-| `amount_inconsistent_with_case` | string or null | |
+| `amount_inconsistent_with_case` | string or null | Factual amount contradictions only |
 | `field_citations` | object | Audit only — skip in tree v1 |
 
 **Null semantics:** `null` means not stated in the complaint (not “no”). Do not treat null booleans as `false`.
