@@ -25,6 +25,39 @@ python scripts/extract_complaint_to_json.py
 
 Re-run when you have a new complaint or change the schema/prompt.
 
+## Decision tree chat (`process_chat`)
+
+After you have a `ComplaintFactSheet` JSON saved, the chat engine uses the extracted facts to help classify the user's message at the current node and advance via `next_node_id`.
+
+`process_chat` signature is:
+
+`process_chat(user_message, current_node, fact_sheet)`
+
+Notes:
+- `user_message` may include a short host-prepared transcript of recent turns (and the latest user text). `process_chat` itself is stateless.
+- If the LLM decides `user_intent="answer_node"`, `next_node_id` must match one of the provided `current_node.branches[*].branch_id` values.
+
+Example:
+
+```python
+from advocate_bot_qualtrics.decision_tree import process_chat, CurrentNode, TreeBranch
+from advocate_bot_qualtrics.fact_sheet_io import load_complaint_fact_sheet
+
+facts = load_complaint_fact_sheet("output/complaint_fact_sheet.json")
+
+node = CurrentNode(
+    node_id="n1",
+    question="Did the complaint plead the last payment date?",
+    branches=[
+        TreeBranch(branch_id="yes", label="Yes"),
+        TreeBranch(branch_id="no", label="No / unknown"),
+    ],
+)
+
+reply = process_chat("User: It says last payment was 12/23/2020", node, facts)
+print(reply.user_intent, reply.next_node_id)
+```
+
 ## Load JSON in your decision tree
 
 ```python
