@@ -14,6 +14,7 @@ PROJECT_ROOT = PACKAGE_ROOT.parent.parent
 PROMPTS_DIR = PROJECT_ROOT / "prompts"
 SYSTEM_PROMPT_PATH = PROMPTS_DIR / "complaint_extraction_system.md"
 CHAT_SYSTEM_PROMPT_PATH = PROMPTS_DIR / "decision_tree_chat_system.md"
+AUTONOMOUS_SYSTEM_PROMPT_PATH = PROMPTS_DIR / "decision_tree_autonomous_system.md"
 
 MAX_COMPLAINT_CHARS = 100_000
 
@@ -52,3 +53,11 @@ def load_chat_system_prompt() -> str:
     if not CHAT_SYSTEM_PROMPT_PATH.is_file():
         raise FileNotFoundError(f"Decision-tree system prompt not found: {CHAT_SYSTEM_PROMPT_PATH}")
     return CHAT_SYSTEM_PROMPT_PATH.read_text(encoding="utf-8")
+
+
+def load_autonomous_system_prompt() -> str:
+    if not AUTONOMOUS_SYSTEM_PROMPT_PATH.is_file():
+        raise FileNotFoundError(
+            f"Autonomous decision-tree prompt not found: {AUTONOMOUS_SYSTEM_PROMPT_PATH}"
+        )
+    return AUTONOMOUS_SYSTEM_PROMPT_PATH.read_text(encoding="utf-8")

@@ -58,6 +58,33 @@ reply = process_chat("User: It says last payment was 12/23/2020", node, facts)
 print(reply.user_intent, reply.next_node_id)
 ```
 
+## Two decision-tree versions
+
+This repo now includes two separate decision-tree flows:
+
+1. **Interactive tree** (user-driven): `process_chat(user_message, current_node, fact_sheet)`
+2. **Autonomous tree** (AI-driven from JSON facts): `process_autonomous(fact_sheet, start_node, tree_map)`
+
+Interactive mode asks/handles user turns per node. Autonomous mode traverses the tree directly from `ComplaintFactSheet` values and ends by inviting user questions.
+
+### Autonomous mode example
+
+```python
+from advocate_bot_qualtrics.decision_tree import (
+    AUTONOMOUS_START_NODE_ID,
+    AUTONOMOUS_TREE,
+    process_autonomous,
+)
+from advocate_bot_qualtrics.fact_sheet_io import load_complaint_fact_sheet
+
+facts = load_complaint_fact_sheet("output/complaint_fact_sheet.json")
+start_node = AUTONOMOUS_TREE[AUTONOMOUS_START_NODE_ID]
+
+result = process_autonomous(facts, start_node, AUTONOMOUS_TREE)
+print(result.summary)
+print(result.open_questions_prompt)
+```
+
 ## Load JSON in your decision tree
 
 ```python
