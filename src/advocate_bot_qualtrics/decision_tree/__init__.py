@@ -10,6 +10,7 @@ from advocate_bot_qualtrics.decision_tree.autonomous_tree import (
 )
 from advocate_bot_qualtrics.decision_tree.errors import ChatError
 from advocate_bot_qualtrics.decision_tree.interactive_tree import (
+    INTERACTIVE_ROUTES,
     INTERACTIVE_START_NODE_ID,
     INTERACTIVE_TREE,
 )
@@ -27,6 +28,7 @@ __all__ = [
     "ChatError",
     "ChatTurnResponse",
     "CurrentNode",
+    "INTERACTIVE_ROUTES",
     "INTERACTIVE_START_NODE_ID",
     "INTERACTIVE_TREE",
     "TreeBranch",

@@ -67,6 +67,8 @@ This repo now includes two separate decision-tree flows:
 
 Interactive mode asks/handles user turns per node. Autonomous mode traverses the tree directly from `ComplaintFactSheet` values and ends by inviting user questions.
 
+> Placeholder status: current tree definitions are scaffolding only and have **not** been fully reviewed/finalized for legal correctness yet. Validate node logic and branch criteria before production use.
+
 ### Autonomous mode example
 
 ```python
