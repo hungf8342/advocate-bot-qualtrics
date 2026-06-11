@@ -67,6 +67,45 @@ This repo now includes two separate decision-tree flows:
 
 Interactive mode asks/handles user turns per node. Autonomous mode traverses the tree directly from `ComplaintFactSheet` values and ends by inviting user questions.
 
+Interactive tree flow (SOL then FDCPA, per `Tree-Structures.docx`):
+
+1. Start at `INTERACTIVE_TREE[INTERACTIVE_START_NODE_ID]` (`confirm_filing_date`).
+2. Seed `InteractiveSessionState` with `init_session_from_fact_sheet(facts)`.
+3. On each user turn, call `process_chat` unless the current node is a hook (`sol_computation`, `fdcpa_computation`).
+4. After `user_intent="answer_node"`, update session and resolve the next node:
+
+```python
+from advocate_bot_qualtrics.decision_tree import (
+    INTERACTIVE_START_NODE_ID,
+    INTERACTIVE_TREE,
+    apply_interactive_branch,
+    advance_from_hook,
+    init_session_from_fact_sheet,
+    is_interactive_hook_node,
+    process_chat,
+    resolve_interactive_next_node,
+)
+
+session = init_session_from_fact_sheet(facts)
+current_node = INTERACTIVE_TREE[INTERACTIVE_START_NODE_ID]
+
+if is_interactive_hook_node(current_node.node_id):
+    # Host runs SOL/FDCPA logic (see interactive_computations.py), then:
+    next_id = advance_from_hook(current_node.node_id)
+else:
+    turn = process_chat(user_message, current_node, facts)
+    if turn.user_intent == "answer_node" and turn.next_node_id:
+        parsed_date = host_parse_date(user_message)  # on submit branches
+        apply_interactive_branch(
+            session, current_node.node_id, turn.next_node_id, submitted_date=parsed_date
+        )
+        next_id = resolve_interactive_next_node(
+            current_node.node_id, turn.next_node_id, session
+        )
+```
+
+Static branch wiring lives in `INTERACTIVE_ROUTES`; `contact_third_parties` uses session flags to skip the evidence question when neither arrest threats nor third-party disclosures were reported.
+
 > Placeholder status: current tree definitions are scaffolding only and have **not** been fully reviewed/finalized for legal correctness yet. Validate node logic and branch criteria before production use.
 
 ### Autonomous mode example
