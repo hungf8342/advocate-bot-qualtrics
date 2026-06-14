@@ -22,11 +22,15 @@ INTERACTIVE_HOOK_NODE_IDS: frozenset[str] = frozenset(
 # contact_third_parties routing is conditional; see resolve_interactive_next_node.
 INTERACTIVE_ROUTES: dict[tuple[str, str], str] = {
     ("confirm_filing_date", "yes"): "confirm_last_payment_complaint",
-    ("confirm_filing_date", "no"): "get_filing_date",
+    ("confirm_filing_date", "no"): "different_complaint_filing",
+    ("different_complaint_filing", "yes"): "confirm_filing_date",
+    ("different_complaint_filing", "no"): "get_filing_date",
     ("get_filing_date", "submit"): "confirm_last_payment_complaint",
     ("get_filing_date", "no_date"): "confirm_last_payment_complaint",
     ("confirm_last_payment_complaint", "yes"): "additional_payment_OG_creditor",
-    ("confirm_last_payment_complaint", "no"): "get_last_payment_complaint",
+    ("confirm_last_payment_complaint", "no"): "different_complaint_last_payment",
+    ("different_complaint_last_payment", "yes"): "confirm_filing_date",
+    ("different_complaint_last_payment", "no"): "get_last_payment_complaint",
     ("get_last_payment_complaint", "submit"): "additional_payment_OG_creditor",
     ("get_last_payment_complaint", "no_date"): "additional_payment_OG_creditor",
     ("additional_payment_OG_creditor", "yes"): "get_last_payment_OG_creditor",
@@ -70,7 +74,24 @@ INTERACTIVE_TREE: dict[str, CurrentNode] = {
         question=f"Is the filing date of the complaint {_FILING_DATE_TOKEN}?",
         branches=[
             TreeBranch(branch_id="yes", label="Yes, that is the filing date."),
-            TreeBranch(branch_id="no", label="No, the complaint lists a different date."),
+            TreeBranch(
+                branch_id="no",
+                label="No, that is not the filing date shown in the complaint.",
+            ),
+        ],
+    ),
+    "different_complaint_filing": CurrentNode(
+        node_id="different_complaint_filing",
+        question="Are you possibly looking at a different complaint?",
+        branches=[
+            TreeBranch(
+                branch_id="yes",
+                label="Yes, I may be looking at a different complaint.",
+            ),
+            TreeBranch(
+                branch_id="no",
+                label="No, this is the same complaint; the filing date is wrong.",
+            ),
         ],
     ),
     "get_filing_date": CurrentNode(
@@ -94,7 +115,21 @@ INTERACTIVE_TREE: dict[str, CurrentNode] = {
             TreeBranch(branch_id="yes", label="Yes, that is the last payment date."),
             TreeBranch(
                 branch_id="no",
-                label="No, the complaint lists a different last payment date.",
+                label="No, that is not the last payment date shown in the complaint.",
+            ),
+        ],
+    ),
+    "different_complaint_last_payment": CurrentNode(
+        node_id="different_complaint_last_payment",
+        question="Are you possibly looking at a different complaint?",
+        branches=[
+            TreeBranch(
+                branch_id="yes",
+                label="Yes, I may be looking at a different complaint.",
+            ),
+            TreeBranch(
+                branch_id="no",
+                label="No, this is the same complaint; the last payment date is wrong.",
             ),
         ],
     ),

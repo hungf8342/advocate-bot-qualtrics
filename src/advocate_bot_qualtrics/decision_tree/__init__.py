@@ -10,6 +10,7 @@ from advocate_bot_qualtrics.decision_tree.autonomous_tree import (
 )
 from advocate_bot_qualtrics.decision_tree.errors import ChatError
 from advocate_bot_qualtrics.decision_tree.interactive_computations import (
+    SOL_LIMIT_DAYS,
     run_fdcpa_computation,
     run_sol_computation,
 )
@@ -28,6 +29,13 @@ from advocate_bot_qualtrics.decision_tree.interactive_tree import (
     INTERACTIVE_START_NODE_ID,
     INTERACTIVE_TREE,
     resolve_interactive_next_node,
+)
+from advocate_bot_qualtrics.decision_tree.interactive_host import (
+    InteractiveChatEngine,
+    InteractiveChatStep,
+    MAX_TRANSCRIPT_TURNS,
+    build_user_payload,
+    render_interactive_node,
 )
 from advocate_bot_qualtrics.decision_tree.process_autonomous import process_autonomous
 from advocate_bot_qualtrics.decision_tree.process_chat import process_chat
@@ -49,15 +57,21 @@ __all__ = [
     "INTERACTIVE_ROUTES",
     "INTERACTIVE_START_NODE_ID",
     "INTERACTIVE_TREE",
+    "InteractiveChatEngine",
+    "InteractiveChatStep",
     "InteractiveSessionState",
+    "MAX_TRANSCRIPT_TURNS",
+    "SOL_LIMIT_DAYS",
     "TreeBranch",
     "UserIntent",
     "advance_from_hook",
     "apply_interactive_branch",
+    "build_user_payload",
     "init_session_from_fact_sheet",
     "is_interactive_hook_node",
     "process_autonomous",
     "process_chat",
+    "render_interactive_node",
     "resolve_interactive_next_node",
     "run_fdcpa_computation",
     "run_sol_computation",

@@ -12,6 +12,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+demo = ["gradio>=4.44.0"]
 dev = [
   "pytest>=8.0.0",
 ]

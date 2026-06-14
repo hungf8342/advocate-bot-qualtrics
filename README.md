@@ -106,7 +106,31 @@ else:
 
 Static branch wiring lives in `INTERACTIVE_ROUTES`; `contact_third_parties` uses session flags to skip the evidence question when neither arrest threats nor third-party disclosures were reported.
 
+If the user disputes a filing or last-payment date from the complaint, the tree first asks whether they may be looking at a different complaint; otherwise it collects a corrected date. Session flags `filing_date_changed` and `last_payment_date_changed` track user corrections (for future export/dataframe work).
+
 > Placeholder status: current tree definitions are scaffolding only and have **not** been fully reviewed/finalized for legal correctness yet. Validate node logic and branch criteria before production use.
+
+### Interactive chat demo (browser)
+
+Local Gradio UI for live testing the full interactive tree against pre-extracted JSON facts.
+
+```bash
+pip install -e ".[demo]"
+python scripts/interactive_chat_demo.py
+python scripts/interactive_chat_demo.py --facts-json output/complaint_fact_sheet.json
+```
+
+| Flag | Notes |
+|------|--------|
+| `--facts-json` | Defaults to `fixtures/complaint_fact_sheet.sample.json` |
+| `--share` | Creates a **public URL** — dev demos only; do not use with real client data |
+| `--host` / `--port` | Bind address (default `127.0.0.1:7860`) |
+
+Requires `ANTHROPIC_API_KEY` in `.env`. The API key stays server-side; never commit `.env`.
+
+The demo uses one in-memory `InteractiveChatEngine` per process (single-user). Multi-user hosting should wrap the same engine in FastAPI with per-session state. SOL hook logic uses a **1095-day demo threshold**, not calendar-year legal analysis.
+
+Core host logic lives in `advocate_bot_qualtrics.decision_tree.interactive_host` (`InteractiveChatEngine`) and is reusable outside Gradio.
 
 ### Autonomous mode example
 
