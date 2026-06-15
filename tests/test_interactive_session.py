@@ -50,3 +50,14 @@ def test_last_payment_date_changed_on_submit():
     )
     assert session.last_payment_complaint == date(2023, 5, 15)
     assert session.last_payment_date_changed is True
+
+
+def test_record_node_answer_stores_confidence_and_skipped():
+    from advocate_bot_qualtrics.decision_tree.interactive_session import record_node_answer
+
+    session = InteractiveSessionState()
+    record_node_answer(session, "confirm_filing_date", "yes", 0, skipped=True)
+    record = session.node_answers["confirm_filing_date"]
+    assert record.branch_id == "yes"
+    assert record.confidence_pct == 0
+    assert record.skipped is True

@@ -108,6 +108,10 @@ Static branch wiring lives in `INTERACTIVE_ROUTES`; `contact_third_parties` uses
 
 If the user disputes a filing or last-payment date from the complaint, the tree first asks whether they may be looking at a different complaint; otherwise it collects a corrected date. Session flags `filing_date_changed` and `last_payment_date_changed` track user corrections (for future export/dataframe work).
 
+Per-node answer confidence (0–100) is stored in session when the user advances the tree. Scoring rules live in [`prompts/confidence_scoring_calibration.md`](prompts/confidence_scoring_calibration.md). Pure "I don't know" responses skip the current question via host routing; hedged answers ("I think yes") still route and may show a one-sentence hedge when confidence is below `CONFIDENCE_HEDGE_THRESHOLD` (default 70)—the LLM writes the hedge when valid, otherwise the host uses a generic fallback.
+
+When the interactive tree completes, field values and confidence scores append as one row to `output/session_fields.xlsx` (override with `SESSION_FIELDS_XLSX_PATH`). User-corrected complaint filing or last-payment dates are capped below 70% confidence in the export.
+
 > Placeholder status: current tree definitions are scaffolding only and have **not** been fully reviewed/finalized for legal correctness yet. Validate node logic and branch criteria before production use.
 
 ### Interactive chat demo (browser)

@@ -2,11 +2,17 @@
 
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass, field
 from datetime import date
 
-from advocate_bot_qualtrics.config import load_chat_system_prompt
+from advocate_bot_qualtrics.config import (
+    get_confidence_hedge_threshold,
+    get_session_fields_xlsx_path,
+    load_chat_system_prompt,
+)
+from advocate_bot_qualtrics.decision_tree.confidence import is_pure_idk, resolve_confidence_hedge_message
 from advocate_bot_qualtrics.decision_tree.errors import ChatError
 from advocate_bot_qualtrics.decision_tree.interactive_computations import (
     run_fdcpa_computation,
@@ -18,15 +24,18 @@ from advocate_bot_qualtrics.decision_tree.interactive_session import (
     apply_interactive_branch,
     init_session_from_fact_sheet,
     is_interactive_hook_node,
+    record_node_answer,
 )
 from advocate_bot_qualtrics.decision_tree.interactive_tree import (
     INTERACTIVE_ROUTES,
     INTERACTIVE_START_NODE_ID,
     INTERACTIVE_TREE,
+    idk_skip_branch_for_node,
     resolve_interactive_next_node,
 )
 from advocate_bot_qualtrics.decision_tree.process_chat import process_chat
 from advocate_bot_qualtrics.decision_tree.schemas import ChatTurnResponse, CurrentNode
+from advocate_bot_qualtrics.decision_tree.session_field_export import append_session_fields_row
 from advocate_bot_qualtrics.llm.chat_structured import submit_chat_turn
 from advocate_bot_qualtrics.schemas.complaint_fact_sheet import ComplaintFactSheet
 
@@ -46,6 +55,9 @@ _DATE_PARSE_CLARIFICATION = (
     "I couldn't read a date from that message. Please reply with a date only, "
     "such as 2024-01-04 or 01/04/2024 (month name formats like January 4, 2024 also work)."
 )
+_IDK_SKIP_MESSAGE = "No problem — we'll move on."
+
+logger = logging.getLogger(__name__)
 
 # Only optional additional-payment date nodes may be skipped when already captured.
 # Dispute correction nodes (get_filing_date, get_last_payment_complaint) are seeded
@@ -100,6 +112,7 @@ class InteractiveChatStep:
     tree_complete: bool
     user_intent: str | None = None
     branch_id: str | None = None
+    confidence_pct: int | None = None
     error: str | None = None
 
 
@@ -110,6 +123,8 @@ class InteractiveChatEngine:
     current_node_id: str = INTERACTIVE_START_NODE_ID
     transcript: list[tuple[str, str]] = field(default_factory=list)
     tree_complete: bool = False
+    export_done: bool = False
+    last_export_path: str | None = None
     last_outcomes: dict[str, str] = field(default_factory=dict)
 
     @classmethod
@@ -126,6 +141,8 @@ class InteractiveChatEngine:
         self.current_node_id = INTERACTIVE_START_NODE_ID
         self.transcript = []
         self.tree_complete = False
+        self.export_done = False
+        self.last_export_path = None
         self.last_outcomes = {}
         self._drain_hooks()
         return self.initial_messages()
@@ -158,7 +175,35 @@ class InteractiveChatEngine:
             "evidence": self.session.evidence,
             "sol_outcome": self.last_outcomes.get("sol", "—"),
             "fdcpa_outcome": self.last_outcomes.get("fdcpa", "—"),
+            "node_answers": {
+                node_id: {
+                    "branch": record.branch_id,
+                    "confidence_pct": record.confidence_pct,
+                    "skipped": record.skipped,
+                }
+                for node_id, record in self.session.node_answers.items()
+            },
+            "session_fields_xlsx": self.last_export_path or "",
         }
+
+    def _set_tree_complete(self) -> None:
+        if self.tree_complete:
+            return
+        self.tree_complete = True
+        self._maybe_export_session_fields()
+
+    def _maybe_export_session_fields(self) -> None:
+        if self.export_done:
+            return
+        try:
+            path = append_session_fields_row(
+                get_session_fields_xlsx_path(),
+                self.session,
+            )
+            self.last_export_path = str(path)
+            self.export_done = True
+        except Exception:
+            logger.exception("Failed to append session fields to Excel")
 
     def submit(self, user_message: str) -> InteractiveChatStep:
         user_message = user_message.strip()
@@ -188,6 +233,18 @@ class InteractiveChatEngine:
     def _submit_tree_node(self, user_message: str) -> InteractiveChatStep:
         node_id = self.current_node_id
         rendered = render_interactive_node(node_id, self.facts, self.session)
+
+        skip_branch = idk_skip_branch_for_node(node_id)
+        if skip_branch is not None and is_pure_idk(user_message):
+            return self._advance_on_branch(
+                node_id=node_id,
+                branch_id=skip_branch,
+                user_message=user_message,
+                confidence_pct=0,
+                skipped=True,
+                prefix_messages=[_IDK_SKIP_MESSAGE],
+            )
+
         payload = build_user_payload(self.transcript, user_message)
 
         try:
@@ -218,44 +275,25 @@ class InteractiveChatEngine:
                     tree_complete=self.tree_complete,
                     user_intent=turn.user_intent,
                     branch_id=turn.next_node_id,
+                    confidence_pct=turn.answer_confidence_pct,
                 )
 
-            submitted_date = (
-                parsed_from_message
-                if turn.next_node_id in {"submit", "yes"}
-                else None
+            confidence_pct = turn.answer_confidence_pct or 0
+            step = self._advance_on_branch(
+                node_id=node_id,
+                branch_id=turn.next_node_id,
+                user_message=user_message,
+                confidence_pct=confidence_pct,
+                parsed_from_message=parsed_from_message,
+                prefix_messages=self._hedge_prefix_messages(
+                    turn.assistant_reply, confidence_pct
+                ),
             )
-            apply_interactive_branch(
-                self.session,
-                node_id,
-                turn.next_node_id,
-                submitted_date=submitted_date,
-            )
-            next_id = resolve_interactive_next_node(
-                node_id, turn.next_node_id, self.session
-            )
-            messages: list[str] = []
-            if next_id:
-                next_id = _skip_date_node_if_collected(next_id, self.session)
-                self.current_node_id = next_id
-                self._consume_embedded_dispute_date(parsed_from_message)
-                if self.current_node_id == REVIEW_QUESTIONS_NODE_ID:
-                    self.tree_complete = True
-                messages.extend(self._drain_hooks())
-                if (
-                    node_id in _DIFFERENT_COMPLAINT_RESTART_NODES
-                    and turn.next_node_id == "yes"
-                    and self.current_node_id == INTERACTIVE_START_NODE_ID
-                ):
-                    messages.append(_RESTART_FILING_CONFIRM_MESSAGE)
-                    self._append_transcript("assistant", _RESTART_FILING_CONFIRM_MESSAGE)
-                if not is_interactive_hook_node(self.current_node_id):
-                    prompt = self._append_next_question()
-                    if prompt:
-                        messages.append(prompt)
-        else:
-            messages = [turn.assistant_reply]
-            self._append_transcript("assistant", turn.assistant_reply)
+            step.user_intent = turn.user_intent
+            return step
+
+        messages = [turn.assistant_reply]
+        self._append_transcript("assistant", turn.assistant_reply)
 
         return InteractiveChatStep(
             assistant_messages=messages,
@@ -265,8 +303,80 @@ class InteractiveChatEngine:
             branch_id=turn.next_node_id,
         )
 
+    def _hedge_prefix_messages(
+        self,
+        assistant_reply: str,
+        confidence_pct: int,
+    ) -> list[str]:
+        if confidence_pct >= get_confidence_hedge_threshold():
+            return []
+        message = resolve_confidence_hedge_message(assistant_reply)
+        return [message]
+
+    def _advance_on_branch(
+        self,
+        *,
+        node_id: str,
+        branch_id: str,
+        user_message: str,
+        confidence_pct: int,
+        skipped: bool = False,
+        parsed_from_message: date | None = None,
+        prefix_messages: list[str] | None = None,
+    ) -> InteractiveChatStep:
+        submitted_date = (
+            parsed_from_message if branch_id in {"submit", "yes"} else None
+        )
+        apply_interactive_branch(
+            self.session,
+            node_id,
+            branch_id,
+            submitted_date=submitted_date,
+        )
+        record_node_answer(
+            self.session,
+            node_id,
+            branch_id,
+            confidence_pct,
+            skipped=skipped,
+        )
+
+        next_id = resolve_interactive_next_node(node_id, branch_id, self.session)
+        messages: list[str] = list(prefix_messages or [])
+        for text in messages:
+            self._append_transcript("assistant", text)
+
+        if next_id:
+            next_id = _skip_date_node_if_collected(next_id, self.session)
+            self.current_node_id = next_id
+            embedded = parsed_from_message if not skipped else None
+            self._consume_embedded_dispute_date(embedded)
+            if self.current_node_id == REVIEW_QUESTIONS_NODE_ID:
+                self._set_tree_complete()
+            messages.extend(self._drain_hooks())
+            if (
+                node_id in _DIFFERENT_COMPLAINT_RESTART_NODES
+                and branch_id == "yes"
+                and self.current_node_id == INTERACTIVE_START_NODE_ID
+            ):
+                messages.append(_RESTART_FILING_CONFIRM_MESSAGE)
+                self._append_transcript("assistant", _RESTART_FILING_CONFIRM_MESSAGE)
+            if not is_interactive_hook_node(self.current_node_id):
+                prompt = self._append_next_question()
+                if prompt:
+                    messages.append(prompt)
+
+        return InteractiveChatStep(
+            assistant_messages=messages,
+            current_node_id=self.current_node_id,
+            tree_complete=self.tree_complete,
+            user_intent="answer_node",
+            branch_id=branch_id,
+            confidence_pct=confidence_pct,
+        )
+
     def _submit_terminal_qa(self, user_message: str) -> InteractiveChatStep:
-        self.tree_complete = True
+        self._set_tree_complete()
         rendered = render_interactive_node(
             REVIEW_QUESTIONS_NODE_ID, self.facts, self.session
         )
@@ -317,7 +427,7 @@ class InteractiveChatEngine:
                 break
             self.current_node_id = next_id
             if self.current_node_id == REVIEW_QUESTIONS_NODE_ID:
-                self.tree_complete = True
+                self._set_tree_complete()
 
         return messages
 
@@ -338,7 +448,7 @@ class InteractiveChatEngine:
             return
         self.current_node_id = _skip_date_node_if_collected(next_id, self.session)
         if self.current_node_id == REVIEW_QUESTIONS_NODE_ID:
-            self.tree_complete = True
+            self._set_tree_complete()
 
     def _append_next_question(self) -> str | None:
         message = self._format_node_prompt(self.current_node_id)

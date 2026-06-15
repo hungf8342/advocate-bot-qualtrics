@@ -54,6 +54,27 @@ INTERACTIVE_HOOK_ADVANCES: dict[str, str] = {
 
 INTERACTIVE_CONDITIONAL_ROUTE_NODES: frozenset[str] = frozenset({"contact_third_parties"})
 
+# Host skip branch when user gives pure "I don't know" (no yes/no lean).
+INTERACTIVE_IDK_SKIP_BRANCH: dict[str, str] = {
+    "confirm_filing_date": "yes",
+    "confirm_last_payment_complaint": "yes",
+    "get_filing_date": "no_date",
+    "get_last_payment_complaint": "no_date",
+    "get_last_payment_OG_creditor": "no_date",
+    "get_last_payment_debt_collector": "no_date",
+    "different_complaint_filing": "no",
+    "different_complaint_last_payment": "no",
+    "additional_payment_OG_creditor": "no",
+    "additional_payment_debt_collector": "no",
+    "threatening_arrest": "no",
+    "contact_third_parties": "no",
+    "record_bad_behavior": "no",
+}
+
+
+def idk_skip_branch_for_node(node_id: str) -> str | None:
+    return INTERACTIVE_IDK_SKIP_BRANCH.get(node_id)
+
 
 def resolve_interactive_next_node(
     current_node_id: str,

@@ -79,6 +79,7 @@ def test_engine_advances_on_answer_node(mock_process_chat, sample_facts):
         user_intent="answer_node",
         assistant_reply="Great, moving on.",
         next_node_id="yes",
+        answer_confidence_pct=100,
     )
     engine = InteractiveChatEngine.from_fact_sheet(sample_facts)
     engine.initial_messages()
@@ -156,21 +157,25 @@ def test_hook_drain_after_sol_path(mock_process_chat, sample_facts):
             user_intent="answer_node",
             assistant_reply="ok",
             next_node_id="yes",
+            answer_confidence_pct=100,
         ),
         ChatTurnResponse(
             user_intent="answer_node",
             assistant_reply="ok",
             next_node_id="yes",
+            answer_confidence_pct=100,
         ),
         ChatTurnResponse(
             user_intent="answer_node",
             assistant_reply="ok",
             next_node_id="no",
+            answer_confidence_pct=100,
         ),
         ChatTurnResponse(
             user_intent="answer_node",
             assistant_reply="ok",
             next_node_id="no",
+            answer_confidence_pct=100,
         ),
     ]
     mock_process_chat.side_effect = responses
@@ -193,6 +198,7 @@ def test_submit_with_unparseable_date_stays_on_node(mock_process_chat, sample_fa
         user_intent="answer_node",
         assistant_reply="Thanks.",
         next_node_id="submit",
+        answer_confidence_pct=100,
     )
     engine = InteractiveChatEngine.from_fact_sheet(sample_facts)
     engine.current_node_id = "get_last_payment_debt_collector"
@@ -213,6 +219,7 @@ def test_different_complaint_yes_restarts_at_filing_confirm(mock_process_chat, s
         user_intent="answer_node",
         assistant_reply="Ok.",
         next_node_id="yes",
+        answer_confidence_pct=100,
     )
     engine = InteractiveChatEngine.from_fact_sheet(sample_facts)
     engine.current_node_id = "different_complaint_filing"
@@ -230,6 +237,7 @@ def test_confirm_filing_no_routes_to_different_complaint_gate(mock_process_chat,
         user_intent="answer_node",
         assistant_reply="Ok.",
         next_node_id="no",
+        answer_confidence_pct=100,
     )
     engine = InteractiveChatEngine.from_fact_sheet(sample_facts)
     engine.initial_messages()
@@ -248,6 +256,7 @@ def test_same_complaint_reaches_filing_date_node_despite_seeded_date(
         user_intent="answer_node",
         assistant_reply="Ok.",
         next_node_id="no",
+        answer_confidence_pct=100,
     )
     engine = InteractiveChatEngine.from_fact_sheet(sample_facts)
     engine.current_node_id = "different_complaint_filing"
@@ -267,6 +276,7 @@ def test_filing_date_correction_updates_session(mock_process_chat, sample_facts)
         user_intent="answer_node",
         assistant_reply="Thanks.",
         next_node_id="submit",
+        answer_confidence_pct=100,
     )
     engine = InteractiveChatEngine.from_fact_sheet(sample_facts)
     engine.current_node_id = "get_filing_date"
@@ -288,6 +298,7 @@ def test_same_complaint_reaches_last_payment_date_node_despite_seeded_date(
         user_intent="answer_node",
         assistant_reply="Ok.",
         next_node_id="no",
+        answer_confidence_pct=100,
     )
     engine = InteractiveChatEngine.from_fact_sheet(sample_facts)
     engine.current_node_id = "different_complaint_last_payment"
@@ -309,6 +320,7 @@ def test_embedded_filing_date_on_same_complaint_skips_date_node(
         user_intent="answer_node",
         assistant_reply="Please provide the correct filing date.",
         next_node_id="no",
+        answer_confidence_pct=100,
     )
     engine = InteractiveChatEngine.from_fact_sheet(sample_facts)
     engine.current_node_id = "different_complaint_filing"
@@ -327,11 +339,84 @@ def test_embedded_filing_date_on_same_complaint_skips_date_node(
 
 
 @patch("advocate_bot_qualtrics.decision_tree.interactive_host.process_chat")
+def test_pure_idk_on_confirm_skips_with_zero_confidence(mock_process_chat, sample_facts):
+    engine = InteractiveChatEngine.from_fact_sheet(sample_facts)
+    engine.initial_messages()
+
+    step = engine.submit("I don't know.")
+
+    mock_process_chat.assert_not_called()
+    assert engine.current_node_id == "confirm_last_payment_complaint"
+    record = engine.session.node_answers["confirm_filing_date"]
+    assert record.branch_id == "yes"
+    assert record.confidence_pct == 0
+    assert record.skipped is True
+    assert any("move on" in m.lower() for m in step.assistant_messages)
+    assert step.error is None
+
+
+@patch("advocate_bot_qualtrics.decision_tree.interactive_host.process_chat")
+def test_low_confidence_shows_llm_hedge_before_next_question(mock_process_chat, sample_facts):
+    hedge = (
+        "You didn't sound fully sure, but we'll treat that as confirming the filing date."
+    )
+    mock_process_chat.return_value = ChatTurnResponse(
+        user_intent="answer_node",
+        assistant_reply=hedge,
+        next_node_id="yes",
+        answer_confidence_pct=55,
+    )
+    engine = InteractiveChatEngine.from_fact_sheet(sample_facts)
+    engine.initial_messages()
+
+    step = engine.submit("I think yes, that is the filing date.")
+
+    assert step.error is None
+    assert engine.session.node_answers["confirm_filing_date"].confidence_pct == 55
+    assert step.assistant_messages[0] == hedge
+    assert len(step.assistant_messages) == 2
+
+
+@patch("advocate_bot_qualtrics.decision_tree.interactive_host.process_chat")
+def test_low_confidence_falls_back_when_hedge_invalid(mock_process_chat, sample_facts):
+    mock_process_chat.return_value = ChatTurnResponse(
+        user_intent="answer_node",
+        assistant_reply="Got it. What is the next question?",
+        next_node_id="yes",
+        answer_confidence_pct=55,
+    )
+    engine = InteractiveChatEngine.from_fact_sheet(sample_facts)
+    engine.initial_messages()
+
+    step = engine.submit("I think yes.")
+
+    assert "move forward with what you indicated" in step.assistant_messages[0].lower()
+
+
+@patch("advocate_bot_qualtrics.decision_tree.interactive_host.process_chat")
+def test_high_confidence_advances_without_hedge(mock_process_chat, sample_facts):
+    mock_process_chat.return_value = ChatTurnResponse(
+        user_intent="answer_node",
+        assistant_reply="Got it.",
+        next_node_id="yes",
+        answer_confidence_pct=95,
+    )
+    engine = InteractiveChatEngine.from_fact_sheet(sample_facts)
+    engine.initial_messages()
+
+    step = engine.submit("Yes, that is correct.")
+
+    assert len(step.assistant_messages) == 1
+    assert "move forward with what you indicated" not in step.assistant_messages[0].lower()
+
+
+@patch("advocate_bot_qualtrics.decision_tree.interactive_host.process_chat")
 def test_yes_with_embedded_date_saves_and_skips_date_node(mock_process_chat, sample_facts):
     mock_process_chat.return_value = ChatTurnResponse(
         user_intent="answer_node",
         assistant_reply="Got it.",
         next_node_id="yes",
+        answer_confidence_pct=100,
     )
     engine = InteractiveChatEngine.from_fact_sheet(sample_facts)
     engine.current_node_id = "additional_payment_debt_collector"
@@ -346,3 +431,23 @@ def test_yes_with_embedded_date_saves_and_skips_date_node(mock_process_chat, sam
         "threatening_arrest"
     )
     assert step.error is None
+
+
+def test_set_tree_complete_exports_once(sample_facts, tmp_path, monkeypatch):
+    path = tmp_path / "session_fields.xlsx"
+    monkeypatch.setattr(
+        "advocate_bot_qualtrics.decision_tree.interactive_host.get_session_fields_xlsx_path",
+        lambda: path,
+    )
+    engine = InteractiveChatEngine.from_fact_sheet(sample_facts)
+    engine._set_tree_complete()
+
+    assert engine.export_done is True
+    assert engine.last_export_path == str(path.resolve())
+    assert path.is_file()
+
+    engine._set_tree_complete()
+    assert path.is_file()
+    from openpyxl import load_workbook
+
+    assert load_workbook(path).active.max_row == 2

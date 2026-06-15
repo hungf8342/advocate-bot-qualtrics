@@ -54,3 +54,12 @@ class ChatTurnResponse(BaseModel):
             "If and only if user_intent is 'answer_node', set next_node_id to one of the provided branch_id values."
         ),
     )
+    answer_confidence_pct: int | None = Field(
+        default=None,
+        ge=0,
+        le=100,
+        description=(
+            "Required when user_intent is 'answer_node': 0–100 confidence in the chosen branch, "
+            "per confidence_scoring_calibration."
+        ),
+    )

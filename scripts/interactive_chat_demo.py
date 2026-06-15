@@ -35,7 +35,25 @@ def _format_debug(snapshot: dict) -> str:
 **Hook outcomes**
 - SOL: {snapshot.get("sol_outcome")}
 - FDCPA: {snapshot.get("fdcpa_outcome")}
+
+**Node answers (confidence)**
+{_format_node_answers(snapshot.get("node_answers") or {})}
+
+**Excel export**
+- Session fields: `{snapshot.get("session_fields_xlsx") or "—"}`
 """
+
+
+def _format_node_answers(node_answers: dict) -> str:
+    if not node_answers:
+        return "- (none yet)"
+    lines = []
+    for node_id, record in node_answers.items():
+        skipped = " skipped" if record.get("skipped") else ""
+        lines.append(
+            f"- `{node_id}`: {record.get('branch')} @ {record.get('confidence_pct')}%{skipped}"
+        )
+    return "\n".join(lines)
 
 
 def main() -> int:

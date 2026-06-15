@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 
 from advocate_bot_qualtrics.decision_tree.interactive_tree import (
@@ -31,6 +31,13 @@ _FDCPA_FLAG_NODES: dict[str, str] = {
 
 
 @dataclass
+class NodeAnswerRecord:
+    branch_id: str
+    confidence_pct: int
+    skipped: bool = False
+
+
+@dataclass
 class InteractiveSessionState:
     filing_date: date | None = None
     last_payment_complaint: date | None = None
@@ -41,6 +48,7 @@ class InteractiveSessionState:
     threatened: bool = False
     disclosed: bool = False
     evidence: bool = False
+    node_answers: dict[str, NodeAnswerRecord] = field(default_factory=dict)
 
 
 def init_session_from_fact_sheet(facts: ComplaintFactSheet) -> InteractiveSessionState:
@@ -48,6 +56,22 @@ def init_session_from_fact_sheet(facts: ComplaintFactSheet) -> InteractiveSessio
     return InteractiveSessionState(
         filing_date=facts.date_complaint_filed,
         last_payment_complaint=facts.date_user_failed_to_pay,
+    )
+
+
+def record_node_answer(
+    session: InteractiveSessionState,
+    node_id: str,
+    branch_id: str,
+    confidence_pct: int,
+    *,
+    skipped: bool = False,
+) -> None:
+    """Store branch choice and confidence for a completed tree node."""
+    session.node_answers[node_id] = NodeAnswerRecord(
+        branch_id=branch_id,
+        confidence_pct=confidence_pct,
+        skipped=skipped,
     )
 
 
