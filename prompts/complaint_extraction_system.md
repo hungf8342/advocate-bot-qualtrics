@@ -12,6 +12,10 @@ Extract factual allegations and document contents only. Do **not** assess defens
 
 4. **Parties**: List every named plaintiff in `plaintiff_names` and every named defendant in `defendant_names`. Do not collapse multiple parties into one string.
 
+   - **`original_creditor_name`**: The entity the defendant originally owed (often named in account or assignment language). Store a short, readable name (e.g. `Midgard Bank`). Use null if not stated.
+   - **`debt_collector_name`**: The collecting plaintiff or assignee now suing, when distinct from the original creditor. Store a short, readable name (e.g. `Southwest Collections, Inc.`). Use null if the complaint names only one party or the role is unclear.
+   - Include supporting quotes in `field_citations` for these fields when populated.
+
 5. **Causes of action**: List each distinct count, claim, or cause of action named in the complaint. Use an empty list if none are identified.
 
 6. **Exhibits and debt evidence**: Set attachment flags to true only when the complaint states that a contract, payment log, assignment, or debt-ownership evidence is attached, exhibited, or incorporated by reference.

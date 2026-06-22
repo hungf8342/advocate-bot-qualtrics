@@ -33,6 +33,7 @@ from advocate_bot_qualtrics.decision_tree.interactive_tree import (
     idk_skip_branch_for_node,
     resolve_interactive_next_node,
 )
+from advocate_bot_qualtrics.decision_tree.party_labels import annotate_party_terms
 from advocate_bot_qualtrics.decision_tree.process_chat import process_chat
 from advocate_bot_qualtrics.decision_tree.schemas import ChatTurnResponse, CurrentNode
 from advocate_bot_qualtrics.decision_tree.session_field_export import append_session_fields_row
@@ -150,8 +151,9 @@ class InteractiveChatEngine:
     def initial_messages(self) -> list[str]:
         if self.transcript:
             return [text for role, text in self.transcript if role == "assistant"]
-        message = self._format_node_prompt(self.current_node_id)
-        self._append_transcript("assistant", message)
+        message = self._append_transcript(
+            "assistant", self._format_node_prompt(self.current_node_id)
+        )
         return [message]
 
     def debug_snapshot(self, *, facts_path: str | None = None) -> dict:
@@ -268,9 +270,11 @@ class InteractiveChatEngine:
             parsed_from_message = parse_submitted_date(user_message)
 
             if turn.next_node_id == "submit" and parsed_from_message is None:
-                self._append_transcript("assistant", _DATE_PARSE_CLARIFICATION)
+                clarification = self._append_transcript(
+                    "assistant", _DATE_PARSE_CLARIFICATION
+                )
                 return InteractiveChatStep(
-                    assistant_messages=[_DATE_PARSE_CLARIFICATION],
+                    assistant_messages=[clarification],
                     current_node_id=self.current_node_id,
                     tree_complete=self.tree_complete,
                     user_intent=turn.user_intent,
@@ -292,8 +296,11 @@ class InteractiveChatEngine:
             step.user_intent = turn.user_intent
             return step
 
-        messages = [turn.assistant_reply]
-        self._append_transcript("assistant", turn.assistant_reply)
+        messages = [self._append_transcript("assistant", turn.assistant_reply)]
+
+        if turn.user_intent == "ask_about_complaint":
+            reask = self._format_node_prompt(self.current_node_id)
+            messages.append(self._append_transcript("assistant", reask))
 
         return InteractiveChatStep(
             assistant_messages=messages,
@@ -342,9 +349,9 @@ class InteractiveChatEngine:
         )
 
         next_id = resolve_interactive_next_node(node_id, branch_id, self.session)
-        messages: list[str] = list(prefix_messages or [])
-        for text in messages:
-            self._append_transcript("assistant", text)
+        messages: list[str] = []
+        for text in prefix_messages or []:
+            messages.append(self._append_transcript("assistant", text))
 
         if next_id:
             next_id = _skip_date_node_if_collected(next_id, self.session)
@@ -359,8 +366,9 @@ class InteractiveChatEngine:
                 and branch_id == "yes"
                 and self.current_node_id == INTERACTIVE_START_NODE_ID
             ):
-                messages.append(_RESTART_FILING_CONFIRM_MESSAGE)
-                self._append_transcript("assistant", _RESTART_FILING_CONFIRM_MESSAGE)
+                messages.append(
+                    self._append_transcript("assistant", _RESTART_FILING_CONFIRM_MESSAGE)
+                )
             if not is_interactive_hook_node(self.current_node_id):
                 prompt = self._append_next_question()
                 if prompt:
@@ -399,9 +407,9 @@ class InteractiveChatEngine:
                 error=f"API error: {exc}. Check ANTHROPIC_API_KEY and retry.",
             )
 
-        self._append_transcript("assistant", turn.assistant_reply)
+        reply = self._append_transcript("assistant", turn.assistant_reply)
         return InteractiveChatStep(
-            assistant_messages=[turn.assistant_reply],
+            assistant_messages=[reply],
             current_node_id=self.current_node_id,
             tree_complete=True,
             user_intent=turn.user_intent,
@@ -410,7 +418,6 @@ class InteractiveChatEngine:
     def _drain_hooks(self) -> list[str]:
         messages: list[str] = []
         while is_interactive_hook_node(self.current_node_id):
-            node = INTERACTIVE_TREE[self.current_node_id]
             if self.current_node_id == "sol_computation":
                 outcome = run_sol_computation(self.session)
                 self.last_outcomes["sol"] = outcome
@@ -418,9 +425,11 @@ class InteractiveChatEngine:
                 outcome = run_fdcpa_computation(self.session)
                 self.last_outcomes["fdcpa"] = outcome
 
-            text = f"{node.question}\n\nResult: {outcome}"
-            messages.append(text)
-            self._append_transcript("assistant", text)
+            rendered = render_interactive_node(
+                self.current_node_id, self.facts, self.session
+            )
+            text = f"{rendered.question}\n\nResult: {outcome}"
+            messages.append(self._append_transcript("assistant", text))
 
             next_id = advance_from_hook(self.current_node_id)
             if not next_id:
@@ -452,15 +461,17 @@ class InteractiveChatEngine:
 
     def _append_next_question(self) -> str | None:
         message = self._format_node_prompt(self.current_node_id)
-        self._append_transcript("assistant", message)
-        return message
+        return self._append_transcript("assistant", message)
 
     def _format_node_prompt(self, node_id: str) -> str:
         node = render_interactive_node(node_id, self.facts, self.session)
         return node.question
 
-    def _append_transcript(self, role: str, text: str) -> None:
+    def _append_transcript(self, role: str, text: str) -> str:
+        if role == "assistant":
+            text = annotate_party_terms(text, self.facts)
         self.transcript.append((role, text))
+        return text
 
 
 def render_interactive_node(
@@ -474,12 +485,16 @@ def render_interactive_node(
 
     question = source.question.replace(_FILING_TOKEN, _fmt_date(filing))
     question = question.replace(_LAST_PAYMENT_TOKEN, _fmt_date(last_payment))
+    question = annotate_party_terms(question, facts)
 
     branches = [
         branch.model_copy(
             update={
-                "label": branch.label.replace(_FILING_TOKEN, _fmt_date(filing)).replace(
-                    _LAST_PAYMENT_TOKEN, _fmt_date(last_payment)
+                "label": annotate_party_terms(
+                    branch.label.replace(_FILING_TOKEN, _fmt_date(filing)).replace(
+                        _LAST_PAYMENT_TOKEN, _fmt_date(last_payment)
+                    ),
+                    facts,
                 )
             }
         )

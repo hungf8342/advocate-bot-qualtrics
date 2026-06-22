@@ -51,6 +51,8 @@ def test_json_schema_excludes_defense_fields():
     schema = ComplaintFactSheet.model_json_schema()
     props = schema["properties"]
     assert "plaintiff_names" in props
+    assert "original_creditor_name" in props
+    assert "debt_collector_name" in props
     assert "fdcpa" not in props
     assert "statute_of_limitations" not in props
     assert "failure_to_state_a_claim_mentioned" not in props

@@ -27,6 +27,20 @@ class ComplaintFactSheet(BaseModel):
         default_factory=list,
         description="All named defendants; empty if none identified.",
     )
+    original_creditor_name: str | None = Field(
+        default=None,
+        description=(
+            "Short readable name of the original creditor if stated in the complaint; "
+            "null if not stated."
+        ),
+    )
+    debt_collector_name: str | None = Field(
+        default=None,
+        description=(
+            "Short readable name of the debt collector or assignee suing the defendant, "
+            "when distinct from the original creditor; null if not stated or not applicable."
+        ),
+    )
     jurisdiction: str | None = Field(
         default=None,
         description="Court, venue, or jurisdictional statement (e.g. county and state).",

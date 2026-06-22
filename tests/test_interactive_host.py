@@ -20,6 +20,8 @@ def sample_facts() -> ComplaintFactSheet:
     return ComplaintFactSheet(
         date_complaint_filed=date(2025, 9, 30),
         date_user_failed_to_pay=date(2020, 12, 23),
+        original_creditor_name="Midgard Bank",
+        debt_collector_name="Southwest Collections, Inc.",
     )
 
 
@@ -31,6 +33,28 @@ def test_render_interactive_node_substitutes_dates_with_session(sample_facts):
     session = init_session_from_fact_sheet(sample_facts)
     node = render_interactive_node("confirm_filing_date", sample_facts, session)
     assert "2025-09-30" in node.question
+
+
+def test_render_interactive_node_annotates_party_names(sample_facts):
+    from advocate_bot_qualtrics.decision_tree.interactive_session import (
+        init_session_from_fact_sheet,
+    )
+
+    session = init_session_from_fact_sheet(sample_facts)
+    node = render_interactive_node(
+        "confirm_last_payment_complaint", sample_facts, session
+    )
+    assert "original creditor (Midgard Bank)" in node.question
+
+    og_node = render_interactive_node(
+        "additional_payment_OG_creditor", sample_facts, session
+    )
+    assert "original creditor (Midgard Bank)" in og_node.question
+
+    dc_node = render_interactive_node(
+        "additional_payment_debt_collector", sample_facts, session
+    )
+    assert "debt collector (Southwest Collections, Inc.)" in dc_node.question
 
 
 def test_render_unknown_for_null_dates():
@@ -106,6 +130,81 @@ def test_engine_keeps_node_on_non_answer(mock_process_chat, sample_facts):
 
     assert step.error is None
     assert engine.current_node_id == before
+    assert len(step.assistant_messages) == 2
+    assert step.assistant_messages[0] == "The amount sued for is $953.10."
+    assert "2025-09-30" in step.assistant_messages[1]
+
+
+@patch("advocate_bot_qualtrics.decision_tree.interactive_host.process_chat")
+def test_ask_about_complaint_reasks_with_party_names(mock_process_chat, sample_facts):
+    from advocate_bot_qualtrics.decision_tree.interactive_session import (
+        init_session_from_fact_sheet,
+    )
+
+    mock_process_chat.return_value = ChatTurnResponse(
+        user_intent="ask_about_complaint",
+        assistant_reply="The original creditor is the bank you originally owed.",
+        next_node_id=None,
+    )
+    engine = InteractiveChatEngine(
+        facts=sample_facts,
+        session=init_session_from_fact_sheet(sample_facts),
+        current_node_id="additional_payment_OG_creditor",
+    )
+    engine.initial_messages()
+
+    step = engine.submit("What does original creditor mean?")
+
+    assert step.error is None
+    assert engine.current_node_id == "additional_payment_OG_creditor"
+    assert "original creditor (Midgard Bank)" in step.assistant_messages[0]
+    assert "original creditor (Midgard Bank)" in step.assistant_messages[1]
+
+
+@patch("advocate_bot_qualtrics.decision_tree.interactive_host.process_chat")
+def test_ask_about_complaint_reasks_canonical_node_question(mock_process_chat, sample_facts):
+    mock_process_chat.return_value = ChatTurnResponse(
+        user_intent="ask_about_complaint",
+        assistant_reply=(
+            'A "complaint filed" date is when the lawsuit papers were officially '
+            "filed with the court."
+        ),
+        next_node_id=None,
+    )
+    engine = InteractiveChatEngine.from_fact_sheet(sample_facts)
+    engine.initial_messages()
+
+    step = engine.submit(
+        "I see September 30, 2025 — what does complaint filed mean?"
+    )
+
+    assert step.error is None
+    assert engine.current_node_id == "confirm_filing_date"
+    assert step.user_intent == "ask_about_complaint"
+    assert len(step.assistant_messages) == 2
+    assert "complaint filed" in step.assistant_messages[0].lower()
+    assert "2025-09-30" in step.assistant_messages[1]
+
+
+@patch("advocate_bot_qualtrics.decision_tree.interactive_host.process_chat")
+def test_compound_unrelated_legal_advice_advances(mock_process_chat, sample_facts):
+    mock_process_chat.return_value = ChatTurnResponse(
+        user_intent="answer_node",
+        assistant_reply="Got it.",
+        next_node_id="no",
+        answer_confidence_pct=95,
+    )
+    engine = InteractiveChatEngine.from_fact_sheet(sample_facts)
+    engine.current_node_id = "threatening_arrest"
+    engine.initial_messages()
+
+    step = engine.submit(
+        "No, nothing like that — but can they actually arrest me for not paying?"
+    )
+
+    assert step.error is None
+    assert engine.current_node_id == "contact_third_parties"
+    assert step.user_intent == "answer_node"
 
 
 @patch("advocate_bot_qualtrics.decision_tree.interactive_host.process_chat")

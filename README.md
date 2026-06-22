@@ -136,6 +136,8 @@ The demo uses one in-memory `InteractiveChatEngine` per process (single-user). M
 
 Core host logic lives in `advocate_bot_qualtrics.decision_tree.interactive_host` (`InteractiveChatEngine`) and is reusable outside Gradio.
 
+For automated role-play testing and rich debug transcripts, see [`simulator/README.md`](simulator/README.md) and `scripts/run_interactive_simulator.py`.
+
 ### Autonomous mode example
 
 ```python
@@ -185,6 +187,8 @@ amount = data["amount_sued_for"]             # string decimal, e.g. "953.10"
 | `schema_version` | string | `"1.1"` |
 | `plaintiff_names` | array of strings | Empty if none |
 | `defendant_names` | array of strings | Empty if none |
+| `original_creditor_name` | string or null | Short name; null if not stated |
+| `debt_collector_name` | string or null | Assignee/collector suing; null if N/A |
 | `jurisdiction` | string or null | |
 | `amount_sued_for` | string or null | Decimal as string |
 | `date_complaint_filed` | string or null | ISO date; complaint “Dated:” line |

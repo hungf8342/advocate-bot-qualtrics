@@ -6,6 +6,8 @@
   "defendant_names": [
     "JESSIE HINTON"
   ],
+  "original_creditor_name": "Midgard Bank",
+  "debt_collector_name": "Southwest Collections, Inc.",
   "jurisdiction": "Superior Court of the State of California, County of Los Angeles",
   "amount_sued_for": "953.10",
   "date_complaint_filed": "2025-09-30",
@@ -20,6 +22,8 @@
   "amount_inconsistent_with_case": null,
   "field_citations": {
     "plaintiff_names": "SOUTHWEST COLLECTIONS, INC., AS ASSIGNEE OF MIDGARD BANK",
+    "original_creditor_name": "MIDGARD BANK",
+    "debt_collector_name": "SOUTHWEST COLLECTIONS, INC., AS ASSIGNEE OF MIDGARD BANK",
     "defendant_names": "JESSIE HINTON, an individual",
     "jurisdiction": "SUPERIOR COURT OF THE STATE OF CALIFORNIA, COUNTY OF LOS ANGELES",
     "causes_of_action": "COMPLAINT FOR: 1. BREACH OF CONTRACT",
