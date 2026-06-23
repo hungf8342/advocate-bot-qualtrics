@@ -64,6 +64,7 @@ class SimulationConfig:
     write_json: bool = False
     run_index: int = 1
     batch_timestamp: str | None = None
+    practice_area_id: str = "consumer_debt"
 
 
 @dataclass
@@ -94,3 +95,4 @@ class BatchConfig:
     repeat: int = 1
     write_json: bool = False
     batch_timestamp: str | None = None
+    practice_area_id: str = "consumer_debt"

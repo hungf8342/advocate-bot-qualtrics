@@ -39,6 +39,11 @@ def main() -> int:
         help="Output JSON path",
     )
     parser.add_argument(
+        "--practice-area",
+        default="consumer_debt",
+        help="Practice area bundle id (default: consumer_debt)",
+    )
+    parser.add_argument(
         "--provider",
         choices=("anthropic", "openai"),
         default=None,
@@ -63,6 +68,7 @@ def main() -> int:
 
     from advocate_bot_qualtrics import extract_complaint_facts
     from advocate_bot_qualtrics.config import get_llm_provider
+    from advocate_bot_qualtrics.core.bundle import get_bundle
 
     provider = args.provider or get_llm_provider()
     if provider == "anthropic" and not os.getenv("ANTHROPIC_API_KEY"):
@@ -77,6 +83,10 @@ def main() -> int:
             file=sys.stderr,
         )
         return 1
+
+    from advocate_bot_qualtrics.core.bundle import get_bundle
+
+    get_bundle(args.practice_area)
 
     facts = extract_complaint_facts(raw_text, provider=provider)
     payload = facts.model_dump(mode="json")

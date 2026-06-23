@@ -64,6 +64,11 @@ def main() -> int:
         default=DEFAULT_FACTS,
         help="Path to ComplaintFactSheet JSON",
     )
+    parser.add_argument(
+        "--practice-area",
+        default="consumer_debt",
+        help="Practice area bundle id (default: consumer_debt)",
+    )
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=7860)
     parser.add_argument(
@@ -79,13 +84,15 @@ def main() -> int:
         print("Gradio is not installed. Run: pip install -e '.[demo]'", file=sys.stderr)
         return 1
 
+    from advocate_bot_qualtrics.core.bundle import get_bundle
     from advocate_bot_qualtrics.decision_tree.interactive_host import InteractiveChatEngine
-    from advocate_bot_qualtrics.fact_sheet_io import load_complaint_fact_sheet
-    from advocate_bot_qualtrics.schemas.complaint_fact_sheet import ComplaintFactSheet
 
+    bundle = get_bundle(args.practice_area)
     facts_path = str(args.facts_json.resolve())
-    facts = load_complaint_fact_sheet(args.facts_json)
-    engine = InteractiveChatEngine.from_fact_sheet(facts)
+    facts = bundle.load_facts(args.facts_json)
+    engine = InteractiveChatEngine.from_fact_sheet(
+        facts, practice_area_id=args.practice_area
+    )
 
     def _chat_history() -> list[dict[str, str]]:
         return [{"role": role, "content": text} for role, text in engine.transcript]
@@ -115,7 +122,7 @@ def main() -> int:
             )
         try:
             data = json.loads(Path(upload_path).read_text(encoding="utf-8"))
-            facts = ComplaintFactSheet.model_validate(data)
+            facts = type(facts).model_validate(data)
             facts_path = str(Path(upload_path).resolve())
         except (OSError, json.JSONDecodeError, ValueError) as exc:
             history = _chat_history() + [

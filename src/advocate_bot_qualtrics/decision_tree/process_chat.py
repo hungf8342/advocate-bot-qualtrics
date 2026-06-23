@@ -1,20 +1,15 @@
-"""Decision-tree chat entry point."""
+"""Compatibility shim — canonical process_chat for tests and legacy imports."""
 
 from __future__ import annotations
 
-from advocate_bot_qualtrics.config import (
-    get_confidence_hedge_threshold,
-    load_chat_system_prompt,
-    load_confidence_scoring_calibration,
-)
-from advocate_bot_qualtrics.decision_tree.confidence import (
-    clamp_answer_confidence,
-    extract_latest_user_message,
-)
-from advocate_bot_qualtrics.decision_tree.errors import ChatError
-from advocate_bot_qualtrics.decision_tree.schemas import ChatTurnResponse, CurrentNode
+from typing import Any
+
+from advocate_bot_qualtrics.config import get_confidence_hedge_threshold
+from advocate_bot_qualtrics.core.bundle import PracticeAreaBundle, get_bundle
+from advocate_bot_qualtrics.core.confidence import clamp_answer_confidence, extract_latest_user_message
+from advocate_bot_qualtrics.core.errors import ChatError
+from advocate_bot_qualtrics.core.schemas import ChatTurnResponse, CurrentNode
 from advocate_bot_qualtrics.llm.chat_structured import submit_chat_turn
-from advocate_bot_qualtrics.schemas.complaint_fact_sheet import ComplaintFactSheet
 
 
 def _post_validate_turn(
@@ -63,26 +58,25 @@ def _post_validate_turn(
 def process_chat(
     user_message: str,
     current_node: CurrentNode,
-    fact_sheet: ComplaintFactSheet,
+    fact_sheet: Any,
+    bundle: PracticeAreaBundle | None = None,
+    *,
+    practice_area_id: str = "consumer_debt",
 ) -> ChatTurnResponse:
-    """Process one decision-tree chat turn.
-
-    Notes:
-    - `user_message` may include a short host-prepared transcript of recent turns.
-    - This function is responsible for enforcing strict `next_node_id` validity.
-    """
+    """Process one decision-tree chat turn (default practice area: consumer_debt)."""
 
     if not user_message or not user_message.strip():
         raise ValueError("user_message is empty.")
 
+    area = bundle or get_bundle(practice_area_id)
     latest_user_message = extract_latest_user_message(user_message)
-    system_prompt = load_chat_system_prompt()
+    system_prompt = area.load_chat_system_prompt()
 
     payload = {
         "current_node": current_node.model_dump(),
-        "complaint_fact_sheet": fact_sheet.model_dump(mode="json", exclude={"field_citations"}),
+        area.facts_payload_key: area.facts_for_llm(fact_sheet),
         "user_message": user_message,
-        "confidence_scoring_calibration": load_confidence_scoring_calibration(),
+        "confidence_scoring_calibration": area.load_calibration_prompt(),
         "confidence_hedge_threshold": get_confidence_hedge_threshold(),
     }
 
@@ -93,3 +87,6 @@ def process_chat(
         current_node=current_node,
         latest_user_message=latest_user_message,
     )
+
+
+__all__ = ["_post_validate_turn", "process_chat", "submit_chat_turn"]

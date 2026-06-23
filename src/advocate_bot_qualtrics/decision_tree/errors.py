@@ -1,5 +1,5 @@
-"""Decision tree errors."""
+"""Compatibility shim — use advocate_bot_qualtrics.core.errors."""
 
+from advocate_bot_qualtrics.core.errors import ChatError
 
-class ChatError(Exception):
-    """Raised when the host app cannot safely advance the decision tree."""
+__all__ = ["ChatError"]

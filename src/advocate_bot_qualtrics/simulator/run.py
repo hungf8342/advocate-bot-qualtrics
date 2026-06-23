@@ -73,7 +73,9 @@ def run_single_simulation(
     """Drive InteractiveChatEngine with a simulated defendant."""
     _apply_session_fields_env(config.session_fields_xlsx)
 
-    engine = InteractiveChatEngine.from_fact_sheet(config.facts)
+    engine = InteractiveChatEngine.from_fact_sheet(
+        config.facts, practice_area_id=config.practice_area_id
+    )
     opening = [text for role, text in engine.transcript if role == "assistant"]
 
     result = SimulationResult(
@@ -201,9 +203,17 @@ def run_single_simulation(
     return result
 
 
+def _load_batch_facts(batch: BatchConfig):
+    if batch.practice_area_id == "consumer_debt":
+        return load_complaint_fact_sheet(batch.facts_path)
+    from advocate_bot_qualtrics.core.bundle import get_bundle
+
+    return get_bundle(batch.practice_area_id).load_facts(batch.facts_path)
+
+
 def run_batch(batch: BatchConfig, *, user_reply_generator=generate_simulator_user_reply) -> list[SimulationResult]:
     """Run one or more simulations across personas and repeats."""
-    facts = load_complaint_fact_sheet(batch.facts_path)
+    facts = _load_batch_facts(batch)
     timestamp = batch.batch_timestamp or datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     batch.output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -223,6 +233,7 @@ def run_batch(batch: BatchConfig, *, user_reply_generator=generate_simulator_use
                 write_json=batch.write_json,
                 run_index=run_index,
                 batch_timestamp=timestamp,
+                practice_area_id=batch.practice_area_id,
             )
             results.append(
                 run_single_simulation(config, user_reply_generator=user_reply_generator)

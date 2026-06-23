@@ -95,6 +95,11 @@ def main() -> int:
         default=DEFAULT_FACTS_JSON,
         help="Path to ComplaintFactSheet JSON",
     )
+    parser.add_argument(
+        "--practice-area",
+        default="consumer_debt",
+        help="Practice area bundle id (default: consumer_debt)",
+    )
     parser.add_argument("--persona", default=None, help="Inline role-play instructions")
     parser.add_argument("--persona-file", type=Path, default=None, help="Persona text file")
     parser.add_argument(
@@ -141,6 +146,7 @@ def main() -> int:
     is_single = len(personas) == 1 and args.repeat == 1
     batch = BatchConfig(
         facts_path=args.facts_json.resolve(),
+        practice_area_id=args.practice_area,
         personas=personas,
         session_fields_xlsx=args.session_fields_xlsx.resolve(),
         output_dir=args.output_dir.resolve(),
@@ -153,14 +159,16 @@ def main() -> int:
     )
 
     if is_single and args.output is not None:
-        from advocate_bot_qualtrics.fact_sheet_io import load_complaint_fact_sheet
+        from advocate_bot_qualtrics.core.bundle import get_bundle
         from advocate_bot_qualtrics.simulator.run import run_single_simulation
         from advocate_bot_qualtrics.simulator.schemas import SimulationConfig
 
+        area = get_bundle(batch.practice_area_id)
         slug, text, _source = personas[0]
         config = SimulationConfig(
-            facts=load_complaint_fact_sheet(batch.facts_path),
+            facts=area.load_facts(batch.facts_path),
             facts_path=batch.facts_path,
+            practice_area_id=batch.practice_area_id,
             persona=text,
             persona_slug=slug,
             session_fields_xlsx=batch.session_fields_xlsx,

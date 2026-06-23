@@ -14,6 +14,20 @@ cp .env.example .env
 
 Default model: `claude-sonnet-4-6` (override with `ANTHROPIC_MODEL` in `.env`).
 
+## Architecture: core vs practice areas
+
+The interactive chat loop (LLM routing, confidence hedges, hook draining, Excel export) lives in **`src/advocate_bot_qualtrics/core/`** and is driven by a **`PracticeAreaBundle`** registered at startup. Domain-specific trees, session fields, computations, and export columns live under **`practice_areas/`**.
+
+| Layer | Role |
+|-------|------|
+| `core/bundle.py` | `PracticeAreaBundle` contract + `get_bundle(id)` registry |
+| `core/engine.py` | `InteractiveChatEngine` — subject-agnostic turn loop |
+| `core/process_chat.py` | LLM routing shim (re-exports from `decision_tree/process_chat`) |
+| `practice_areas/consumer_debt/` | Today's SOL → FDCPA tree, `ComplaintFactSheet`, prompts |
+| `decision_tree/` | **Compatibility shims** — existing imports and tests keep working |
+
+Scripts accept `--practice-area consumer_debt` (default). To add a new domain later: create `practice_areas/<id>/` with a fact sheet, tree, session hooks, and `bundle.py`, then call `register_bundle()` from that package.
+
 ## One-time JSON extraction
 
 Run once per complaint. The decision tree reads JSON only — no API key on each tree run.

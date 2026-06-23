@@ -8,8 +8,8 @@ from advocate_bot_qualtrics.config import (
     CHAT_TOOL_NAME,
     get_anthropic_chat_model,
 )
-from advocate_bot_qualtrics.decision_tree.errors import ChatError
-from advocate_bot_qualtrics.decision_tree.schemas import ChatTurnResponse
+from advocate_bot_qualtrics.core.errors import ChatError
+from advocate_bot_qualtrics.core.schemas import ChatTurnResponse
 from advocate_bot_qualtrics.llm.client import AnthropicClient
 from pydantic import ValidationError
 
