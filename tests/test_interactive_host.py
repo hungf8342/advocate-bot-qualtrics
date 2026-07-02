@@ -638,6 +638,31 @@ def test_no_date_with_parseable_estimate_is_coerced_to_submit(
 
 
 @patch("advocate_bot_qualtrics.decision_tree.interactive_host.process_chat")
+def test_pure_idk_with_parseable_date_on_date_node_does_not_skip(
+    mock_process_chat, sample_facts
+):
+    mock_process_chat.return_value = ChatTurnResponse(
+        user_intent="answer_node",
+        assistant_reply="I couldn't determine the exact date.",
+        next_node_id="no_date",
+        answer_confidence_pct=0,
+    )
+    engine = InteractiveChatEngine.from_fact_sheet(sample_facts)
+    engine.current_node_id = "get_last_payment_debt_collector"
+    engine.initial_messages()
+
+    step = engine.submit(
+        "It was around September 2024 — I'm not sure of the exact date, but it was roughly a year before the complaint was filed."
+    )
+
+    mock_process_chat.assert_called_once()
+    assert step.error is None
+    assert step.branch_id == "submit"
+    assert engine.session.last_payment_debt_collector == date(2024, 9, 15)
+    assert engine.last_outcomes["sol"] == "SOL is not an affirmative defense."
+
+
+@patch("advocate_bot_qualtrics.decision_tree.interactive_host.process_chat")
 def test_no_date_without_usable_estimate_is_not_coerced(mock_process_chat, sample_facts):
     mock_process_chat.return_value = ChatTurnResponse(
         user_intent="answer_node",

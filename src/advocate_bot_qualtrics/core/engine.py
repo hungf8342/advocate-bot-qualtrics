@@ -178,19 +178,23 @@ class InteractiveChatEngine:
     def _submit_tree_node(self, user_message: str) -> InteractiveChatStep:
         node_id = self.current_node_id
         rendered = self.bundle.render_node(node_id, self.facts, self.session)
+        parsed_from_message = self._parse_user_date_for_node(node_id, user_message)
 
         skip_branch = self.bundle.idk_skip_branch(node_id)
         if skip_branch is not None and should_apply_pure_idk_skip(
             self.transcript, user_message
         ):
-            return self._advance_on_branch(
-                node_id=node_id,
-                branch_id=skip_branch,
-                user_message=user_message,
-                confidence_pct=0,
-                skipped=True,
-                prefix_messages=[_IDK_SKIP_MESSAGE],
-            )
+            if self.bundle.is_date_submit_node(node_id) and parsed_from_message is not None:
+                pass
+            else:
+                return self._advance_on_branch(
+                    node_id=node_id,
+                    branch_id=skip_branch,
+                    user_message=user_message,
+                    confidence_pct=0,
+                    skipped=True,
+                    prefix_messages=[_IDK_SKIP_MESSAGE],
+                )
 
         payload = build_user_payload(self.transcript, user_message)
 
@@ -214,7 +218,6 @@ class InteractiveChatEngine:
             )
 
         if turn.user_intent == "answer_node" and turn.next_node_id:
-            parsed_from_message = self._parse_user_date_for_node(node_id, user_message)
             effective_branch_id = turn.next_node_id
             if turn.next_node_id == "no_date" and parsed_from_message is not None:
                 effective_branch_id = "submit"
