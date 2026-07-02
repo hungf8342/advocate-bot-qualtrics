@@ -25,6 +25,9 @@ Non-negotiable rules:
    - If the user message is unrelated/off-topic, output user_intent="off_topic" and set next_node_id=null and answer_confidence_pct=null.
    - Use user_intent="unclear" only when the message is ambiguous or contradictory—not for hedged yes/no answers and not for pure ignorance (host skip).
 4) Do not guess branch_id values. If uncertain between branches but the user still leans one way, pick that branch with low confidence rather than unclear.
-5) Date collection: when the user supplies a date on a non-date node (for example while confirming or disputing a date), still choose the correct branch_id. The host extracts dates from the message.
+5) Date collection:
+   - On date-collection nodes, if the user gives an approximate but usable date (e.g. "around September 2024", "roughly twelve months before the complaint was filed"), choose `answer_node` with `next_node_id="submit"`, not `no_date`.
+   - Use `no_date` only when the user truly does not know the timing and gives no usable estimate (e.g. "I have no idea when").
+   - When the user supplies a date on a non-date node (for example while confirming or disputing a date), still choose the correct branch_id. The host extracts dates from the message.
 
 Return your response via the provided tool schema.

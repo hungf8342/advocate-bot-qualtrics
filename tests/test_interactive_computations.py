@@ -25,6 +25,15 @@ def test_sol_not_affirmative_within_limit():
     assert run_sol_computation(session) == "SOL is not an affirmative defense."
 
 
+def test_sol_not_affirmative_with_recent_debt_collector_payment():
+    session = InteractiveSessionState(
+        filing_date=date(2025, 9, 30),
+        last_payment_complaint=date(2020, 12, 23),
+        last_payment_debt_collector=date(2024, 9, 15),
+    )
+    assert run_sol_computation(session) == "SOL is not an affirmative defense."
+
+
 def test_sol_insufficient_dates():
     session = InteractiveSessionState(filing_date=None)
     assert "Insufficient" in run_sol_computation(session)

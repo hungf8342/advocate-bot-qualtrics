@@ -10,7 +10,7 @@ from typing import Any
 from advocate_bot_qualtrics.config import get_confidence_hedge_threshold
 from advocate_bot_qualtrics.core.bundle import PracticeAreaBundle, get_bundle
 from advocate_bot_qualtrics.core.confidence import is_pure_idk, resolve_confidence_hedge_message
-from advocate_bot_qualtrics.core.dates import parse_submitted_date
+from advocate_bot_qualtrics.core.dates import ParsedDate, parse_submitted_date, parse_user_date
 from advocate_bot_qualtrics.core.errors import ChatError
 from advocate_bot_qualtrics.core.schemas import ChatTurnResponse, CurrentNode
 from advocate_bot_qualtrics.core.session import record_node_answer
@@ -24,7 +24,32 @@ _DATE_PARSE_CLARIFICATION = (
 )
 _IDK_SKIP_MESSAGE = "No problem — we'll move on."
 
+_FIRST_TURN_BARE_ABSTENTION_MAX_LEN = 40
+
 logger = logging.getLogger(__name__)
+
+
+def _is_first_user_turn(transcript: list[tuple[str, str]]) -> bool:
+    return sum(1 for role, _ in transcript if role == "user") == 1
+
+
+def _is_short_bare_abstention(user_message: str) -> bool:
+    stripped = user_message.strip()
+    if "?" in stripped:
+        return False
+    if len(stripped) > _FIRST_TURN_BARE_ABSTENTION_MAX_LEN:
+        return False
+    return is_pure_idk(stripped)
+
+
+def should_apply_pure_idk_skip(
+    transcript: list[tuple[str, str]], user_message: str
+) -> bool:
+    if not is_pure_idk(user_message):
+        return False
+    if _is_first_user_turn(transcript):
+        return _is_short_bare_abstention(user_message)
+    return True
 
 
 @dataclass
@@ -155,7 +180,9 @@ class InteractiveChatEngine:
         rendered = self.bundle.render_node(node_id, self.facts, self.session)
 
         skip_branch = self.bundle.idk_skip_branch(node_id)
-        if skip_branch is not None and is_pure_idk(user_message):
+        if skip_branch is not None and should_apply_pure_idk_skip(
+            self.transcript, user_message
+        ):
             return self._advance_on_branch(
                 node_id=node_id,
                 branch_id=skip_branch,
@@ -187,9 +214,12 @@ class InteractiveChatEngine:
             )
 
         if turn.user_intent == "answer_node" and turn.next_node_id:
-            parsed_from_message = parse_submitted_date(user_message)
+            parsed_from_message = self._parse_user_date_for_node(node_id, user_message)
+            effective_branch_id = turn.next_node_id
+            if turn.next_node_id == "no_date" and parsed_from_message is not None:
+                effective_branch_id = "submit"
 
-            if turn.next_node_id == "submit" and parsed_from_message is None:
+            if effective_branch_id == "submit" and parsed_from_message is None:
                 clarification = self._append_transcript(
                     "assistant", _DATE_PARSE_CLARIFICATION
                 )
@@ -203,12 +233,18 @@ class InteractiveChatEngine:
                 )
 
             confidence_pct = turn.answer_confidence_pct or 0
+            confidence_pct = self.bundle.adjust_date_answer_confidence(
+                self.session,
+                node_id,
+                parsed_from_message,
+                confidence_pct,
+            )
             step = self._advance_on_branch(
                 node_id=node_id,
-                branch_id=turn.next_node_id,
+                branch_id=effective_branch_id,
                 user_message=user_message,
                 confidence_pct=confidence_pct,
-                parsed_from_message=parsed_from_message,
+                parsed_from_message=parsed_from_message.value if parsed_from_message else None,
                 prefix_messages=self._hedge_prefix_messages(
                     turn.assistant_reply, confidence_pct
                 ),
@@ -228,6 +264,20 @@ class InteractiveChatEngine:
             tree_complete=self.tree_complete,
             user_intent=turn.user_intent,
             branch_id=turn.next_node_id,
+        )
+
+    def _parse_user_date_for_node(
+        self, node_id: str, user_message: str
+    ) -> ParsedDate | None:
+        if not self.bundle.is_date_submit_node(node_id):
+            exact = parse_submitted_date(user_message)
+            if exact is None:
+                return None
+            return ParsedDate(value=exact, approximate=False, source="exact")
+
+        return parse_user_date(
+            user_message,
+            anchor_date=getattr(self.session, "filing_date", None),
         )
 
     def _hedge_prefix_messages(

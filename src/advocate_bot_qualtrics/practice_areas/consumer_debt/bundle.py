@@ -16,6 +16,9 @@ from advocate_bot_qualtrics.practice_areas.consumer_debt.computations import (
     run_fdcpa_computation,
     run_sol_computation,
 )
+from advocate_bot_qualtrics.practice_areas.consumer_debt.date_confidence import (
+    adjust_date_answer_confidence,
+)
 from advocate_bot_qualtrics.practice_areas.consumer_debt.fact_sheet import ComplaintFactSheet
 from advocate_bot_qualtrics.practice_areas.consumer_debt.field_export import append_session_fields_row
 from advocate_bot_qualtrics.practice_areas.consumer_debt.host_extras import (
@@ -32,6 +35,7 @@ from advocate_bot_qualtrics.practice_areas.consumer_debt.session import (
     advance_from_hook,
     apply_interactive_branch,
     init_session_from_fact_sheet,
+    is_date_submit_node,
     is_interactive_hook_node,
 )
 from advocate_bot_qualtrics.practice_areas.consumer_debt.tree import (
@@ -70,7 +74,9 @@ def get_bundle() -> PracticeAreaBundle:
         init_session=init_session_from_fact_sheet,
         is_hook_node=is_interactive_hook_node,
         advance_from_hook=advance_from_hook,
+        is_date_submit_node=is_date_submit_node,
         apply_branch=apply_interactive_branch,
+        adjust_date_answer_confidence=adjust_date_answer_confidence,
         resolve_next_node=resolve_interactive_next_node,
         idk_skip_branch=idk_skip_branch_for_node,
         run_hook=_run_hook,

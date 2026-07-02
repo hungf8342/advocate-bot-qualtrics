@@ -9,7 +9,9 @@ from advocate_bot_qualtrics.decision_tree.interactive_host import (
     InteractiveChatEngine,
     build_user_payload,
     parse_submitted_date,
+    parse_user_date,
     render_interactive_node,
+    should_apply_pure_idk_skip,
 )
 from advocate_bot_qualtrics.decision_tree.schemas import ChatTurnResponse
 from advocate_bot_qualtrics.schemas.complaint_fact_sheet import ComplaintFactSheet
@@ -87,6 +89,25 @@ def test_parse_submitted_date_picks_latest_when_multiple():
     assert parse_submitted_date("paid 01/01/2020 and again on 01/04/2024") == date(
         2024, 1, 4
     )
+
+
+def test_parse_user_date_supports_approximate_dates():
+    parsed = parse_user_date("It was around September 2024.")
+    assert parsed is not None
+    assert parsed.value == date(2024, 9, 15)
+    assert parsed.approximate is True
+    assert parsed.source == "month_year"
+
+
+def test_parse_user_date_supports_relative_anchor_dates():
+    parsed = parse_user_date(
+        "It was roughly twelve months before the complaint was filed.",
+        anchor_date=date(2025, 9, 30),
+    )
+    assert parsed is not None
+    assert parsed.value == date(2024, 9, 15)
+    assert parsed.approximate is True
+    assert parsed.source == "relative_to_anchor"
 
 
 def test_build_user_payload_caps_transcript():
@@ -455,6 +476,68 @@ def test_pure_idk_on_confirm_skips_with_zero_confidence(mock_process_chat, sampl
 
 
 @patch("advocate_bot_qualtrics.decision_tree.interactive_host.process_chat")
+def test_first_turn_generic_opener_does_not_pure_idk_skip(
+    mock_process_chat, sample_facts
+):
+    mock_process_chat.return_value = ChatTurnResponse(
+        user_intent="unclear",
+        assistant_reply="Could you confirm whether the filing date matches your records?",
+        next_node_id=None,
+    )
+    engine = InteractiveChatEngine.from_fact_sheet(sample_facts)
+    engine.initial_messages()
+
+    step = engine.submit(
+        "Hi, I just got served with a lawsuit and I'm not sure what to do. Can you help me?"
+    )
+
+    mock_process_chat.assert_called_once()
+    assert engine.current_node_id == "confirm_filing_date"
+    assert "confirm_filing_date" not in engine.session.node_answers
+    assert step.error is None
+
+
+@patch("advocate_bot_qualtrics.decision_tree.interactive_host.process_chat")
+def test_first_turn_ask_about_complaint_stays_on_filing_node(
+    mock_process_chat, sample_facts
+):
+    mock_process_chat.return_value = ChatTurnResponse(
+        user_intent="ask_about_complaint",
+        assistant_reply="The filing date is when the lawsuit papers were officially filed.",
+        next_node_id=None,
+    )
+    engine = InteractiveChatEngine.from_fact_sheet(sample_facts)
+    engine.initial_messages()
+
+    step = engine.submit("What does filing date mean?")
+
+    assert engine.current_node_id == "confirm_filing_date"
+    assert len(step.assistant_messages) == 2
+    assert "2025-09-30" in step.assistant_messages[1]
+
+
+def test_should_apply_pure_idk_skip_first_turn_rules():
+    transcript = [("assistant", "Is the filing date 2025-09-30?"), ("user", "help")]
+
+    assert not should_apply_pure_idk_skip(
+        transcript,
+        "I'm not sure what to do. Can you help me?",
+    )
+    assert should_apply_pure_idk_skip(transcript, "I don't know.")
+    assert should_apply_pure_idk_skip(transcript, "Not sure.")
+
+
+def test_should_apply_pure_idk_skip_later_turn_unchanged():
+    transcript = [
+        ("assistant", "Q1"),
+        ("user", "yes"),
+        ("assistant", "Q2"),
+        ("user", "maybe"),
+    ]
+    assert should_apply_pure_idk_skip(transcript, "I'm not sure.")
+
+
+@patch("advocate_bot_qualtrics.decision_tree.interactive_host.process_chat")
 def test_low_confidence_shows_llm_hedge_before_next_question(mock_process_chat, sample_facts):
     hedge = (
         "You didn't sound fully sure, but we'll treat that as confirming the filing date."
@@ -530,6 +613,83 @@ def test_yes_with_embedded_date_saves_and_skips_date_node(mock_process_chat, sam
         "threatening_arrest"
     )
     assert step.error is None
+
+
+@patch("advocate_bot_qualtrics.decision_tree.interactive_host.process_chat")
+def test_no_date_with_parseable_estimate_is_coerced_to_submit(
+    mock_process_chat, sample_facts
+):
+    mock_process_chat.return_value = ChatTurnResponse(
+        user_intent="answer_node",
+        assistant_reply="I couldn't determine the exact date.",
+        next_node_id="no_date",
+        answer_confidence_pct=0,
+    )
+    engine = InteractiveChatEngine.from_fact_sheet(sample_facts)
+    engine.current_node_id = "get_last_payment_debt_collector"
+    engine.initial_messages()
+
+    step = engine.submit("It was around September 2024.")
+
+    assert step.error is None
+    assert step.branch_id == "submit"
+    assert engine.session.last_payment_debt_collector == date(2024, 9, 15)
+    assert engine.last_outcomes["sol"] == "SOL is not an affirmative defense."
+
+
+@patch("advocate_bot_qualtrics.decision_tree.interactive_host.process_chat")
+def test_no_date_without_usable_estimate_is_not_coerced(mock_process_chat, sample_facts):
+    mock_process_chat.return_value = ChatTurnResponse(
+        user_intent="answer_node",
+        assistant_reply="I couldn't determine the date.",
+        next_node_id="no_date",
+        answer_confidence_pct=0,
+    )
+    engine = InteractiveChatEngine.from_fact_sheet(sample_facts)
+    engine.current_node_id = "get_last_payment_debt_collector"
+    engine.initial_messages()
+
+    step = engine.submit("I made another payment, but I honestly have no idea when.")
+
+    assert step.error is None
+    assert step.branch_id == "no_date"
+    assert engine.session.last_payment_debt_collector is None
+
+
+@patch("advocate_bot_qualtrics.decision_tree.interactive_host.process_chat")
+def test_approximate_date_gets_confidence_penalty(mock_process_chat, sample_facts):
+    mock_process_chat.return_value = ChatTurnResponse(
+        user_intent="answer_node",
+        assistant_reply="Got it.",
+        next_node_id="submit",
+        answer_confidence_pct=90,
+    )
+    engine = InteractiveChatEngine.from_fact_sheet(sample_facts)
+    engine.current_node_id = "get_last_payment_debt_collector"
+    engine.initial_messages()
+
+    step = engine.submit("It was around September 2024.")
+
+    assert step.confidence_pct == 75
+
+
+@patch("advocate_bot_qualtrics.decision_tree.interactive_host.process_chat")
+def test_near_threshold_approximate_date_gets_extra_penalty(
+    mock_process_chat, sample_facts
+):
+    mock_process_chat.return_value = ChatTurnResponse(
+        user_intent="answer_node",
+        assistant_reply="Got it.",
+        next_node_id="submit",
+        answer_confidence_pct=90,
+    )
+    engine = InteractiveChatEngine.from_fact_sheet(sample_facts)
+    engine.current_node_id = "get_last_payment_debt_collector"
+    engine.initial_messages()
+
+    step = engine.submit("It was around September 2022.")
+
+    assert step.confidence_pct == 55
 
 
 def test_set_tree_complete_exports_once(sample_facts, tmp_path, monkeypatch):

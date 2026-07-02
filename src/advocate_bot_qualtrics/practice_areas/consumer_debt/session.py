@@ -61,6 +61,10 @@ def advance_from_hook(node_id: str) -> str | None:
     return INTERACTIVE_HOOK_ADVANCES.get(node_id)
 
 
+def is_date_submit_node(node_id: str) -> bool:
+    return node_id in _DATE_SUBMIT_NODES
+
+
 def apply_interactive_branch(
     session: InteractiveSessionState,
     node_id: str,
@@ -93,6 +97,7 @@ __all__ = [
     "advance_from_hook",
     "apply_interactive_branch",
     "init_session_from_fact_sheet",
+    "is_date_submit_node",
     "is_interactive_hook_node",
     "record_node_answer",
 ]

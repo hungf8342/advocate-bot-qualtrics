@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
 from pathlib import Path
 from typing import Any, Callable
 
@@ -27,7 +26,9 @@ class PracticeAreaBundle:
     init_session: Callable[[Any], Any]
     is_hook_node: Callable[[str], bool]
     advance_from_hook: Callable[[str], str | None]
+    is_date_submit_node: Callable[[str], bool]
     apply_branch: Callable[..., None]
+    adjust_date_answer_confidence: Callable[..., int]
     resolve_next_node: Callable[..., str | None]
     idk_skip_branch: Callable[[str], str | None]
     run_hook: Callable[[Any, str], str]
