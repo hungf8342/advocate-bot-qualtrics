@@ -9,7 +9,10 @@ from typing import Any
 
 from advocate_bot_qualtrics.config import get_confidence_hedge_threshold
 from advocate_bot_qualtrics.core.bundle import PracticeAreaBundle, get_bundle
-from advocate_bot_qualtrics.core.confidence import is_pure_idk, resolve_confidence_hedge_message
+from advocate_bot_qualtrics.core.confidence import (
+    is_bare_idk_abstention,
+    resolve_confidence_hedge_message,
+)
 from advocate_bot_qualtrics.core.dates import ParsedDate, parse_submitted_date, parse_user_date
 from advocate_bot_qualtrics.core.errors import ChatError
 from advocate_bot_qualtrics.core.schemas import ChatTurnResponse, CurrentNode
@@ -24,32 +27,14 @@ _DATE_PARSE_CLARIFICATION = (
 )
 _IDK_SKIP_MESSAGE = "No problem — we'll move on."
 
-_FIRST_TURN_BARE_ABSTENTION_MAX_LEN = 40
-
 logger = logging.getLogger(__name__)
-
-
-def _is_first_user_turn(transcript: list[tuple[str, str]]) -> bool:
-    return sum(1 for role, _ in transcript if role == "user") == 1
-
-
-def _is_short_bare_abstention(user_message: str) -> bool:
-    stripped = user_message.strip()
-    if "?" in stripped:
-        return False
-    if len(stripped) > _FIRST_TURN_BARE_ABSTENTION_MAX_LEN:
-        return False
-    return is_pure_idk(stripped)
 
 
 def should_apply_pure_idk_skip(
     transcript: list[tuple[str, str]], user_message: str
 ) -> bool:
-    if not is_pure_idk(user_message):
-        return False
-    if _is_first_user_turn(transcript):
-        return _is_short_bare_abstention(user_message)
-    return True
+    del transcript
+    return is_bare_idk_abstention(user_message)
 
 
 @dataclass

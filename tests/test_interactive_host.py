@@ -537,6 +537,57 @@ def test_should_apply_pure_idk_skip_later_turn_unchanged():
     assert should_apply_pure_idk_skip(transcript, "I'm not sure.")
 
 
+def test_should_apply_pure_idk_skip_rejects_substantive_idk_messages():
+    transcript = [
+        ("assistant", "Q1"),
+        ("user", "yes"),
+        ("assistant", "Q2"),
+        ("user", "maybe"),
+    ]
+    assert not should_apply_pure_idk_skip(
+        transcript,
+        (
+            "I don't have a recording or anything like that, but I might have some old "
+            "text messages or voicemails from them. I'd have to dig through my phone to "
+            "check. I definitely remember the call where they threatened jail, but I'm "
+            "not sure if I saved anything from it."
+        ),
+    )
+    assert not should_apply_pure_idk_skip(transcript, "I don't know when")
+
+
+@patch("advocate_bot_qualtrics.decision_tree.interactive_host.process_chat")
+def test_hedged_evidence_answer_does_not_pure_idk_skip(mock_process_chat, sample_facts):
+    hedge = (
+        "You weren't certain about saved evidence, but we'll proceed as if you do not "
+        "have written or recorded proof of the collector's bad behavior."
+    )
+    mock_process_chat.return_value = ChatTurnResponse(
+        user_intent="answer_node",
+        assistant_reply=hedge,
+        next_node_id="no",
+        answer_confidence_pct=65,
+    )
+    engine = InteractiveChatEngine.from_fact_sheet(sample_facts)
+    engine.current_node_id = "record_bad_behavior"
+    engine.initial_messages()
+
+    step = engine.submit(
+        "I don't have a recording or anything like that, but I might have some old "
+        "text messages or voicemails from them. I'd have to dig through my phone to "
+        "check. I definitely remember the call where they threatened jail, but I'm "
+        "not sure if I saved anything from it."
+    )
+
+    mock_process_chat.assert_called_once()
+    assert step.error is None
+    assert step.branch_id == "no"
+    record = engine.session.node_answers["record_bad_behavior"]
+    assert record.confidence_pct == 65
+    assert record.skipped is False
+    assert step.assistant_messages[0] == hedge
+
+
 @patch("advocate_bot_qualtrics.decision_tree.interactive_host.process_chat")
 def test_low_confidence_shows_llm_hedge_before_next_question(mock_process_chat, sample_facts):
     hedge = (

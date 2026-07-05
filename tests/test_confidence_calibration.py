@@ -3,6 +3,7 @@ from advocate_bot_qualtrics.decision_tree.confidence import (
     GENERIC_HEDGE_FALLBACK,
     clamp_answer_confidence,
     extract_latest_user_message,
+    is_bare_idk_abstention,
     is_pure_idk,
     is_valid_hedge_reply,
     resolve_confidence_hedge_message,
@@ -34,6 +35,30 @@ def test_is_pure_idk_without_lean():
     assert is_pure_idk("Not sure.")
     assert not is_pure_idk("I'm not sure but yes")
     assert not is_pure_idk("I think yes")
+
+
+TURN_9_EVIDENCE_MESSAGE = (
+    "I don't have a recording or anything like that, but I might have some old text "
+    "messages or voicemails from them. I'd have to dig through my phone to check. "
+    "I definitely remember the call where they threatened jail, but I'm not sure if "
+    "I saved anything from it."
+)
+
+
+def test_is_bare_idk_abstention_matches_exact_phrases():
+    assert is_bare_idk_abstention("I don't know")
+    assert is_bare_idk_abstention("Not sure.")
+    assert is_bare_idk_abstention("I'm not sure.")
+    assert is_bare_idk_abstention("unsure")
+    assert is_bare_idk_abstention("no clue")
+
+
+def test_is_bare_idk_abstention_rejects_substantive_messages():
+    assert not is_bare_idk_abstention(TURN_9_EVIDENCE_MESSAGE)
+    assert not is_bare_idk_abstention("I'm not sure but yes")
+    assert not is_bare_idk_abstention("I'm not sure what to do. Can you help me?")
+    assert not is_bare_idk_abstention("I don't know when")
+    assert not is_bare_idk_abstention("Not sure?")
 
 
 def test_to_single_sentence():

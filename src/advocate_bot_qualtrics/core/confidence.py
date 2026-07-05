@@ -34,6 +34,19 @@ _IDK_STRIP_FOR_NO = (
     "i don't know",
     "i dont know",
 )
+_BARE_IDK_ABSTENTION_PHRASES = frozenset(
+    {
+        "i dont know",
+        "dont know",
+        "no idea",
+        "not sure",
+        "im not sure",
+        "unsure",
+        "cant tell",
+        "no clue",
+    }
+)
+_NORMALIZE_BARE_ABSTENTION_RE = re.compile(r"[^\w\s]")
 
 
 def extract_latest_user_message(payload: str) -> str:
@@ -53,6 +66,20 @@ def clamp_answer_confidence(text: str, confidence_pct: int) -> int:
     if contains_hedge_words_for_clamp(text):
         return min(confidence_pct, HEDGE_CLAMP_MAX)
     return confidence_pct
+
+
+def _normalize_bare_abstention(text: str) -> str:
+    lowered = text.lower().strip().replace("'", "").replace("’", "")
+    cleaned = _NORMALIZE_BARE_ABSTENTION_RE.sub(" ", lowered)
+    return " ".join(cleaned.split())
+
+
+def is_bare_idk_abstention(text: str) -> bool:
+    """True only for exact bare ignorance phrases eligible for host skip."""
+    stripped = text.strip()
+    if not stripped or "?" in stripped:
+        return False
+    return _normalize_bare_abstention(stripped) in _BARE_IDK_ABSTENTION_PHRASES
 
 
 def has_directional_lean(text: str) -> bool:
