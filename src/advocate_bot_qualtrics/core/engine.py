@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Any
 
-from advocate_bot_qualtrics.config import get_confidence_hedge_threshold
+from advocate_bot_qualtrics.config import get_chat_api_key_hint, get_confidence_hedge_threshold
 from advocate_bot_qualtrics.core.bundle import PracticeAreaBundle, get_bundle
 from advocate_bot_qualtrics.core.confidence import (
     is_bare_idk_abstention,
@@ -199,7 +199,7 @@ class InteractiveChatEngine:
                 assistant_messages=[],
                 current_node_id=self.current_node_id,
                 tree_complete=self.tree_complete,
-                error=f"API error: {exc}. Check ANTHROPIC_API_KEY and retry.",
+                error=f"API error: {exc}. {get_chat_api_key_hint()}",
             )
 
         if turn.user_intent == "answer_node" and turn.next_node_id:
@@ -368,7 +368,7 @@ class InteractiveChatEngine:
                 assistant_messages=[],
                 current_node_id=self.current_node_id,
                 tree_complete=True,
-                error=f"API error: {exc}. Check ANTHROPIC_API_KEY and retry.",
+                error=f"API error: {exc}. {get_chat_api_key_hint()}",
             )
 
         reply = self._append_transcript("assistant", turn.assistant_reply)

@@ -25,6 +25,9 @@ MAX_COMPLAINT_CHARS = 100_000
 DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-6"
 DEFAULT_ANTHROPIC_CHAT_MODEL = "claude-haiku-4-5-20251001"
 DEFAULT_OPENAI_MODEL = "gpt-4o-2024-08-06"
+DEFAULT_ZAI_BASE_URL = "https://api.z.ai/api/paas/v4/"
+DEFAULT_ZAI_CHAT_MODEL = "glm-5.2"
+DEFAULT_CHAT_PROVIDER = "zai"
 
 TOOL_NAME = "submit_complaint_fact_sheet"
 CHAT_TOOL_NAME = "submit_chat_turn"
@@ -49,8 +52,31 @@ def load_system_prompt() -> str:
 
 
 def get_anthropic_chat_model() -> str:
-    """Chat model used by the decision-tree engine."""
+    """Chat model used by the decision-tree engine (Anthropic path; currently commented out)."""
     return os.getenv("ANTHROPIC_CHAT_MODEL", DEFAULT_ANTHROPIC_CHAT_MODEL)
+
+
+def get_chat_provider() -> str:
+    """Decision-tree chat router: ``zai`` (default) or ``anthropic``."""
+    return os.getenv("CHAT_PROVIDER", DEFAULT_CHAT_PROVIDER).strip().lower()
+
+
+def get_zai_api_key() -> str:
+    return os.getenv("ZAI_API_KEY", "").strip()
+
+
+def get_zai_chat_model() -> str:
+    return os.getenv("ZAI_CHAT_MODEL", DEFAULT_ZAI_CHAT_MODEL)
+
+
+def get_zai_base_url() -> str:
+    return os.getenv("ZAI_BASE_URL", DEFAULT_ZAI_BASE_URL).strip()
+
+
+def get_chat_api_key_hint() -> str:
+    if get_chat_provider() == "anthropic":
+        return "Check ANTHROPIC_API_KEY and retry."
+    return "Check ZAI_API_KEY and retry."
 
 
 def load_chat_system_prompt() -> str:

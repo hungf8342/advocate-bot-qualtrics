@@ -8,7 +8,7 @@ Simulator code lives in `src/advocate_bot_qualtrics/simulator/` and is intention
 
 ```bash
 pip install -e .
-# Requires ANTHROPIC_API_KEY in .env (two LLM calls per user turn)
+# Requires ANTHROPIC_API_KEY (simulator defendant) and ZAI_API_KEY (tree router) in .env
 
 python scripts/run_interactive_simulator.py \
   --persona "Pretend you're a defendant who needs lots of terms explained."
@@ -75,7 +75,8 @@ When a persona combines an **answer with a related term question** (e.g. "Yes, b
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `SIMULATOR_USER_MODEL` | `ANTHROPIC_MODEL` (`claude-sonnet-4-6`) | Simulated defendant LLM |
-| `ANTHROPIC_CHAT_MODEL` | Haiku | Production tree router (unchanged) |
+| `CHAT_PROVIDER` / `ZAI_CHAT_MODEL` | `zai` / `glm-5.2` | Production tree router (Z.ai GLM) |
+| `ANTHROPIC_CHAT_MODEL` | Haiku | Previous router (disabled; see `chat_structured.py`) |
 | `SESSION_FIELDS_XLSX_PATH` | set per run by CLI | Excel append target |
 
 ## Separation from production
