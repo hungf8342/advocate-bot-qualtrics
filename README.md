@@ -28,6 +28,22 @@ The interactive chat loop (LLM routing, confidence hedges, hook draining, Excel 
 
 Scripts accept `--practice-area consumer_debt` (default). To add a new domain later: create `practice_areas/<id>/` with a fact sheet, tree, session hooks, and `bundle.py`, then call `register_bundle()` from that package.
 
+### Declarative interactive trees
+
+The consumer-debt interactive tree is defined in
+[`interactive_tree.yaml`](src/advocate_bot_qualtrics/practice_areas/consumer_debt/interactive_tree.yaml)
+and validated at startup. Each node declares its `kind`, prompt, permitted
+branches, and explicit branch targets. Input nodes additionally declare their
+field and type; action nodes name a deterministic host-side action and their
+next node. This makes `yes`/`no` branch identifiers stable strings—not routing
+or input-type conventions—and gives future practice areas an editor-friendly
+tree format.
+
+The existing Python bundle remains responsible for consumer-debt calculations,
+state updates, rendering, and exports during the incremental migration. Do not
+edit the compatibility constants in `tree.py`; edit the YAML definition and
+run `pytest` instead.
+
 ## One-time JSON extraction
 
 Run once per complaint. The decision tree reads JSON only — no API key on each tree run.

@@ -1,0 +1,125 @@
+id: consumer_debt_interactive
+version: 1.0.0
+start_node_id: confirm_filing_date
+nodes:
+  - id: confirm_filing_date
+    kind: choice
+    question: "Is the filing date of the complaint {date_complaint_filed}?"
+    idk_skip_branch_id: yes
+    branches:
+      - {id: yes, label: "Yes, that is the filing date.", target: confirm_last_payment_complaint}
+      - {id: no, label: "No, that is not the filing date shown in the complaint.", target: different_complaint_filing}
+  - id: different_complaint_filing
+    kind: choice
+    question: "Are you possibly looking at a different complaint?"
+    idk_skip_branch_id: no
+    branches:
+      - {id: yes, label: "Yes, I may be looking at a different complaint.", target: confirm_filing_date}
+      - id: no
+        label: "No, this is the same complaint; the filing date is wrong."
+        target: get_filing_date
+        embedded_input: {field: filing_date, type: date}
+  - id: get_filing_date
+    kind: input
+    question: "What is the correct filing date of the complaint?"
+    idk_skip_branch_id: no_date
+    input: {field: filing_date, type: date, valid_branch_id: submit, unknown_branch_id: no_date}
+    branches:
+      - {id: submit, label: "The filing date submitted by the user, in YYYY-MM-DD format.", target: confirm_last_payment_complaint}
+      - {id: no_date, label: "I don't know the filing date.", target: confirm_last_payment_complaint}
+  - id: confirm_last_payment_complaint
+    kind: choice
+    question: "Is the last time you made a compliant payment to the original creditor {date_user_failed_to_pay}?"
+    idk_skip_branch_id: yes
+    branches:
+      - {id: yes, label: "Yes, that is the last payment date.", target: additional_payment_OG_creditor}
+      - {id: no, label: "No, that is not the last payment date shown in the complaint.", target: different_complaint_last_payment}
+  - id: different_complaint_last_payment
+    kind: choice
+    question: "Are you possibly looking at a different complaint?"
+    idk_skip_branch_id: no
+    branches:
+      - {id: yes, label: "Yes, I may be looking at a different complaint.", target: confirm_filing_date}
+      - id: no
+        label: "No, this is the same complaint; the last payment date is wrong."
+        target: get_last_payment_complaint
+        embedded_input: {field: last_payment_complaint, type: date}
+  - id: get_last_payment_complaint
+    kind: input
+    question: "What is the correct last payment date per your records?"
+    idk_skip_branch_id: no_date
+    input: {field: last_payment_complaint, type: date, valid_branch_id: submit, unknown_branch_id: no_date}
+    branches:
+      - {id: submit, label: "The last payment date submitted by the user, in YYYY-MM-DD format.", target: additional_payment_OG_creditor}
+      - {id: no_date, label: "I don't know the last payment date.", target: additional_payment_OG_creditor}
+  - id: additional_payment_OG_creditor
+    kind: choice
+    question: "Did you make additional payments afterwards to the original creditor?"
+    idk_skip_branch_id: no
+    branches:
+      - id: yes
+        label: "Yes, I made additional payments to the original creditor."
+        target: get_last_payment_OG_creditor
+        embedded_input: {field: last_payment_og_creditor, type: date}
+      - {id: no, label: "No, I did not make additional payments to the original creditor.", target: additional_payment_debt_collector}
+  - id: get_last_payment_OG_creditor
+    kind: input
+    question: "When did you make the last additional payment to the original creditor?"
+    idk_skip_branch_id: no_date
+    input: {field: last_payment_og_creditor, type: date, valid_branch_id: submit, unknown_branch_id: no_date}
+    branches:
+      - {id: submit, label: "The date submitted by the user, in YYYY-MM-DD format.", target: additional_payment_debt_collector}
+      - {id: no_date, label: "I don't know the date.", target: additional_payment_debt_collector}
+  - id: additional_payment_debt_collector
+    kind: choice
+    question: "Did you make additional payments afterwards to the debt collector?"
+    idk_skip_branch_id: no
+    branches:
+      - id: yes
+        label: "Yes, I made additional payments to the debt collector."
+        target: get_last_payment_debt_collector
+        embedded_input: {field: last_payment_debt_collector, type: date}
+      - {id: no, label: "No, I did not make additional payments to the debt collector.", target: sol_computation}
+  - id: get_last_payment_debt_collector
+    kind: input
+    question: "When did you make the last additional payment to the debt collector?"
+    idk_skip_branch_id: no_date
+    input: {field: last_payment_debt_collector, type: date, valid_branch_id: submit, unknown_branch_id: no_date}
+    branches:
+      - {id: submit, label: "The date submitted by the user, in YYYY-MM-DD format.", target: sol_computation}
+      - {id: no_date, label: "I don't know the date.", target: sol_computation}
+  - id: sol_computation
+    kind: action
+    action: calculate_statute_of_limitations
+    question: "Computing statute of limitations: compare the complaint filing date to the most recent payment date (complaint, original creditor, or debt collector) and check whether more than 3 years have passed."
+    next: threatening_arrest
+  - id: threatening_arrest
+    kind: choice
+    question: "Did the debt collector threaten that you could be arrested for not paying your debt?"
+    idk_skip_branch_id: no
+    branches:
+      - {id: yes, label: "Yes, the debt collector threatened that I could be arrested.", target: contact_third_parties}
+      - {id: no, label: "No, the debt collector did not threaten arrest.", target: contact_third_parties}
+  - id: contact_third_parties
+    kind: choice
+    question: "Did the debt collector disclose your debt to third parties like your family or friends without your permission?"
+    idk_skip_branch_id: no
+    branches:
+      - {id: yes, label: "Yes, the debt collector disclosed my debt to a third party.", target: record_bad_behavior}
+      - {id: no, label: "No, the debt collector did not disclose my debt to third parties.", target: record_bad_behavior}
+  - id: record_bad_behavior
+    kind: choice
+    question: "Do you have written or recorded evidence of the debt collector's bad behavior?"
+    idk_skip_branch_id: no
+    branches:
+      - {id: yes, label: "Yes, I have written or recorded evidence.", target: fdcpa_computation}
+      - {id: no, label: "No, I do not have written or recorded evidence.", target: fdcpa_computation}
+  - id: fdcpa_computation
+    kind: action
+    action: calculate_fdcpa_assessment
+    question: "Computing FDCPA defense strength from arrest threats, third-party disclosures, and whether written or recorded evidence exists."
+    next: review_questions
+  - id: review_questions
+    kind: terminal
+    terminal_qa: true
+    question: "Any questions before we summarize next steps?"

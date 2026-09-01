@@ -8,6 +8,7 @@ dependencies = [
   "openai>=1.40.0",
   "pydantic>=2.7.0",
   "python-dotenv>=1.0.1",
+  "PyYAML>=6.0.0",
   "pypdf>=6.12.2",
   "openpyxl>=3.1.0",
 ]
@@ -27,6 +28,9 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"advocate_bot_qualtrics.practice_areas.consumer_debt" = ["*.yaml"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

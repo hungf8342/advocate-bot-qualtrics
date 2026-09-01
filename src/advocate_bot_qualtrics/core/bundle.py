@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from advocate_bot_qualtrics.core.schemas import CurrentNode
+from advocate_bot_qualtrics.core.tree_definition import TreeDefinition
 
 
 @dataclass(frozen=True)
@@ -14,6 +15,7 @@ class PracticeAreaBundle:
     """Wires a subject-specific decision tree into the generic junction engine."""
 
     id: str
+    tree: TreeDefinition
     start_node_id: str
     terminal_node_id: str
     facts_payload_key: str

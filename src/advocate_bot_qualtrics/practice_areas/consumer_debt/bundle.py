@@ -40,6 +40,7 @@ from advocate_bot_qualtrics.practice_areas.consumer_debt.session import (
 )
 from advocate_bot_qualtrics.practice_areas.consumer_debt.tree import (
     INTERACTIVE_START_NODE_ID,
+    INTERACTIVE_TREE_DEFINITION,
     idk_skip_branch_for_node,
     resolve_interactive_next_node,
 )
@@ -47,8 +48,8 @@ from advocate_bot_qualtrics.practice_areas.consumer_debt.tree import (
 TERMINAL_NODE_ID = "review_questions"
 
 
-def _run_hook(session: object, node_id: str) -> str:
-    if node_id == "sol_computation":
+def _run_hook(session: object, action: str) -> str:
+    if action in {"sol_computation", "calculate_statute_of_limitations"}:
         return run_sol_computation(session)
     return run_fdcpa_computation(session)
 
@@ -64,6 +65,7 @@ def _load_facts(path: Path | str) -> ComplaintFactSheet:
 def get_bundle() -> PracticeAreaBundle:
     return PracticeAreaBundle(
         id="consumer_debt",
+        tree=INTERACTIVE_TREE_DEFINITION,
         start_node_id=INTERACTIVE_START_NODE_ID,
         terminal_node_id=TERMINAL_NODE_ID,
         facts_payload_key="complaint_fact_sheet",

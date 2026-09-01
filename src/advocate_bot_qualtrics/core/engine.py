@@ -147,7 +147,7 @@ class InteractiveChatEngine:
 
         self._append_transcript("user", user_message)
 
-        if self.bundle.is_hook_node(self.current_node_id):
+        if self._current_node_definition().kind == "action":
             messages = self._drain_hooks()
             return InteractiveChatStep(
                 assistant_messages=messages,
@@ -155,7 +155,7 @@ class InteractiveChatEngine:
                 tree_complete=self.tree_complete,
             )
 
-        if self.current_node_id == self.bundle.terminal_node_id:
+        if self._current_node_definition().terminal_qa:
             return self._submit_terminal_qa(user_message)
 
         return self._submit_tree_node(user_message)
@@ -165,11 +165,12 @@ class InteractiveChatEngine:
         rendered = self.bundle.render_node(node_id, self.facts, self.session)
         parsed_from_message = self._parse_user_date_for_node(node_id, user_message)
 
-        skip_branch = self.bundle.idk_skip_branch(node_id)
+        definition = self.bundle.tree.node(node_id)
+        skip_branch = definition.idk_skip_branch_id
         if skip_branch is not None and should_apply_pure_idk_skip(
             self.transcript, user_message
         ):
-            if self.bundle.is_date_submit_node(node_id) and parsed_from_message is not None:
+            if definition.kind == "input" and parsed_from_message is not None:
                 pass
             else:
                 return self._advance_on_branch(
@@ -204,10 +205,18 @@ class InteractiveChatEngine:
 
         if turn.user_intent == "answer_node" and turn.next_node_id:
             effective_branch_id = turn.next_node_id
-            if turn.next_node_id == "no_date" and parsed_from_message is not None:
-                effective_branch_id = "submit"
+            if (
+                definition.input is not None
+                and turn.next_node_id == definition.input.unknown_branch_id
+                and parsed_from_message is not None
+            ):
+                effective_branch_id = definition.input.valid_branch_id
 
-            if effective_branch_id == "submit" and parsed_from_message is None:
+            if (
+                definition.input is not None
+                and effective_branch_id == definition.input.valid_branch_id
+                and parsed_from_message is None
+            ):
                 clarification = self._append_transcript(
                     "assistant", _DATE_PARSE_CLARIFICATION
                 )
@@ -257,16 +266,24 @@ class InteractiveChatEngine:
     def _parse_user_date_for_node(
         self, node_id: str, user_message: str
     ) -> ParsedDate | None:
-        if not self.bundle.is_date_submit_node(node_id):
-            exact = parse_submitted_date(user_message)
-            if exact is None:
-                return None
-            return ParsedDate(value=exact, approximate=False, source="exact")
-
-        return parse_user_date(
-            user_message,
-            anchor_date=getattr(self.session, "filing_date", None),
-        )
+        definition = self.bundle.tree.node(node_id)
+        input_definition = definition.input
+        if input_definition is None:
+            input_definition = next(
+                (branch.embedded_input for branch in definition.branches if branch.embedded_input),
+                None,
+            )
+        if input_definition is None or input_definition.type != "date":
+            return None
+        if definition.kind == "input":
+            return parse_user_date(
+                user_message,
+                anchor_date=getattr(self.session, "filing_date", None),
+            )
+        exact = parse_submitted_date(user_message)
+        if exact is None:
+            return None
+        return ParsedDate(value=exact, approximate=False, source="exact")
 
     def _hedge_prefix_messages(
         self,
@@ -289,9 +306,12 @@ class InteractiveChatEngine:
         parsed_from_message: date | None = None,
         prefix_messages: list[str] | None = None,
     ) -> InteractiveChatStep:
-        submitted_date = (
-            parsed_from_message if branch_id in {"submit", "yes"} else None
-        )
+        definition = self.bundle.tree.node(node_id)
+        branch = next((item for item in definition.branches if item.id == branch_id), None)
+        accepts_date = (
+            definition.input is not None and branch_id == definition.input.valid_branch_id
+        ) or (branch is not None and branch.embedded_input is not None)
+        submitted_date = parsed_from_message if accepts_date else None
         self.bundle.apply_branch(
             self.session,
             node_id,
@@ -331,7 +351,7 @@ class InteractiveChatEngine:
                         "assistant", self.bundle.restart_filing_confirm_message
                     )
                 )
-            if not self.bundle.is_hook_node(self.current_node_id):
+            if self._current_node_definition().kind != "action":
                 prompt = self._append_next_question()
                 if prompt:
                     messages.append(prompt)
@@ -381,8 +401,9 @@ class InteractiveChatEngine:
 
     def _drain_hooks(self) -> list[str]:
         messages: list[str] = []
-        while self.bundle.is_hook_node(self.current_node_id):
-            outcome = self.bundle.run_hook(self.session, self.current_node_id)
+        while self._current_node_definition().kind == "action":
+            definition = self._current_node_definition()
+            outcome = self.bundle.run_hook(self.session, definition.action or definition.id)
             outcome_key = self.bundle.hook_outcome_key(self.current_node_id)
             if outcome_key:
                 self.last_outcomes[outcome_key] = outcome
@@ -393,7 +414,7 @@ class InteractiveChatEngine:
             text = f"{rendered.question}\n\nResult: {outcome}"
             messages.append(self._append_transcript("assistant", text))
 
-            next_id = self.bundle.advance_from_hook(self.current_node_id)
+            next_id = definition.next
             if not next_id:
                 break
             self.current_node_id = next_id
@@ -409,6 +430,9 @@ class InteractiveChatEngine:
     def _format_node_prompt(self, node_id: str) -> str:
         node = self.bundle.render_node(node_id, self.facts, self.session)
         return node.question
+
+    def _current_node_definition(self):
+        return self.bundle.tree.node(self.current_node_id)
 
     def _append_transcript(self, role: str, text: str) -> str:
         if role == "assistant":
