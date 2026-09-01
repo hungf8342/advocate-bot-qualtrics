@@ -1,7 +1,7 @@
 [project]
 name = "advocate-bot-qualtrics"
 version = "0.1.0"
-description = "Legal complaint fact extraction for advocate bot / Qualtrics"
+description = "Confidential, user-entered legal-aid decision-tree chatbot"
 requires-python = ">=3.11"
 dependencies = [
   "anthropic>=0.52.0",
@@ -9,7 +9,6 @@ dependencies = [
   "pydantic>=2.7.0",
   "python-dotenv>=1.0.1",
   "PyYAML>=6.0.0",
-  "pypdf>=6.12.2",
   "openpyxl>=3.1.0",
 ]
 

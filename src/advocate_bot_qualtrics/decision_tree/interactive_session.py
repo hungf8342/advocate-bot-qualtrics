@@ -5,7 +5,7 @@ from advocate_bot_qualtrics.practice_areas.consumer_debt.session import (
     InteractiveSessionState,
     advance_from_hook,
     apply_interactive_branch,
-    init_session_from_fact_sheet,
+    init_session,
     is_interactive_hook_node,
 )
 
@@ -14,7 +14,7 @@ __all__ = [
     "NodeAnswerRecord",
     "advance_from_hook",
     "apply_interactive_branch",
-    "init_session_from_fact_sheet",
+    "init_session",
     "is_interactive_hook_node",
     "record_node_answer",
 ]

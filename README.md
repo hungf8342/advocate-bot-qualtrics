@@ -1,268 +1,37 @@
-# advocate-bot-qualtrics
+# Advocate Bot Qualtrics
 
-Extract structured **factual** allegations from legal complaints (`ComplaintFactSheet`) via Anthropic structured outputs. Defense analysis (statute of limitations, FDCPA, failure to state a claim) belongs in your decision tree, not in this JSON.
+This is a confidential, user-entered consumer-debt decision-tree chatbot. It does not accept, upload, parse, or store complaint documents. The chat begins by asking the user for the plaintiff, amount sought, complaint date, and last payment date; those values are kept in the active session for the tree.
 
 ## Setup
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev]"
-cp .env.example .env
-# Edit .env: set ANTHROPIC_API_KEY (Anthropic only; OpenAI optional)
+.venv/bin/python -m pip install -e ".[dev,demo]"
 ```
 
-Default model: `claude-sonnet-4-6` (override with `ANTHROPIC_MODEL` in `.env`).
+Set `ZAI_API_KEY` in `.env` for the interactive chat model. Never commit `.env`.
 
-## Architecture: core vs practice areas
-
-The interactive chat loop (LLM routing, confidence hedges, hook draining, Excel export) lives in **`src/advocate_bot_qualtrics/core/`** and is driven by a **`PracticeAreaBundle`** registered at startup. Domain-specific trees, session fields, computations, and export columns live under **`practice_areas/`**.
-
-| Layer | Role |
-|-------|------|
-| `core/bundle.py` | `PracticeAreaBundle` contract + `get_bundle(id)` registry |
-| `core/engine.py` | `InteractiveChatEngine` — subject-agnostic turn loop |
-| `core/process_chat.py` | LLM routing shim (re-exports from `decision_tree/process_chat`) |
-| `practice_areas/consumer_debt/` | Today's SOL → FDCPA tree, `ComplaintFactSheet`, prompts |
-| `decision_tree/` | **Compatibility shims** — existing imports and tests keep working |
-
-Scripts accept `--practice-area consumer_debt` (default). To add a new domain later: create `practice_areas/<id>/` with a fact sheet, tree, session hooks, and `bundle.py`, then call `register_bundle()` from that package.
-
-### Declarative interactive trees
-
-The consumer-debt interactive tree is defined in
-[`interactive_tree.yaml`](src/advocate_bot_qualtrics/practice_areas/consumer_debt/interactive_tree.yaml)
-and validated at startup. Each node declares its `kind`, prompt, permitted
-branches, and explicit branch targets. Input nodes additionally declare their
-field and type; action nodes name a deterministic host-side action and their
-next node. This makes `yes`/`no` branch identifiers stable strings—not routing
-or input-type conventions—and gives future practice areas an editor-friendly
-tree format.
-
-The existing Python bundle remains responsible for consumer-debt calculations,
-state updates, rendering, and exports during the incremental migration. Do not
-edit the compatibility constants in `tree.py`; edit the YAML definition and
-run `pytest` instead.
-
-## One-time JSON extraction
-
-Run once per complaint. The decision tree reads JSON only — no API key on each tree run.
+## Run the local demo
 
 ```bash
-python scripts/extract_complaint_to_json.py
-# Default: knowledge-base/1 - Complaint.pdf → output/complaint_fact_sheet.json
+.venv/bin/python scripts/interactive_chat_demo.py
 ```
 
-Re-run when you have a new complaint or change the schema/prompt.
+The demo has no file-upload control. Do not use its public-share option with real client information.
 
-## Decision tree chat (`process_chat`)
+## Interactive flow
 
-After you have a `ComplaintFactSheet` JSON saved, the chat engine uses the extracted facts to help classify the user's message at the current node and advance via `next_node_id`.
+The declarative consumer-debt tree is in [`interactive_tree.yaml`](src/advocate_bot_qualtrics/practice_areas/consumer_debt/interactive_tree.yaml). Its initial nodes collect:
 
-`process_chat` signature is:
+- plaintiff name;
+- amount sought;
+- complaint date; and
+- last payment date.
 
-`process_chat(user_message, current_node, fact_sheet)`
-
-Notes:
-- `user_message` may include a short host-prepared transcript of recent turns (and the latest user text). `process_chat` itself is stateless.
-- If the LLM decides `user_intent="answer_node"`, `next_node_id` must match one of the provided `current_node.branches[*].branch_id` values.
-
-Example:
-
-```python
-from advocate_bot_qualtrics.decision_tree import process_chat, CurrentNode, TreeBranch
-from advocate_bot_qualtrics.fact_sheet_io import load_complaint_fact_sheet
-
-facts = load_complaint_fact_sheet("output/complaint_fact_sheet.json")
-
-node = CurrentNode(
-    node_id="n1",
-    question="Did the complaint plead the last payment date?",
-    branches=[
-        TreeBranch(branch_id="yes", label="Yes"),
-        TreeBranch(branch_id="no", label="No / unknown"),
-    ],
-)
-
-reply = process_chat("User: It says last payment was 12/23/2020", node, facts)
-print(reply.user_intent, reply.next_node_id)
-```
-
-## Two decision-tree versions
-
-This repo now includes two separate decision-tree flows:
-
-1. **Interactive tree** (user-driven): `process_chat(user_message, current_node, fact_sheet)`
-2. **Autonomous tree** (AI-driven from JSON facts): `process_autonomous(fact_sheet, start_node, tree_map)`
-
-Interactive mode asks/handles user turns per node. Autonomous mode traverses the tree directly from `ComplaintFactSheet` values and ends by inviting user questions.
-
-Interactive tree flow (SOL then FDCPA, per `Tree-Structures.docx`):
-
-1. Start at `INTERACTIVE_TREE[INTERACTIVE_START_NODE_ID]` (`confirm_filing_date`).
-2. Seed `InteractiveSessionState` with `init_session_from_fact_sheet(facts)`.
-3. On each user turn, call `process_chat` unless the current node is a hook (`sol_computation`, `fdcpa_computation`).
-4. After `user_intent="answer_node"`, update session and resolve the next node:
-
-```python
-from advocate_bot_qualtrics.decision_tree import (
-    INTERACTIVE_START_NODE_ID,
-    INTERACTIVE_TREE,
-    apply_interactive_branch,
-    advance_from_hook,
-    init_session_from_fact_sheet,
-    is_interactive_hook_node,
-    process_chat,
-    resolve_interactive_next_node,
-)
-
-session = init_session_from_fact_sheet(facts)
-current_node = INTERACTIVE_TREE[INTERACTIVE_START_NODE_ID]
-
-if is_interactive_hook_node(current_node.node_id):
-    # Host runs SOL/FDCPA logic (see interactive_computations.py), then:
-    next_id = advance_from_hook(current_node.node_id)
-else:
-    turn = process_chat(user_message, current_node, facts)
-    if turn.user_intent == "answer_node" and turn.next_node_id:
-        parsed_date = host_parse_date(user_message)  # on submit branches
-        apply_interactive_branch(
-            session, current_node.node_id, turn.next_node_id, submitted_date=parsed_date
-        )
-        next_id = resolve_interactive_next_node(
-            current_node.node_id, turn.next_node_id, session
-        )
-```
-
-Static branch wiring lives in `INTERACTIVE_ROUTES`; `contact_third_parties` uses session flags to skip the evidence question when neither arrest threats nor third-party disclosures were reported.
-
-If the user disputes a filing or last-payment date from the complaint, the tree first asks whether they may be looking at a different complaint; otherwise it collects a corrected date. Session flags `filing_date_changed` and `last_payment_date_changed` track user corrections (for future export/dataframe work).
-
-Per-node answer confidence (0–100) is stored in session when the user advances the tree. Scoring rules live in [`prompts/confidence_scoring_calibration.md`](prompts/confidence_scoring_calibration.md). Pure "I don't know" responses skip the current question via host routing; hedged answers ("I think yes") still route and may show a one-sentence hedge when confidence is below `CONFIDENCE_HEDGE_THRESHOLD` (default 70)—the LLM writes the hedge when valid, otherwise the host uses a generic fallback.
-
-When the interactive tree completes, field values and confidence scores append as one row to `output/session_fields.xlsx` (override with `SESSION_FIELDS_XLSX_PATH`). User-corrected complaint filing or last-payment dates are capped below 70% confidence in the export.
-
-> Placeholder status: current tree definitions are scaffolding only and have **not** been fully reviewed/finalized for legal correctness yet. Validate node logic and branch criteria before production use.
-
-### Interactive chat demo (browser)
-
-Local Gradio UI for live testing the full interactive tree against pre-extracted JSON facts.
-
-```bash
-pip install -e ".[demo]"
-python scripts/interactive_chat_demo.py
-python scripts/interactive_chat_demo.py --facts-json output/complaint_fact_sheet.json
-```
-
-| Flag | Notes |
-|------|--------|
-| `--facts-json` | Defaults to `fixtures/complaint_fact_sheet.sample.json` |
-| `--share` | Creates a **public URL** — dev demos only; do not use with real client data |
-| `--host` / `--port` | Bind address (default `127.0.0.1:7860`) |
-
-Requires `ANTHROPIC_API_KEY` in `.env`. The API key stays server-side; never commit `.env`.
-
-The demo uses one in-memory `InteractiveChatEngine` per process (single-user). Multi-user hosting should wrap the same engine in FastAPI with per-session state. SOL hook logic uses a **1095-day demo threshold**, not calendar-year legal analysis.
-
-Core host logic lives in `advocate_bot_qualtrics.decision_tree.interactive_host` (`InteractiveChatEngine`) and is reusable outside Gradio.
-
-For automated role-play testing and rich debug transcripts, see [`simulator/README.md`](simulator/README.md) and `scripts/run_interactive_simulator.py`.
-
-### Autonomous mode example
-
-```python
-from advocate_bot_qualtrics.decision_tree import (
-    AUTONOMOUS_START_NODE_ID,
-    AUTONOMOUS_TREE,
-    process_autonomous,
-)
-from advocate_bot_qualtrics.fact_sheet_io import load_complaint_fact_sheet
-
-facts = load_complaint_fact_sheet("output/complaint_fact_sheet.json")
-start_node = AUTONOMOUS_TREE[AUTONOMOUS_START_NODE_ID]
-
-result = process_autonomous(facts, start_node, AUTONOMOUS_TREE)
-print(result.summary)
-print(result.open_questions_prompt)
-```
-
-## Load JSON in your decision tree
-
-```python
-from pathlib import Path
-from advocate_bot_qualtrics.fact_sheet_io import load_complaint_fact_sheet
-
-facts = load_complaint_fact_sheet("output/complaint_fact_sheet.json")
-# Or committed sample: fixtures/complaint_fact_sheet.sample.json
-
-if facts.date_complaint_filed is None:
-    ...
-```
-
-Raw dict access (same file, no Pydantic):
-
-```python
-import json
-data = json.loads(Path("fixtures/complaint_fact_sheet.sample.json").read_text())
-filed = data["date_complaint_filed"]       # "YYYY-MM-DD" or null
-incident = data["alleged_incident_date"]
-default_date = data["date_user_failed_to_pay"]
-amount = data["amount_sued_for"]             # string decimal, e.g. "953.10"
-```
-
-### Tree field cheat sheet
-
-| JSON path | Type in JSON | Notes |
-|-----------|--------------|--------|
-| `schema_version` | string | `"1.1"` |
-| `plaintiff_names` | array of strings | Empty if none |
-| `defendant_names` | array of strings | Empty if none |
-| `original_creditor_name` | string or null | Short name; null if not stated |
-| `debt_collector_name` | string or null | Assignee/collector suing; null if N/A |
-| `jurisdiction` | string or null | |
-| `amount_sued_for` | string or null | Decimal as string |
-| `date_complaint_filed` | string or null | ISO date; complaint “Dated:” line |
-| `alleged_incident_date` | string or null | Often charge-off or breach date |
-| `date_user_failed_to_pay` | string or null | Last payment / default if stated |
-| `causes_of_action` | array of strings | |
-| `original_contract_included` | bool or null | null = not stated |
-| `payment_or_balance_log_included` | bool or null | |
-| `bill_of_assignment_or_debt_ownership_evidence` | bool or null | |
-| `amount_inconsistent_with_case` | string or null | Factual amount contradictions only |
-| `field_citations` | object | Audit only — skip in tree v1 |
-
-**Null semantics:** `null` means not stated in the complaint (not “no”). Do not treat null booleans as `false`.
-
-### Review checklist (sample complaint)
-
-After extraction, spot-check against the PDF:
-
-- [ ] Plaintiff / defendant names
-- [ ] `amount_sued_for` vs prayer for relief
-- [ ] `date_complaint_filed` vs “Dated:” on complaint
-- [ ] `date_user_failed_to_pay` vs last payment date
-- [ ] `alleged_incident_date` (charge-off vs overdue — confirm intent for your tree)
-- [ ] `causes_of_action`
-- [ ] Exhibit / assignment flags
-
-Sample PDF run (reviewed): parties, $953.10, filed 2025-09-30, last payment 2020-12-23, charge-off 2022-08-24 — match [`fixtures/complaint_fact_sheet.sample.json`](fixtures/complaint_fact_sheet.sample.json).
-
-## Programmatic extraction
-
-```python
-from advocate_bot_qualtrics import extract_complaint_facts
-
-facts = extract_complaint_facts(open("complaint.txt").read())
-print(facts.model_dump_json(indent=2))
-```
+The host validates and stores dates in the in-memory session, then performs deterministic SOL and FDCPA screening steps. The LLM only classifies the user’s answer against the current node; it cannot advance to a branch outside the node’s declared branch IDs.
 
 ## Tests
 
 ```bash
-pytest
+.venv/bin/python -m pytest
 ```
-
-## Git
-
-- Commit: `.env.example`, `fixtures/`, code, README
-- Never commit: `.env`, `output/` (gitignored)

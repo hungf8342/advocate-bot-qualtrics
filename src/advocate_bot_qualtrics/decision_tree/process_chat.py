@@ -58,7 +58,7 @@ def _post_validate_turn(
 def process_chat(
     user_message: str,
     current_node: CurrentNode,
-    fact_sheet: Any,
+    case_context: Any = None,
     bundle: PracticeAreaBundle | None = None,
     *,
     practice_area_id: str = "consumer_debt",
@@ -74,7 +74,7 @@ def process_chat(
 
     payload = {
         "current_node": current_node.model_dump(),
-        area.facts_payload_key: area.facts_for_llm(fact_sheet),
+        area.facts_payload_key: area.facts_for_llm(case_context),
         "user_message": user_message,
         "confidence_scoring_calibration": area.load_calibration_prompt(),
         "confidence_hedge_threshold": get_confidence_hedge_threshold(),

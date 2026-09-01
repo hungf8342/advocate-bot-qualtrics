@@ -112,10 +112,8 @@ def test_process_chat_payload_includes_calibration(monkeypatch):
         question="Q?",
         branches=[TreeBranch(branch_id="yes", label="Yes")],
     )
-    from advocate_bot_qualtrics.schemas.complaint_fact_sheet import ComplaintFactSheet
-
     process_chat_module.process_chat(
-        "Latest user message:\nUser: yes", node, ComplaintFactSheet()
+        "Latest user message:\nUser: yes", node, None
     )
     assert "confidence_scoring_calibration" in captured
     assert "CALIBRATION INDEX" in captured["confidence_scoring_calibration"]

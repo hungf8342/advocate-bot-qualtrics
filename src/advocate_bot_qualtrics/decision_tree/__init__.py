@@ -1,13 +1,3 @@
-from advocate_bot_qualtrics.decision_tree.autonomous_schemas import (
-    AutoBranch,
-    AutoDecisionResult,
-    AutoNode,
-    AutonomousStepSelection,
-)
-from advocate_bot_qualtrics.decision_tree.autonomous_tree import (
-    AUTONOMOUS_START_NODE_ID,
-    AUTONOMOUS_TREE,
-)
 from advocate_bot_qualtrics.decision_tree.errors import ChatError
 from advocate_bot_qualtrics.decision_tree.interactive_computations import (
     SOL_LIMIT_DAYS,
@@ -19,7 +9,7 @@ from advocate_bot_qualtrics.decision_tree.interactive_session import (
     NodeAnswerRecord,
     advance_from_hook,
     apply_interactive_branch,
-    init_session_from_fact_sheet,
+    init_session,
     is_interactive_hook_node,
     record_node_answer,
 )
@@ -39,7 +29,6 @@ from advocate_bot_qualtrics.decision_tree.interactive_host import (
     build_user_payload,
     render_interactive_node,
 )
-from advocate_bot_qualtrics.decision_tree.process_autonomous import process_autonomous
 from advocate_bot_qualtrics.decision_tree.process_chat import process_chat
 from advocate_bot_qualtrics.decision_tree.schemas import ChatTurnResponse, CurrentNode, TreeBranch, UserIntent
 from advocate_bot_qualtrics.decision_tree.session_field_export import (
@@ -48,12 +37,6 @@ from advocate_bot_qualtrics.decision_tree.session_field_export import (
 )
 
 __all__ = [
-    "AutoBranch",
-    "AutoDecisionResult",
-    "AutoNode",
-    "AutonomousStepSelection",
-    "AUTONOMOUS_START_NODE_ID",
-    "AUTONOMOUS_TREE",
     "ChatError",
     "ChatTurnResponse",
     "CurrentNode",
@@ -76,9 +59,8 @@ __all__ = [
     "append_session_fields_row",
     "build_field_confidence_rows",
     "build_user_payload",
-    "init_session_from_fact_sheet",
+    "init_session",
     "is_interactive_hook_node",
-    "process_autonomous",
     "process_chat",
     "record_node_answer",
     "render_interactive_node",

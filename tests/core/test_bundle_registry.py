@@ -11,7 +11,7 @@ def test_registry_loads_consumer_debt():
     bundle = get_bundle("consumer_debt")
     assert bundle.id == "consumer_debt"
     assert bundle.start_node_id == INTERACTIVE_START_NODE_ID
-    assert bundle.facts_payload_key == "complaint_fact_sheet"
+    assert bundle.facts_payload_key == "user_provided_case_facts"
 
 
 def test_unknown_practice_area_raises():

@@ -11,8 +11,16 @@ from datetime import date
 
 from advocate_bot_qualtrics.practice_areas.consumer_debt.session import InteractiveSessionState
 
-# Demo approximation of a three-year limit (~3 * 365 days), not calendar-year legal analysis.
+# Retained for compatibility; statute screening below uses calendar years.
 SOL_LIMIT_DAYS = 1095
+
+
+def _three_year_anniversary(value: date) -> date:
+    """Return the calendar-date third anniversary, handling February 29."""
+    try:
+        return value.replace(year=value.year + 3)
+    except ValueError:
+        return value.replace(year=value.year + 3, month=2, day=28)
 
 
 def run_sol_computation(session: InteractiveSessionState) -> str:
@@ -20,8 +28,8 @@ def run_sol_computation(session: InteractiveSessionState) -> str:
 
     Per Tree-Structures.docx:
     1. Take the most recent of complaint, OG-creditor, and debt-collector payment dates.
-    2. Compare filing date minus that date.
-    3. If more than SOL_LIMIT_DAYS, SOL is an affirmative defense; otherwise it is not.
+    2. Compare the filing date to that payment's third calendar anniversary.
+    3. If the filing date is later, flag a possible SOL affirmative defense.
     """
     if session.filing_date is None:
         return "Insufficient date information to evaluate SOL."
@@ -39,7 +47,7 @@ def run_sol_computation(session: InteractiveSessionState) -> str:
         return "Insufficient date information to evaluate SOL."
 
     last_payment = max(payment_dates)
-    if (session.filing_date - last_payment).days > SOL_LIMIT_DAYS:
+    if session.filing_date > _three_year_anniversary(last_payment):
         return "SOL is an affirmative defense."
     return "SOL is not an affirmative defense."
 

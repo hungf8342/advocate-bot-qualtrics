@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any, Callable
 
 from advocate_bot_qualtrics.core.schemas import CurrentNode
@@ -20,7 +19,6 @@ class PracticeAreaBundle:
     terminal_node_id: str
     facts_payload_key: str
 
-    load_facts: Callable[[Path | str], Any]
     load_chat_system_prompt: Callable[[], str]
     load_calibration_prompt: Callable[[], str]
     get_session_fields_xlsx_path: Callable[[], Path]

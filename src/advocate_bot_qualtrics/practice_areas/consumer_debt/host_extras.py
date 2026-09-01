@@ -5,8 +5,6 @@ from __future__ import annotations
 from datetime import date
 
 from advocate_bot_qualtrics.core.schemas import CurrentNode
-from advocate_bot_qualtrics.practice_areas.consumer_debt.fact_sheet import ComplaintFactSheet
-from advocate_bot_qualtrics.practice_areas.consumer_debt.party_labels import annotate_party_terms
 from advocate_bot_qualtrics.practice_areas.consumer_debt.session import (
     InteractiveSessionState,
     apply_interactive_branch,
@@ -49,25 +47,21 @@ def _fmt_date(value: date | None) -> str:
 
 def render_node(
     node_id: str,
-    facts: ComplaintFactSheet,
+    facts: object | None,
     session: InteractiveSessionState,
 ) -> CurrentNode:
     source = INTERACTIVE_TREE[node_id]
-    filing = session.filing_date or facts.date_complaint_filed
-    last_payment = session.last_payment_complaint or facts.date_user_failed_to_pay
+    del facts
+    filing = session.filing_date
+    last_payment = session.last_payment_complaint
 
     question = source.question.replace(_FILING_TOKEN, _fmt_date(filing))
     question = question.replace(_LAST_PAYMENT_TOKEN, _fmt_date(last_payment))
-    question = annotate_party_terms(question, facts)
-
     branches = [
         branch.model_copy(
             update={
-                "label": annotate_party_terms(
-                    branch.label.replace(_FILING_TOKEN, _fmt_date(filing)).replace(
-                        _LAST_PAYMENT_TOKEN, _fmt_date(last_payment)
-                    ),
-                    facts,
+                "label": branch.label.replace(_FILING_TOKEN, _fmt_date(filing)).replace(
+                    _LAST_PAYMENT_TOKEN, _fmt_date(last_payment)
                 )
             }
         )

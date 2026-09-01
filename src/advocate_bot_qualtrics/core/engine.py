@@ -67,9 +67,8 @@ class InteractiveChatEngine:
             self.current_node_id = self.bundle.start_node_id
 
     @classmethod
-    def from_fact_sheet(
+    def from_user_input(
         cls,
-        facts: Any,
         *,
         bundle: PracticeAreaBundle | None = None,
         practice_area_id: str = "consumer_debt",
@@ -77,14 +76,14 @@ class InteractiveChatEngine:
         area = bundle or get_bundle(practice_area_id)
         engine = cls(
             bundle=area,
-            facts=facts,
-            session=area.init_session(facts),
+            facts=None,
+            session=area.init_session(),
         )
         engine._drain_hooks()
         return engine
 
     def reset(self) -> list[str]:
-        self.session = self.bundle.init_session(self.facts)
+        self.session = self.bundle.init_session()
         self.current_node_id = self.bundle.start_node_id
         self.transcript = []
         self.tree_complete = False
@@ -214,6 +213,7 @@ class InteractiveChatEngine:
 
             if (
                 definition.input is not None
+                and definition.input.type == "date"
                 and effective_branch_id == definition.input.valid_branch_id
                 and parsed_from_message is None
             ):
@@ -310,13 +310,20 @@ class InteractiveChatEngine:
         branch = next((item for item in definition.branches if item.id == branch_id), None)
         accepts_date = (
             definition.input is not None and branch_id == definition.input.valid_branch_id
+            and definition.input.type == "date"
         ) or (branch is not None and branch.embedded_input is not None)
         submitted_date = parsed_from_message if accepts_date else None
+        accepts_text = (
+            definition.input is not None
+            and branch_id == definition.input.valid_branch_id
+            and definition.input.type in {"text", "number", "currency"}
+        )
         self.bundle.apply_branch(
             self.session,
             node_id,
             branch_id,
             submitted_date=submitted_date,
+            submitted_text=user_message if accepts_text else None,
         )
         record_node_answer(
             self.session,
