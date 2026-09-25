@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>advocate-bot-qualtrics — How It Works</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --bg-soft: #171a22;
+    --panel: #1c2029;
+    --panel-2: #222735;
+    --border: #2c323f;
+    --text: #e6e9ef;
+    --muted: #9aa3b2;
+    --accent: #6ea8fe;
+    --accent-2: #7ee0c0;
+    --warn: #ffce6b;
+    --danger: #ff8a8a;
+    --user: #2b6cb0;
+    --bot: #2f3b4a;
+    --code-bg: #11141b;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.6;
+    font-size: 16px;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .layout { display: grid; grid-template-columns: 280px 1fr; max-width: 1400px; margin: 0 auto; }
+  nav.toc {
+    position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto;
+    padding: 28px 20px; border-right: 1px solid var(--border); background: var(--bg-soft);
+  }
+  nav.toc h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 12px; }
+  nav.toc ol { list-style: none; margin: 0 0 18px; padding: 0; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { display: block; padding: 5px 10px; border-radius: 7px; color: var(--muted); font-size: 14px; }
+  nav.toc a:hover { background: var(--panel); color: var(--text); text-decoration: none; }
+  nav.toc a.sub { padding-left: 22px; font-size: 13px; }
+  .brand { font-weight: 700; font-size: 17px; color: var(--text); margin-bottom: 4px; }
+  .brand small { display:block; font-weight: 400; color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+  main { padding: 40px 56px 120px; min-width: 0; }
+  header.hero { margin-bottom: 40px; }
+  header.hero h1 { font-size: 34px; margin: 0 0 10px; letter-spacing: -.02em; }
+  header.hero p.lead { font-size: 18px; color: var(--muted); max-width: 760px; }
+  .pill { display:inline-block; font-size: 12px; padding: 3px 10px; border-radius: 999px; background: var(--panel-2); color: var(--accent-2); border: 1px solid var(--border); margin-right: 6px; font-family: var(--mono); }
+
+  section { margin-bottom: 56px; scroll-margin-top: 20px; }
+  section > h2 { font-size: 25px; margin: 0 0 6px; letter-spacing: -.01em; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+  section h3 { font-size: 19px; margin: 30px 0 8px; }
+  section h4 { font-size: 15px; margin: 22px 0 6px; color: var(--accent-2); text-transform: uppercase; letter-spacing: .05em; }
+  p { max-width: 820px; }
+  .muted { color: var(--muted); }
+
+  code.inline { font-family: var(--mono); font-size: .88em; background: var(--code-bg); border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; color: #d4dbe8; }
+  .file { font-family: var(--mono); font-size: .85em; color: var(--accent-2); }
+
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; overflow-x: auto; font-size: 13.5px; line-height: 1.55; }
+  pre code { font-family: var(--mono); }
+  pre .cmt { color: #6b7488; font-style: italic; }
+  pre .kw { color: #c792ea; }
+  pre .str { color: #c3e88d; }
+  pre .fn { color: #82aaff; }
+  pre .num { color: #f78c6c; }
+  pre .self { color: #f07178; }
+  pre .deco { color: #ffcb6b; }
+
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 16px 0; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 1080px){ .layout { grid-template-columns: 1fr; } nav.toc { display:none; } main { padding: 28px 22px 80px; } .grid2 { grid-template-columns: 1fr; } }
+
+  .callout { border-left: 4px solid var(--accent); background: var(--panel-2); padding: 12px 18px; border-radius: 8px; margin: 16px 0; }
+  .callout.warn { border-color: var(--warn); }
+  .callout.warn strong { color: var(--warn); }
+  .callout.note { border-color: var(--accent-2); }
+
+  table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 14px; }
+  th, td { border: 1px solid var(--border); padding: 8px 11px; text-align: left; vertical-align: top; }
+  th { background: var(--panel-2); color: var(--text); font-weight: 600; }
+  td code.inline { white-space: nowrap; }
+
+  /* Architecture diagram */
+  .arch { display: flex; flex-direction: column; gap: 0; align-items: center; margin: 24px 0; }
+  .arch .row { display:flex; gap: 18px; align-items: stretch; justify-content: center; flex-wrap: wrap; }
+  .box { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; min-width: 180px; max-width: 260px; text-align: center; }
+  .box .t { font-weight: 700; font-size: 14px; }
+  .box .d { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .box.accent { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(110,168,254,.2); }
+  .box.llm { border-color: var(--accent-2); box-shadow: 0 0 0 1px rgba(126,224,192,.18); }
+  .box.host { border-color: var(--warn); }
+  .arrow { color: var(--muted); font-size: 22px; line-height: 1; margin: 8px 0; }
+  .arrow.h { margin: auto 0; }
+
+  /* Conversation */
+  .chat { background: var(--bg-soft); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin: 16px 0; }
+  .msg { display:flex; margin: 10px 0; }
+  .msg .bubble { max-width: 78%; padding: 10px 14px; border-radius: 14px; font-size: 14.5px; }
+  .msg.user { justify-content: flex-end; }
+  .msg.user .bubble { background: var(--user); color: #fff; border-bottom-right-radius: 4px; }
+  .msg.bot .bubble { background: var(--bot); color: var(--text); border-bottom-left-radius: 4px; }
+  .msg .who { font-size: 11px; color: var(--muted); margin: 0 8px; align-self: flex-end; }
+  .trace { font-family: var(--mono); font-size: 12px; color: var(--muted); background: var(--code-bg); border: 1px dashed var(--border); border-radius: 8px; padding: 8px 12px; margin: 6px 0 14px; }
+  .trace b { color: var(--accent-2); }
+
+  details { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 4px 16px; margin: 12px 0; }
+  details > summary { cursor: pointer; font-weight: 600; padding: 10px 0; list-style: none; }
+  details > summary::-webkit-details-marker { display: none; }
+  details > summary::before { content: "▸ "; color: var(--accent); }
+  details[open] > summary::before { content: "▾ "; }
+
+  ol.steps { counter-reset: step; list-style: none; padding: 0; }
+  ol.steps > li { position: relative; padding: 14px 0 14px 52px; border-bottom: 1px solid var(--border); }
+  ol.steps > li:last-child { border-bottom: none; }
+  ol.steps > li::before {
+    counter-increment: step; content: counter(step);
+    position: absolute; left: 0; top: 14px; width: 32px; height: 32px; border-radius: 50%;
+    background: var(--panel-2); border: 1px solid var(--accent); color: var(--accent);
+    display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;
+  }
+  ol.steps .st-title { font-weight: 600; }
+  .tag { font-family: var(--mono); font-size: 11px; padding: 1px 7px; border-radius: 5px; border: 1px solid var(--border); color: var(--muted); margin-left: 6px; }
+  .tag.host { color: var(--warn); border-color: rgba(255,206,107,.4); }
+  .tag.llm { color: var(--accent-2); border-color: rgba(126,224,192,.4); }
+
+  footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--border); padding-top: 20px; max-width: 820px; }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="toc">
+    <div class="brand">advocate-bot-qualtrics<small>How the interactive decision tree works</small></div>
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#overview">1. Overview</a></li>
+      <li><a href="#architecture">2. Architecture &amp; data flow</a></li>
+      <li><a href="#tree">3. The decision tree</a></li>
+      <li><a href="#tree-nodes" class="sub">3a. Node anatomy</a></li>
+      <li><a href="#tree-routes" class="sub">3b. Routing &amp; hooks</a></li>
+      <li><a href="#tree-map" class="sub">3c. Full tree map</a></li>
+      <li><a href="#examples">4. Example conversations</a></li>
+      <li><a href="#ex1" class="sub">4a. SOL defense found</a></li>
+      <li><a href="#ex2" class="sub">4b. Dispute + FDCPA</a></li>
+      <li><a href="#behind">5. Behind the scenes</a></li>
+      <li><a href="#confidence">6. Confidence &amp; hedges</a></li>
+      <li><a href="#export">7. Sessions &amp; Excel export</a></li>
+      <li><a href="#files">8. File map</a></li>
+      <li><a href="#judgment">9. Notes &amp; caveats</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <header class="hero">
+      <h1>advocate-bot-qualtrics</h1>
+      <p class="lead">A legal-intake chatbot that walks a self-represented defendant through a fixed
+      decision tree about a debt-collection complaint, using an LLM only to <em>classify each answer</em> —
+      not to make legal decisions. This page traces exactly how a message becomes a response.</p>
+      <div>
+        <span class="pill">Anthropic tool-use</span>
+        <span class="pill">deterministic host</span>
+        <span class="pill">SOL → FDCPA</span>
+        <span class="pill">Excel export</span>
+      </div>
+    </header>
+
+    <!-- ============================================================= -->
+    <section id="overview">
+      <h2>1. Overview</h2>
+      <p>The service has two phases. First, a <strong>one-time extraction</strong> reads a complaint PDF and
+      produces a structured <code class="inline">ComplaintFactSheet</code> JSON (parties, amounts, filing date,
+      last-payment date, causes of action). That step is separate and uses its own prompt/model.</p>
+      <p>Second — the focus of this page — is the <strong>interactive decision tree</strong>. After facts are
+      extracted, a stateful host engine drives a fixed sequence of yes/no and date questions to assess two
+      possible affirmative defenses:</p>
+      <div class="grid2">
+        <div class="card"><h4 style="margin-top:0">Statute of Limitations (SOL)</h4>
+          Is the gap between the complaint's filing date and the most recent payment greater than the
+          (demo) 3-year limit? Computed <em>by the host</em>, never the LLM.</div>
+        <div class="card"><h4 style="margin-top:0">FDCPA conduct</h4>
+          Did the debt collector threaten arrest, disclose the debt to third parties, and is there evidence?
+          Also a pure host computation from collected flags.</div>
+      </div>
+      <div class="callout note">
+        <strong>Key design principle.</strong> The LLM is a <em>classifier</em>, not a decision-maker.
+        Its only job per turn is to read the user's free-text reply and pick which branch of the current
+        node it matches (plus a confidence score). All routing, legal computation, date parsing, and state
+        live in deterministic Python (the "host"). The system prompt
+        (<span class="file">prompts/decision_tree_chat_system.md</span>) explicitly forbids the model from
+        doing any defense analysis.
+      </div>
+    </section>
+
+    <!-- ============================================================= -->
+    <section id="architecture">
+      <h2>2. Architecture &amp; data flow</h2>
+      <p>One message flows through four layers. The host (yellow) owns control flow and state; the LLM
+      (green) is called once per answered turn to classify intent + branch.</p>
+
+      <div class="arch">
+        <div class="row">
+          <div class="box accent"><div class="t">User</div><div class="d">Free-text reply in Gradio chat (or any FastAPI wrapper)</div></div>
+        </div>
+        <div class="arrow">↓</div>
+        <div class="row">
+          <div class="box host"><div class="t">InteractiveChatEngine.submit()</div><div class="d"><span class="file">interactive_host.py</span> — appends transcript, checks IDK-skip &amp; hook nodes, owns <code class="inline">current_node_id</code></div></div>
+        </div>
+        <div class="arrow">↓</div>
+        <div class="row">
+          <div class="box"><div class="t">render_interactive_node()</div><div class="d">Fills <code class="inline">{date_complaint_filed}</code> / <code class="inline">{date_user_failed_to_pay}</code> tokens from session/facts</div></div>
+          <div class="arrow h">→</div>
+          <div class="box"><div class="t">build_user_payload()</div><div class="d">Last 8 turns + latest message as a text transcript</div></div>
+        </div>
+        <div class="arrow">↓</div>
+        <div class="row">
+          <div class="box"><div class="t">process_chat()</div><div class="d"><span class="file">process_chat.py</span> — builds payload (node + facts + calibration), then post-validates</div></div>
+          <div class="arrow h">→</div>
+          <div class="box llm"><div class="t">submit_chat_turn() → Anthropic</div><div class="d"><span class="file">chat_structured.py</span> — forced tool-use <code class="inline">submit_chat_turn</code>, temp 0, model <code class="inline">claude-haiku-4-5</code></div></div>
+        </div>
+        <div class="arrow">↓</div>
+        <div class="row">
+          <div class="box"><div class="t">ChatTurnResponse</div><div class="d"><code class="inline">user_intent</code>, <code class="inline">assistant_reply</code>, <code class="inline">next_node_id</code>, <code class="inline">answer_confidence_pct</code></div></div>
+        </div>
+        <div class="arrow">↓</div>
+        <div class="row">
+          <div class="box host"><div class="t">Host applies result</div><div class="d">parse date • <code class="inline">apply_interactive_branch</code> • <code class="inline">record_node_answer</code> • <code class="inline">resolve_interactive_next_node</code> • drain hooks</div></div>
+          <div class="arrow h">→</div>
+          <div class="box host"><div class="t">Hook computations</div><div class="d"><span class="file">interactive_computations.py</span> — SOL &amp; FDCPA run in Python</div></div>
+        </div>
+        <div class="arrow">↓</div>
+        <div class="row">
+          <div class="box accent"><div class="t">Assistant message(s)</div><div class="d">Optional hedge + next node question (or hook result). On completion → append row to <code class="inline">session_fields.xlsx</code></div></div>
+        </div>
+      </div>
+
+      <div class="callout">
+        <strong>Statelessness boundary.</strong> <code class="inline">process_chat()</code> is <em>stateless</em> —
+        it takes only <code class="inline">(user_message, current_node, fact_sheet)</code> and returns one
+        classification. All memory (collected dates, FDCPA flags, per-node confidence, the cursor
+        <code class="inline">current_node_id</code>) lives in the host's <code class="inline">InteractiveSessionState</code>
+        and <code class="inline">InteractiveChatEngine</code>.
+      </div>
+    </section>
+
+    <!-- ============================================================= -->
+    <section id="tree">
+      <h2>3. The decision tree</h2>
+      <p>The tree is a plain Python dict of nodes plus separate routing tables — it is data, not code paths.
+      It lives entirely in <span class="file">decision_tree/interactive_tree.py</span>.</p>
+
+      <h3 id="tree-nodes">3a. Node anatomy</h3>
+      <p>Every node is a <code class="inline">CurrentNode</code> (<span class="file">schemas.py</span>) with an id, a
+      question, and a list of <code class="inline">TreeBranch</code> options. A branch's
+      <code class="inline">branch_id</code> is the value the LLM must return as <code class="inline">next_node_id</code>.
+      Two nodes are <em>hook</em> nodes with <strong>no branches</strong> — they are pure host computations.</p>
+<pre><code><span class="cmt"># interactive_tree.py — a representative node</span>
+<span class="str">"confirm_filing_date"</span>: CurrentNode(
+    node_id=<span class="str">"confirm_filing_date"</span>,
+    question=f<span class="str">"Is the filing date of the complaint {date_complaint_filed}?"</span>,
+    branches=[
+        TreeBranch(branch_id=<span class="str">"yes"</span>, label=<span class="str">"Yes, that is the filing date."</span>),
+        TreeBranch(branch_id=<span class="str">"no"</span>,  label=<span class="str">"No, that is not the filing date ..."</span>),
+    ],
+),
+<span class="cmt"># a hook node — branches=[], host runs the math:</span>
+<span class="str">"sol_computation"</span>: CurrentNode(node_id=<span class="str">"sol_computation"</span>, question=<span class="str">"Computing statute of limitations: ..."</span>, branches=[]),</code></pre>
+      <p>The question string can contain the tokens <code class="inline">{date_complaint_filed}</code> and
+      <code class="inline">{date_user_failed_to_pay}</code>. <code class="inline">render_interactive_node()</code> replaces
+      these with the live session value (falling back to the fact sheet, or the literal <code class="inline">"unknown"</code>)
+      <em>before</em> the node is ever shown to the user or sent to the LLM.</p>
+
+      <h3 id="tree-routes">3b. Routing &amp; hooks</h3>
+      <p>The LLM never decides where to go next. It only returns a <code class="inline">branch_id</code>. The host maps
+      <code class="inline">(current_node_id, branch_id) → next_node_id</code> via three structures:</p>
+      <table>
+        <tr><th>Structure</th><th>Purpose</th></tr>
+        <tr><td><code class="inline">INTERACTIVE_ROUTES</code></td><td>Static <code class="inline">(node, branch) → next node</code> table for ordinary branching.</td></tr>
+        <tr><td><code class="inline">resolve_interactive_next_node()</code></td><td>Wraps the table. For <code class="inline">contact_third_parties</code> it routes conditionally on session flags: if neither <code class="inline">threatened</code> nor <code class="inline">disclosed</code>, it skips the evidence question and jumps straight to <code class="inline">fdcpa_computation</code>.</td></tr>
+        <tr><td><code class="inline">INTERACTIVE_HOOK_ADVANCES</code></td><td>Where a hook node goes after it computes: <code class="inline">sol_computation → threatening_arrest</code>, <code class="inline">fdcpa_computation → review_questions</code>.</td></tr>
+      </table>
+      <p>When the host lands on a hook node it does not call the LLM. Instead <code class="inline">_drain_hooks()</code>
+      loops: run the computation (<code class="inline">run_sol_computation</code> / <code class="inline">run_fdcpa_computation</code>),
+      emit a result message, then <code class="inline">advance_from_hook()</code> to the next node — repeating if the
+      next node is also a hook.</p>
+
+      <details>
+        <summary>How the SOL and FDCPA computations actually decide (interactive_computations.py)</summary>
+<pre><code><span class="cmt"># SOL_LIMIT_DAYS = 1095  (demo ≈ 3 × 365; NOT calendar-year legal analysis)</span>
+<span class="kw">def</span> <span class="fn">run_sol_computation</span>(session):
+    last_payment = max(complaint, og_creditor, debt_collector dates present)
+    <span class="kw">if</span> (filing_date - last_payment).days &gt; <span class="num">1095</span>:
+        <span class="kw">return</span> <span class="str">"SOL is an affirmative defense."</span>
+    <span class="kw">return</span> <span class="str">"SOL is not an affirmative defense."</span>
+
+<span class="kw">def</span> <span class="fn">run_fdcpa_computation</span>(session):
+    conduct = session.threatened <span class="kw">or</span> session.disclosed
+    <span class="kw">if</span> conduct <span class="kw">and</span> session.evidence: <span class="kw">return</span> <span class="str">"FDCPA violation is an affirmative defense."</span>
+    <span class="kw">if</span> conduct:                  <span class="kw">return</span> <span class="str">"FDCPA violation is a potential affirmative defense."</span>
+    <span class="kw">return</span> <span class="str">"FDCPA violation is not an affirmative defense."</span></code></pre>
+      </details>
+
+      <h3 id="tree-map">3c. Full tree map</h3>
+      <p>The traversal runs two blocks in order: a <strong>SOL date-collection</strong> block, then an
+      <strong>FDCPA conduct</strong> block, ending in open Q&amp;A. Diamond = LLM-classified branch,
+      hexagon-style boxes = host hook computations.</p>
+      <div class="card" style="overflow-x:auto">
+        <div class="mermaid">
+flowchart TD
+  A["confirm_filing_date<br/>(SOL block start)"] -->|yes| C["confirm_last_payment_complaint"]
+  A -->|no| B["different_complaint_filing"]
+  B -->|yes restart| A
+  B -->|no| GF["get_filing_date"]
+  GF --> C
+  C -->|yes| D["additional_payment_OG_creditor"]
+  C -->|no| C2["different_complaint_last_payment"]
+  C2 -->|yes restart| A
+  C2 -->|no| GL["get_last_payment_complaint"]
+  GL --> D
+  D -->|yes| DGO["get_last_payment_OG_creditor"]
+  D -->|no| E["additional_payment_debt_collector"]
+  DGO --> E
+  E -->|yes| EGD["get_last_payment_debt_collector"]
+  E -->|no| SOL{{"sol_computation (HOST)"}}
+  EGD --> SOL
+  SOL --> TA["threatening_arrest<br/>(FDCPA block start)"]
+  TA --> CT["contact_third_parties"]
+  CT -->|"threatened OR disclosed"| RB["record_bad_behavior"]
+  CT -->|"neither"| FD{{"fdcpa_computation (HOST)"}}
+  RB --> FD
+  FD --> RQ["review_questions<br/>(open Q&amp;A — tree complete)"]
+  classDef host fill:#3a2f12,stroke:#ffce6b,color:#ffce6b;
+  class SOL,FD host;
+        </div>
+        <noscript><p class="muted">(Diagram requires JavaScript / Mermaid CDN. The same routing is described in the table above and in <span class="file">INTERACTIVE_ROUTES</span>.)</p></noscript>
+      </div>
+    </section>
+
+    <!-- ============================================================= -->
+    <section id="examples">
+      <h2>4. Example conversations</h2>
+      <p>Both examples use the committed sample facts
+      (<span class="file">fixtures/complaint_fact_sheet.sample.json</span>):
+      filing date <code class="inline">2025-09-30</code>, last payment to original creditor
+      <code class="inline">2020-12-23</code>. The <span class="trace" style="display:inline; padding:1px 8px">dashed lines</span>
+      show the behind-the-scenes trace (not shown to the user).</p>
+
+      <h3 id="ex1">4a. Straightforward run → SOL defense found</h3>
+      <p class="muted">The user confirms both seeded dates, has no extra payments, and reports no collector
+      misconduct. The 2025-09-30 vs 2020-12-23 gap is ~1742 days &gt; 1095, so SOL is found.</p>
+      <div class="chat">
+        <div class="msg bot"><span class="bubble">Is the filing date of the complaint 2025-09-30?</span><span class="who">bot</span></div>
+        <div class="msg user"><span class="who">user</span><span class="bubble">Yes, that's right.</span></div>
+        <div class="trace">LLM → <b>answer_node</b>, next_node_id=<b>yes</b>, confidence=<b>95</b> · host: <code>apply_interactive_branch</code> (no date), route <b>confirm_filing_date/yes → confirm_last_payment_complaint</b></div>
+        <div class="msg bot"><span class="bubble">Is the last time you made a compliant payment to the original creditor 2020-12-23?</span><span class="who">bot</span></div>
+        <div class="msg user"><span class="who">user</span><span class="bubble">Yep, December 2020 sounds correct.</span></div>
+        <div class="trace">LLM → answer_node, <b>yes</b>, conf 90 · route → <b>additional_payment_OG_creditor</b></div>
+        <div class="msg bot"><span class="bubble">Did you make additional payments afterwards to the original creditor?</span><span class="who">bot</span></div>
+        <div class="msg user"><span class="who">user</span><span class="bubble">No.</span></div>
+        <div class="trace">LLM → answer_node, <b>no</b>, conf 95 · route → <b>additional_payment_debt_collector</b></div>
+        <div class="msg bot"><span class="bubble">Did you make additional payments afterwards to the debt collector?</span><span class="who">bot</span></div>
+        <div class="msg user"><span class="who">user</span><span class="bubble">No, never paid them anything.</span></div>
+        <div class="trace">route → <b>sol_computation</b> (hook). Host <code>_drain_hooks()</code>: max payment = 2020-12-23, (2025-09-30 − 2020-12-23) = 1742 days &gt; 1095 → <b>"SOL is an affirmative defense."</b> then advance → threatening_arrest</div>
+        <div class="msg bot"><span class="bubble">Computing statute of limitations: compare the complaint filing date to the most recent payment date… <br><br><b>Result: SOL is an affirmative defense.</b></span><span class="who">bot</span></div>
+        <div class="msg bot"><span class="bubble">Did the debt collector threaten that you could be arrested for not paying your debt?</span><span class="who">bot</span></div>
+        <div class="msg user"><span class="who">user</span><span class="bubble">No.</span></div>
+        <div class="trace">LLM → answer_node <b>no</b> · host sets <code>threatened=False</code> · route → contact_third_parties</div>
+        <div class="msg bot"><span class="bubble">Did the debt collector disclose your debt to third parties like your family or friends without your permission?</span><span class="who">bot</span></div>
+        <div class="msg user"><span class="who">user</span><span class="bubble">No.</span></div>
+        <div class="trace">host sets <code>disclosed=False</code>. <code>resolve_interactive_next_node("contact_third_parties")</code>: neither threatened nor disclosed → <b>skip record_bad_behavior</b>, jump to fdcpa_computation</div>
+        <div class="msg bot"><span class="bubble">Computing FDCPA defense strength… <br><br><b>Result: FDCPA violation is not an affirmative defense.</b></span><span class="who">bot</span></div>
+        <div class="msg bot"><span class="bubble">Any questions before we summarize next steps?</span><span class="who">bot</span></div>
+        <div class="trace">current_node = <b>review_questions</b> → <code>_set_tree_complete()</code> → row appended to <code>session_fields.xlsx</code></div>
+      </div>
+
+      <h3 id="ex2">4b. Disputed date, a hedge, and an FDCPA defense</h3>
+      <p class="muted">Here the user disputes the seeded last-payment date, gives a hedged ("I think") arrest
+      answer that triggers a low-confidence hedge message, reports third-party disclosure with evidence, and
+      asks a complaint question mid-flow.</p>
+      <div class="chat">
+        <div class="msg bot"><span class="bubble">Is the filing date of the complaint 2025-09-30?</span><span class="who">bot</span></div>
+        <div class="msg user"><span class="who">user</span><span class="bubble">Yes.</span></div>
+        <div class="trace">route → confirm_last_payment_complaint</div>
+        <div class="msg bot"><span class="bubble">Is the last time you made a compliant payment to the original creditor 2020-12-23?</span><span class="who">bot</span></div>
+        <div class="msg user"><span class="who">user</span><span class="bubble">Who is even suing me here?</span></div>
+        <div class="trace">LLM → <b>ask_about_complaint</b> (next_node_id=null). Host does NOT advance — answers from fact sheet and re-asks nothing.</div>
+        <div class="msg bot"><span class="bubble">The plaintiff is Southwest Collections, Inc., as assignee of Midgard Bank. (Answered from the complaint fact sheet; node unchanged.)</span><span class="who">bot</span></div>
+        <div class="msg user"><span class="who">user</span><span class="bubble">No, my last payment was actually 2021-03-15.</span></div>
+        <div class="trace">LLM → answer_node <b>no</b> · route confirm_last_payment_complaint/no → <b>different_complaint_last_payment</b></div>
+        <div class="msg bot"><span class="bubble">Are you possibly looking at a different complaint?</span><span class="who">bot</span></div>
+        <div class="msg user"><span class="who">user</span><span class="bubble">No, same complaint — the date is just wrong.</span></div>
+        <div class="trace">route → <b>get_last_payment_complaint</b></div>
+        <div class="msg bot"><span class="bubble">What is the correct last payment date per your records?</span><span class="who">bot</span></div>
+        <div class="msg user"><span class="who">user</span><span class="bubble">March 15, 2021.</span></div>
+        <div class="trace">LLM → answer_node <b>submit</b>. Host <code>parse_submitted_date</code> → 2021-03-15. <code>apply_interactive_branch</code> sets <code>last_payment_complaint=2021-03-15</code> &amp; <code>last_payment_date_changed=True</code> · route → additional_payment_OG_creditor</div>
+        <div class="msg bot"><span class="bubble">Did you make additional payments afterwards to the original creditor?</span><span class="who">bot</span></div>
+        <div class="msg user"><span class="who">user</span><span class="bubble">No.</span></div>
+        <div class="msg bot"><span class="bubble">Did you make additional payments afterwards to the debt collector?</span><span class="who">bot</span></div>
+        <div class="msg user"><span class="who">user</span><span class="bubble">No.</span></div>
+        <div class="trace">route → sol_computation. max payment now 2021-03-15. (2025-09-30 − 2021-03-15) = 1660 days &gt; 1095 → still <b>"SOL is an affirmative defense."</b></div>
+        <div class="msg bot"><span class="bubble">Computing statute of limitations… <b>Result: SOL is an affirmative defense.</b></span><span class="who">bot</span></div>
+        <div class="msg bot"><span class="bubble">Did the debt collector threaten that you could be arrested for not paying your debt?</span><span class="who">bot</span></div>
+        <div class="msg user"><span class="who">user</span><span class="bubble">I think they did, but I'm not 100% sure.</span></div>
+        <div class="trace">LLM → answer_node <b>yes</b>, conf 60 (capped ≤70 because "I think"/"not sure"; see <code>clamp_answer_confidence</code>). 60 &lt; threshold 70 → host shows a <b>one-sentence hedge</b> before the next question. Host sets <code>threatened=True</code>.</div>
+        <div class="msg bot"><span class="bubble"><em>You seem unsure, so I'll proceed treating the arrest threat as reported.</em></span><span class="who">bot</span></div>
+        <div class="msg bot"><span class="bubble">Did the debt collector disclose your debt to third parties like your family or friends without your permission?</span><span class="who">bot</span></div>
+        <div class="msg user"><span class="who">user</span><span class="bubble">Yes, they called my sister about it.</span></div>
+        <div class="trace">host sets <code>disclosed=True</code>. Since threatened OR disclosed is true → route to <b>record_bad_behavior</b> (NOT skipped)</div>
+        <div class="msg bot"><span class="bubble">Do you have written or recorded evidence of the debt collector's bad behavior?</span><span class="who">bot</span></div>
+        <div class="msg user"><span class="who">user</span><span class="bubble">Yes, I have a voicemail.</span></div>
+        <div class="trace">host sets <code>evidence=True</code> · route → fdcpa_computation. conduct=True AND evidence=True → <b>"FDCPA violation is an affirmative defense."</b></div>
+        <div class="msg bot"><span class="bubble">Computing FDCPA defense strength… <b>Result: FDCPA violation is an affirmative defense.</b></span><span class="who">bot</span></div>
+        <div class="msg bot"><span class="bubble">Any questions before we summarize next steps?</span><span class="who">bot</span></div>
+        <div class="trace">tree complete · Excel row: <code>last_compliant_payment=2021-03-15</code>, <code>last_payment_corrected=True</code>, and its confidence capped &lt;70 (<code>CORRECTION_CONFIDENCE_CAP=69</code>)</div>
+      </div>
+      <p class="muted">Exact assistant wording for hedges and fact answers is generated by the LLM at runtime, so the
+      italic/grey bubbles above are representative — the routing, flags, and computations are exact.</p>
+    </section>
+
+    <!-- ============================================================= -->
+    <section id="behind">
+      <h2>5. Behind the scenes, step by step</h2>
+      <p>This traces a single ordinary turn — the user answering a branching node — from
+      <code class="inline">InteractiveChatEngine.submit()</code> to the returned assistant message(s). File and
+      function references are exact.</p>
+
+      <ol class="steps">
+        <li><span class="st-title">Append the user turn</span> <span class="tag host">host</span><br>
+          <code class="inline">submit()</code> strips the message, rejects empties, and appends
+          <code class="inline">("user", text)</code> to <code class="inline">self.transcript</code>.
+          <span class="file">interactive_host.py</span></li>
+
+        <li><span class="st-title">Hook / terminal short-circuit</span> <span class="tag host">host</span><br>
+          If the current node is a hook (<code class="inline">is_interactive_hook_node</code>) it drains hooks and
+          returns — no LLM. If it is <code class="inline">review_questions</code> it routes to terminal Q&amp;A
+          (<code class="inline">_submit_terminal_qa</code>). Otherwise it proceeds to <code class="inline">_submit_tree_node()</code>.</li>
+
+        <li><span class="st-title">Render the node</span> <span class="tag host">host</span><br>
+          <code class="inline">render_interactive_node(node_id, facts, session)</code> substitutes the date tokens with the
+          live session value (or fact-sheet fallback, or <code class="inline">"unknown"</code>) in both the question
+          and branch labels.</li>
+
+        <li><span class="st-title">Pure-IDK skip check (no LLM)</span> <span class="tag host">host</span><br>
+          <code class="inline">is_pure_idk(user_message)</code> (<span class="file">confidence.py</span>) matches phrases like
+          "I don't know" <em>without</em> any yes/no lean. If matched and the node has a configured
+          <code class="inline">INTERACTIVE_IDK_SKIP_BRANCH</code>, the host advances on that default branch with
+          <code class="inline">confidence=0, skipped=True</code>, emits "No problem — we'll move on", and never calls the
+          model. A <em>hedged</em> answer ("I think yes") does have a lean, so it falls through to the LLM.</li>
+
+        <li><span class="st-title">Build the LLM payload</span> <span class="tag host">host</span><br>
+          <code class="inline">build_user_payload(transcript, user_message)</code> assembles up to the last
+          <code class="inline">MAX_TRANSCRIPT_TURNS = 8</code> turns into a text block ending with
+          <code class="inline">"Latest user message:\nUser: …"</code>.</li>
+
+        <li><span class="st-title">process_chat() assembles the request</span> <span class="tag host">host</span><br>
+          <span class="file">process_chat.py</span> loads the system prompt, then builds a payload dict containing
+          the rendered <code class="inline">current_node</code>, the <code class="inline">complaint_fact_sheet</code>
+          (with <code class="inline">field_citations</code> excluded), the raw <code class="inline">user_message</code>
+          transcript, the full <code class="inline">confidence_scoring_calibration</code> text, and the
+          <code class="inline">confidence_hedge_threshold</code>.</li>
+
+        <li><span class="st-title">Single Anthropic call, forced tool-use</span> <span class="tag llm">LLM</span><br>
+          <code class="inline">submit_chat_turn()</code> (<span class="file">chat_structured.py</span>) calls
+          <code class="inline">claude-haiku-4-5</code> at <code class="inline">temperature=0.0</code> with one tool
+          (<code class="inline">submit_chat_turn</code>, schema = <code class="inline">ChatTurnResponse.model_json_schema()</code>)
+          and <code class="inline">tool_choice={"type":"tool"}</code> — forcing structured output. The
+          <code class="inline">tool_use</code> block is validated into a <code class="inline">ChatTurnResponse</code>.
+          The whole payload dict is stringified into the user message.</li>
+
+        <li><span class="st-title">Post-validate the classification</span> <span class="tag host">host</span><br>
+          <code class="inline">_post_validate_turn()</code> enforces invariants the model could violate:
+          non-<code class="inline">answer_node</code> intents get <code class="inline">next_node_id</code>/confidence nulled;
+          <code class="inline">answer_node</code> with a missing, empty, or out-of-tree <code class="inline">next_node_id</code>
+          raises <code class="inline">ChatError</code>; a missing confidence raises; and
+          <code class="inline">clamp_answer_confidence</code> caps it at 70 if the latest message contains
+          "think/maybe/not sure".</li>
+
+        <li><span class="st-title">Branch vs. non-branch outcome</span> <span class="tag host">host</span><br>
+          If intent ≠ <code class="inline">answer_node</code> (e.g. <code class="inline">ask_about_complaint</code>,
+          <code class="inline">off_topic</code>, <code class="inline">unclear</code>), the host simply returns
+          <code class="inline">turn.assistant_reply</code> and <strong>stays on the same node</strong>. Otherwise it
+          continues to apply the branch.</li>
+
+        <li><span class="st-title">Date extraction (when relevant)</span> <span class="tag host">host</span><br>
+          <code class="inline">parse_submitted_date(user_message)</code> regex-scans for ISO, slash, and month-name dates
+          and keeps the <em>latest</em>. On a <code class="inline">submit</code> branch with no parseable date, the host
+          replies with a clarification and does <strong>not</strong> advance.</li>
+
+        <li><span class="st-title">Apply branch + record answer</span> <span class="tag host">host</span><br>
+          <code class="inline">_advance_on_branch()</code> calls <code class="inline">apply_interactive_branch()</code>
+          (stores collected dates, sets <code class="inline">filing_date_changed</code>/<code class="inline">last_payment_date_changed</code>
+          on disputes, sets FDCPA flags <code class="inline">threatened/disclosed/evidence</code> on "yes") and
+          <code class="inline">record_node_answer()</code> (stores <code class="inline">branch_id</code> + confidence +
+          skipped into <code class="inline">session.node_answers[node_id]</code>).</li>
+
+        <li><span class="st-title">Hedge message (low confidence)</span> <span class="tag host">host</span><br>
+          If <code class="inline">confidence_pct &lt; CONFIDENCE_HEDGE_THRESHOLD</code> (default 70),
+          <code class="inline">resolve_confidence_hedge_message()</code> takes the LLM's first sentence if it is a valid
+          hedge (≥10 chars, not a question, not the next tree question, and the original wasn't multi-sentence)
+          else a generic fallback. This is prepended to the outgoing messages.</li>
+
+        <li><span class="st-title">Resolve the next node</span> <span class="tag host">host</span><br>
+          <code class="inline">resolve_interactive_next_node(node_id, branch_id, session)</code> looks up
+          <code class="inline">INTERACTIVE_ROUTES</code> (with the conditional override for
+          <code class="inline">contact_third_parties</code>). <code class="inline">_skip_date_node_if_collected()</code> skips a
+          date node whose value was already captured (e.g. an additional-payment date supplied inline).</li>
+
+        <li><span class="st-title">Drain hooks &amp; emit next question</span> <span class="tag host">host</span><br>
+          If the new node is a hook, <code class="inline">_drain_hooks()</code> runs SOL/FDCPA in pure Python, appends
+          a "Result: …" message, and advances. Landing on <code class="inline">review_questions</code> calls
+          <code class="inline">_set_tree_complete()</code>. Otherwise the host appends the next node's rendered question.
+          All assistant messages produced this turn are returned in
+          <code class="inline">InteractiveChatStep.assistant_messages</code>.</li>
+
+        <li><span class="st-title">Completion &amp; export</span> <span class="tag host">host</span><br>
+          <code class="inline">_set_tree_complete()</code> → <code class="inline">_maybe_export_session_fields()</code> appends one
+          wide row to <code class="inline">session_fields.xlsx</code> (once). After completion, further user messages go
+          to the terminal Q&amp;A handler, which forbids the <code class="inline">answer_node</code> intent.</li>
+      </ol>
+
+      <details>
+        <summary>Exact Anthropic call (chat_structured.py)</summary>
+<pre><code><span class="kw">def</span> <span class="fn">submit_chat_turn</span>(*, system, payload):
+    client = AnthropicClient()
+    user_text = payload <span class="kw">if</span> isinstance(payload, str) <span class="kw">else</span> str(payload)
+    response = client.complete(
+        model=get_anthropic_chat_model(),          <span class="cmt"># claude-haiku-4-5-20251001</span>
+        system=system,                             <span class="cmt"># decision_tree_chat_system.md</span>
+        messages=[{<span class="str">"role"</span>: <span class="str">"user"</span>, <span class="str">"content"</span>: user_text}],
+        temperature=<span class="num">0.0</span>,
+        tools=[_chat_turn_tool()],                 <span class="cmt"># input_schema = ChatTurnResponse</span>
+        tool_choice={<span class="str">"type"</span>: <span class="str">"tool"</span>, <span class="str">"name"</span>: CHAT_TOOL_NAME},
+    )
+    tool_input = _parse_anthropic_tool_use(response)
+    <span class="kw">return</span> ChatTurnResponse.model_validate(tool_input)</code></pre>
+      </details>
+    </section>
+
+    <!-- ============================================================= -->
+    <section id="confidence">
+      <h2>6. Confidence &amp; hedges</h2>
+      <p>Confidence is a per-node 0–100 score the LLM assigns to the branch it chose, guided by the
+      calibration index in <span class="file">prompts/confidence_scoring_calibration.md</span>:</p>
+      <table>
+        <tr><th>Band</th><th>Meaning</th><th>Example user reply</th></tr>
+        <tr><td>90–100</td><td>High certainty / definitive</td><td>"Yes, I am positive."</td></tr>
+        <tr><td>70–89</td><td>Moderate; mostly sure, no hard proof</td><td>"I'm pretty sure," "I believe so."</td></tr>
+        <tr><td>50–69</td><td>Tentative / hedged</td><td>"I think," "Maybe," "let's say yes."</td></tr>
+        <tr><td>0–49</td><td>No meaningful lean → host skips (no answer_node)</td><td>"I don't know."</td></tr>
+      </table>
+      <p>Two host-side guardrails sit on top of the LLM's number:</p>
+      <ul>
+        <li><strong>Hard clamp.</strong> <code class="inline">clamp_answer_confidence()</code> forces the score to
+        <code class="inline">≤ 70</code> whenever the latest message contains "think", "maybe", or "not sure" — matching the
+        calibration's CRITICAL rule, regardless of what the model returned.</li>
+        <li><strong>Hedge surfacing.</strong> When the final score is below
+        <code class="inline">CONFIDENCE_HEDGE_THRESHOLD</code> (default 70, env-overridable), the host emits a single hedge
+        sentence before moving on. The LLM is instructed to write exactly one acknowledging sentence in
+        <code class="inline">assistant_reply</code> when below threshold; <code class="inline">resolve_confidence_hedge_message()</code>
+        validates/sanitizes it (first sentence only, no question, not the next tree question) and falls back to
+        <code class="inline">"You seemed unsure about that — we'll move forward with what you indicated."</code></li>
+      </ul>
+      <div class="callout note"><strong>Pure-IDK vs hedge.</strong> A pure "I don't know" (no lean) is caught by
+      <code class="inline">is_pure_idk()</code> <em>before</em> the LLM call and skips the question with a default branch and
+      confidence 0. A hedged answer with a lean ("I think yes") still calls the LLM, routes on the leaned branch,
+      and produces a hedge message.</div>
+    </section>
+
+    <!-- ============================================================= -->
+    <section id="export">
+      <h2>7. Sessions &amp; Excel export</h2>
+      <p>All conversation state lives in <code class="inline">InteractiveSessionState</code>
+      (<span class="file">interactive_session.py</span>): the four collectible dates, the
+      <code class="inline">filing_date_changed</code>/<code class="inline">last_payment_date_changed</code> correction flags, the
+      three FDCPA booleans, and a <code class="inline">node_answers</code> dict of
+      <code class="inline">NodeAnswerRecord(branch_id, confidence_pct, skipped)</code>. The session is seeded from the
+      fact sheet by <code class="inline">init_session_from_fact_sheet()</code> (filing date and last-payment complaint date).</p>
+      <p>When the tree completes (reaching <code class="inline">review_questions</code>),
+      <code class="inline">append_session_fields_row()</code> (<span class="file">session_field_export.py</span>) writes one wide
+      row per conversation to <code class="inline">output/session_fields.xlsx</code> (override via
+      <code class="inline">SESSION_FIELDS_XLSX_PATH</code>). For each of the four date fields it
+      <code class="inline">_pick_source_node()</code>s the confidence from the first matching answered node, and — when a
+      date was user-corrected — caps that field's confidence at <code class="inline">CORRECTION_CONFIDENCE_CAP = 69</code>
+      (strictly below 70).</p>
+      <details>
+        <summary>Excel columns (XLSX_HEADERS)</summary>
+<pre><code>completed_at,
+date_claim_filed, date_claim_filed_confidence,
+last_compliant_payment, last_compliant_payment_confidence,
+last_payment_og_creditor, last_payment_og_creditor_confidence,
+last_payment_debt_collector, last_payment_debt_collector_confidence,
+filing_corrected, last_payment_corrected</code></pre>
+      </details>
+    </section>
+
+    <!-- ============================================================= -->
+    <section id="files">
+      <h2>8. File map</h2>
+      <table>
+        <tr><th>File</th><th>Role</th></tr>
+        <tr><td class="file">decision_tree/interactive_host.py</td><td><code class="inline">InteractiveChatEngine</code> — the stateful orchestrator: transcript, node cursor, hooks, hedges, export, date parsing.</td></tr>
+        <tr><td class="file">decision_tree/interactive_tree.py</td><td>Node definitions (<code class="inline">INTERACTIVE_TREE</code>), routing tables, hook advances, IDK-skip map.</td></tr>
+        <tr><td class="file">decision_tree/interactive_session.py</td><td><code class="inline">InteractiveSessionState</code>, branch application, FDCPA/date flag updates.</td></tr>
+        <tr><td class="file">decision_tree/interactive_computations.py</td><td>Pure-Python SOL (1095-day) and FDCPA defense computations for hook nodes.</td></tr>
+        <tr><td class="file">decision_tree/process_chat.py</td><td>Stateless single-turn classifier wrapper + post-validation.</td></tr>
+        <tr><td class="file">decision_tree/confidence.py</td><td>IDK detection, hedge clamp, hedge-message sanitizing, latest-message extraction.</td></tr>
+        <tr><td class="file">decision_tree/schemas.py</td><td><code class="inline">CurrentNode</code>, <code class="inline">TreeBranch</code>, <code class="inline">ChatTurnResponse</code>, <code class="inline">UserIntent</code>.</td></tr>
+        <tr><td class="file">decision_tree/session_field_export.py</td><td>Per-field confidence derivation + Excel append.</td></tr>
+        <tr><td class="file">llm/chat_structured.py</td><td>Forced-tool-use Anthropic call → validated <code class="inline">ChatTurnResponse</code>.</td></tr>
+        <tr><td class="file">llm/client.py</td><td>Thin Anthropic / OpenAI SDK wrappers.</td></tr>
+        <tr><td class="file">config.py</td><td>Models, prompt loaders, thresholds, paths (env-driven).</td></tr>
+        <tr><td class="file">prompts/decision_tree_chat_system.md</td><td>System prompt: classify-only rules, no defense analysis.</td></tr>
+        <tr><td class="file">prompts/confidence_scoring_calibration.md</td><td>The 0–100 calibration index injected into each payload.</td></tr>
+        <tr><td class="file">scripts/interactive_chat_demo.py</td><td>Gradio single-user demo wrapping one engine instance.</td></tr>
+      </table>
+      <p class="muted">A parallel <strong>autonomous</strong> mode also exists
+      (<code class="inline">process_autonomous</code> in <span class="file">process_autonomous.py</span>): it traverses an
+      <code class="inline">AUTONOMOUS_TREE</code> directly from fact-sheet values with no user turns, calling the LLM to
+      select branches and ending by inviting questions. This page focuses on the interactive (user-driven) tree.</p>
+    </section>
+
+    <!-- ============================================================= -->
+    <section id="judgment">
+      <h2>9. Notes &amp; caveats</h2>
+      <ul>
+        <li><strong>Scaffolding status.</strong> The README marks the tree definitions as placeholders not yet
+        validated for legal correctness. The SOL threshold (<code class="inline">SOL_LIMIT_DAYS = 1095</code>) is a demo
+        approximation of "3 years", not real calendar-year analysis.</li>
+        <li><strong>Assistant wording in the examples is illustrative.</strong> Branch choices, routing, flags,
+        dates, and computation results above are exact to the code, but the natural-language fact answers and
+        hedge sentences are generated by the LLM at runtime, so their exact phrasing will vary.</li>
+        <li><strong>Models.</strong> The interactive chat uses <code class="inline">claude-haiku-4-5-20251001</code>
+        (<code class="inline">DEFAULT_ANTHROPIC_CHAT_MODEL</code>), distinct from the extraction default
+        <code class="inline">claude-sonnet-4-6</code>. Both are env-overridable.</li>
+        <li><strong>Judgment call — "off_topic"/"unclear" routing.</strong> The code keeps the user on the same
+        node and returns the model's reply for any non-<code class="inline">answer_node</code> intent
+        (<code class="inline">_submit_tree_node</code> returns without advancing). I represented this in Example 4b with the
+        <code class="inline">ask_about_complaint</code> turn; the same path applies to <code class="inline">off_topic</code>/<code class="inline">unclear</code>.</li>
+        <li><strong>Judgment call — embedded dispute dates.</strong> <code class="inline">_consume_embedded_dispute_date()</code>
+        lets a user supply a corrected date inline on a confirm/dispute node, applying it and skipping the dedicated
+        <code class="inline">get_*</code> node. The examples use the explicit multi-step path for clarity, but this shortcut
+        exists in the engine.</li>
+      </ul>
+    </section>
+
+    <footer>
+      Generated explainer for <strong>advocate-bot-qualtrics</strong>. All file and function references point to
+      the repository's <span class="file">src/advocate_bot_qualtrics/</span> tree and <span class="file">prompts/</span>.
+      This document is informational and is not legal advice.
+    </footer>
+  </main>
+</div>
+
+<script>
+  // Mermaid via CDN with graceful degradation (table + text describe the same flow).
+  (function () {
+    var s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js';
+    s.onload = function () {
+      try {
+        mermaid.initialize({
+          startOnLoad: true,
+          theme: 'dark',
+          themeVariables: {
+            primaryColor: '#1c2029', primaryTextColor: '#e6e9ef',
+            primaryBorderColor: '#2c323f', lineColor: '#6ea8fe',
+            fontSize: '13px'
+          }
+        });
+      } catch (e) { /* leave the .mermaid source text + noscript fallback */ }
+    };
+    s.onerror = function () { /* offline: noscript/text fallback already present */ };
+    document.head.appendChild(s);
+  })();
+
+  // Highlight active TOC item on scroll.
+  (function () {
+    var links = Array.prototype.slice.call(document.querySelectorAll('nav.toc a[href^="#"]'));
+    var map = {};
+    links.forEach(function (a) {
+      var id = a.getAttribute('href').slice(1);
+      var el = document.getElementById(id);
+      if (el) map[id] = a;
+    });
+    var obs = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) {
+          links.forEach(function (a) { a.style.background = ''; a.style.color = ''; });
+          var a = map[e.target.id];
+          if (a) { a.style.background = 'var(--panel)'; a.style.color = 'var(--text)'; }
+        }
+      });
+    }, { rootMargin: '0px 0px -75% 0px', threshold: 0 });
+    Object.keys(map).forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) obs.observe(el);
+    });
+  })();
+</script>
+</body>
+</html>
