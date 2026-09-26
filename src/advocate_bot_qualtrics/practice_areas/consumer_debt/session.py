@@ -6,6 +6,10 @@ from dataclasses import dataclass, field
 from datetime import date
 
 from advocate_bot_qualtrics.core.session import NodeAnswerRecord, record_node_answer
+from advocate_bot_qualtrics.practice_areas.consumer_debt.preliminary import (
+    PreliminaryField,
+    collect_preliminary_answer,
+)
 from advocate_bot_qualtrics.practice_areas.consumer_debt.tree import (
     INTERACTIVE_HOOK_ADVANCES,
     INTERACTIVE_HOOK_NODE_IDS,
@@ -16,6 +20,10 @@ _DATE_SUBMIT_NODES: dict[str, str] = {
     "get_last_payment_complaint": "last_payment_complaint",
     "get_last_payment_OG_creditor": "last_payment_og_creditor",
     "get_last_payment_debt_collector": "last_payment_debt_collector",
+    "prelim_last_payment": "last_payment_complaint",
+    "prelim_correct_payment": "last_payment_complaint",
+    "prelim_open_date": "open_date",
+    "prelim_correct_open_date": "open_date",
 }
 
 _TEXT_SUBMIT_NODES: dict[str, str] = {
@@ -39,6 +47,10 @@ _FDCPA_FLAG_NODES: dict[str, str] = {
 class InteractiveSessionState:
     plaintiff_name: str | None = None
     amount_sued: str | None = None
+    law_firm: str | None = None
+    open_date: date | None = None
+    preliminary_fields: dict[str, PreliminaryField] = field(default_factory=dict)
+    reused_answers: dict[str, str] = field(default_factory=dict)
     filing_date: date | None = None
     last_payment_complaint: date | None = None
     last_payment_og_creditor: date | None = None
@@ -49,6 +61,9 @@ class InteractiveSessionState:
     disclosed: bool = False
     evidence: bool = False
     node_answers: dict[str, NodeAnswerRecord] = field(default_factory=dict)
+    defense_answers: dict[str, str] = field(default_factory=dict)
+    defense_results: dict[str, dict[str, str]] = field(default_factory=dict)
+    mitigation_checkboxes: dict[str, bool] = field(default_factory=dict)
 
 
 def init_session() -> InteractiveSessionState:
@@ -77,6 +92,8 @@ def apply_interactive_branch(
     submitted_text: str | None = None,
 ) -> None:
     """Update session flags and collected dates after a user answers a node."""
+    session.defense_answers[node_id] = branch_id
+    collect_preliminary_answer(session, node_id, branch_id, submitted_date, submitted_text)
     if node_id in _DATE_SUBMIT_NODES and branch_id == "submit":
         if submitted_date is not None:
             field_name = _DATE_SUBMIT_NODES[node_id]

@@ -12,19 +12,15 @@ from advocate_bot_qualtrics.practice_areas.consumer_debt.tree import (
 )
 
 
-def test_user_intake_starts_blank_and_collects_plaintiff_and_amount():
+def test_user_intake_starts_blank_with_preliminary_questions():
     session = init_session()
     assert session == InteractiveSessionState()
     assert INTERACTIVE_START_NODE_ID == "get_plaintiff_name"
-
-    apply_interactive_branch(
-        session, "get_plaintiff_name", "submit", submitted_text="Acme Collections"
-    )
-    apply_interactive_branch(session, "get_amount_sued", "submit", submitted_text="$953.10")
-
-    assert session.plaintiff_name == "Acme Collections"
-    assert session.amount_sued == "$953.10"
-    assert resolve_interactive_next_node("get_amount_sued", "submit", session) == "get_filing_date"
+    apply_interactive_branch(session, "sol_creditor_type", "original")
+    assert session.defense_answers["sol_creditor_type"] == "original"
+    assert resolve_interactive_next_node("sol_creditor_type", "original", session) == "get_filing_date"
+    assert "get_plaintiff_name" in INTERACTIVE_TREE_DEFINITION.node_map
+    assert "get_amount_sued" in INTERACTIVE_TREE_DEFINITION.node_map
 
 
 def test_user_entered_dates_drive_the_sol_session():
@@ -38,8 +34,12 @@ def test_user_entered_dates_drive_the_sol_session():
     assert session.last_payment_complaint == date(2020, 12, 23)
 
 
-def test_last_payment_question_includes_all_creditors_and_partial_payments():
-    question = INTERACTIVE_TREE_DEFINITION.node("get_last_payment_complaint").question
-    assert "original creditor or a third-party debt collector" in question
+def test_last_payment_question_uses_the_selected_creditor_and_partial_payments():
+    from advocate_bot_qualtrics.practice_areas.consumer_debt.host_extras import render_node
+
+    session = init_session()
+    apply_interactive_branch(session, "sol_creditor_type", "buyer")
+    question = render_node("get_last_payment_complaint", None, session).question
+    assert "the debt buyer" in question
     assert "partial payments" in question
-    assert resolve_interactive_next_node("get_last_payment_complaint", "submit") == "sol_computation"
+    assert resolve_interactive_next_node("get_last_payment_complaint", "submit") == "sol_contract"

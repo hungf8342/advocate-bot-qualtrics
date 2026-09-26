@@ -424,7 +424,7 @@ class InteractiveChatEngine:
             next_id = definition.next
             if not next_id:
                 break
-            self.current_node_id = next_id
+            self.current_node_id = self.bundle.skip_collected_date_node(next_id, self.session)
             if self.current_node_id == self.bundle.terminal_node_id:
                 self._set_tree_complete()
 

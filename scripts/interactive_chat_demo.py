@@ -4,29 +4,69 @@
 from __future__ import annotations
 
 import argparse
+from html import escape
+import re
 import sys
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
-CHATGPT_LIKE_CSS = """
-body, .gradio-container { background: #ffffff !important; }
-.gradio-container { max-width: none !important; padding: 0 !important; font-family: Inter, ui-sans-serif, system-ui, sans-serif !important; }
-#app-shell { min-height: 100vh; }
-#topbar { height: 56px; border-bottom: 1px solid #e5e5e5; padding: 0 22px; display: flex; align-items: center; }
-#brand { font-size: 16px; font-weight: 650; color: #202123; }
-#conversation { max-width: 760px; margin: 0 auto; padding: 26px 20px 160px; }
-#conversation .message-wrap { border: 0 !important; }
-#conversation .message { font-size: 15px; line-height: 1.55; }
-#composer { position: fixed; z-index: 5; bottom: 0; left: 0; right: 0; padding: 14px 20px 24px; background: linear-gradient(transparent, #fff 35%); }
-#composer-inner { max-width: 760px; margin: 0 auto; border: 1px solid #d9d9e3; border-radius: 24px; box-shadow: 0 2px 10px rgba(0,0,0,.08); padding: 5px 8px 5px 16px; background: #fff; }
-#composer-inner textarea { border: 0 !important; box-shadow: none !important; min-height: 38px !important; }
-#send-button { border-radius: 18px !important; min-width: 38px !important; }
-.suggestion-row { max-width: 760px; margin: 0 auto 10px; gap: 8px; }
-.suggestion-row button { border-radius: 18px !important; border: 1px solid #d9d9e3 !important; background: #fff !important; color: #353740 !important; font-size: 13px !important; }
-#debug { position: fixed; right: 18px; top: 72px; width: 290px; max-height: calc(100vh - 90px); overflow: auto; border: 1px solid #e5e5e5; border-radius: 12px; padding: 12px; background: #fff; box-shadow: 0 4px 18px rgba(0,0,0,.08); }
-@media (max-width: 1050px) { #debug { position: static; width: auto; max-width: 760px; margin: 0 auto 120px; } #composer { position: static; padding: 0 20px 24px; } #conversation { padding-bottom: 18px; } }
-"""
+INTERFACE_CSS = (PROJECT_ROOT / "scripts/assets/debt_chat.css").read_text(encoding="utf-8")
+
+FIELD_LABELS = {
+    "PLAINTIFF-NAME": "Who is suing you",
+    "PLAINTIFF": "Type of plaintiff",
+    "RECOGNIZE": "Do you recognize the account?",
+    "AMOUNT": "Amount claimed / your correction",
+    "LAW-FIRM": "Plaintiff’s law firm",
+    "SUIT-TYPE": "Type of claim",
+    "ORAL": "Oral agreement only?",
+    "LAST-PAYMENT-DATE": "Last payment date",
+    "OPEN-DATE": "Account opening date",
+    "STATEMENT": "Statement attached?",
+    "OWNERSHIP": "Ownership documents attached?",
+    "VERIFIED": "Complaint verified?",
+    "CONSOLIDATION": "Using a debt consolidation company?",
+}
+CHOICE_LABELS = {
+    "yes": "Yes", "no": "No", "original": "Original creditor", "buyer": "Debt buyer",
+    "breach": "Breach of contract", "common": "Common counts", "both": "Breach of contract and common counts",
+}
+
+
+def _case_details(snapshot: dict) -> str:
+    """Render escaped, session-backed values; never scrape the transcript."""
+    fields = snapshot.get("preliminary_fields") or {}
+    rows = []
+    for index, (tag, label) in enumerate(FIELD_LABELS.items()):
+        entry = fields.get(tag)
+        if entry is None and index >= 5:
+            continue
+        value = entry.get("value") if entry else None
+        if value is None:
+            status = entry.get("status") if entry else None
+            display = "Not stated in complaint" if status == "missing" else "Not sure" if entry else "Not answered yet"
+        else:
+            display = CHOICE_LABELS.get(str(value), str(value)) if tag not in {"PLAINTIFF-NAME", "LAW-FIRM", "AMOUNT"} else str(value)
+        note = ""
+        if entry and entry.get("disputed"):
+            original = entry.get("complaint_value")
+            note = f'<small class="correction-note">Your correction · Complaint: {escape(str(original))}</small>'
+        rows.append(f'<div class="field"><dt>{escape(label)}</dt><dd class="{"empty" if value is None else ""}">{escape(display)}{note}</dd></div>')
+    card = (
+        '<div class="case-card"><p class="eyebrow">For your reference</p><h2>Your case details</h2>'
+        '<p class="aside-intro">These are the answers collected so far. You can refer to them as you go.</p>'
+        f'<dl>{"".join(rows)}</dl><div class="aside-foot">This is a recap of your answers, '
+        'not a conclusion about your case.</div></div>'
+    )
+    return f'<div class="desktop-details">{card}</div><details class="mobile-summary"><summary>Your case details</summary>{card}</details>'
+
+
+def _chat_history(engine) -> list[dict[str, str]]:
+    return [
+        {"role": role, "content": re.sub(r"\s*\[[A-Z][A-Z0-9-]*\]", "", text) if role == "assistant" else text}
+        for role, text in engine.transcript
+    ]
 
 
 def _format_debug(snapshot: dict) -> str:
@@ -41,14 +81,14 @@ def _format_debug(snapshot: dict) -> str:
 - Last payment (OG creditor): {snapshot.get("last_payment_og_creditor")}
 - Last payment (debt collector): {snapshot.get("last_payment_debt_collector")}
 
-**FDCPA flags**
-- Threatened: {snapshot.get("threatened")}
-- Disclosed to third parties: {snapshot.get("disclosed")}
-- Evidence: {snapshot.get("evidence")}
+**Defense results**
+{chr(10).join(f'- `{defense}`: {result["status"]}' for defense, result in (snapshot.get("defense_results") or {}).items()) or '- (none yet)'}
 
-**Hook outcomes**
-- SOL: {snapshot.get("sol_outcome")}
-- FDCPA: {snapshot.get("fdcpa_outcome")}
+**Preliminary fields**
+{_format_preliminary_fields(snapshot.get("preliminary_fields") or {})}
+
+**Reused answers**
+{chr(10).join(f'- `{node}` ← `{source}`' for node, source in (snapshot.get("reused_answers") or {}).items()) or '- (none yet)'}
 
 **Node answers (confidence)**
 {_format_node_answers(snapshot.get("node_answers") or {})}
@@ -56,6 +96,17 @@ def _format_debug(snapshot: dict) -> str:
 **Excel export**
 - Session fields: `{snapshot.get("session_fields_xlsx") or "—"}`
 """
+
+
+def _format_preliminary_fields(fields: dict) -> str:
+    lines = []
+    for tag, entry in fields.items():
+        value = entry.get("value")
+        display = str(value) if value is not None else entry.get("status", "unknown")
+        if entry.get("disputed"):
+            display += f" (corrected/disputed; complaint: {entry.get('complaint_value')})"
+        lines.append(f"- `[{tag}]`: {display}")
+    return "\n".join(lines) or "- (none yet)"
 
 
 def _format_node_answers(node_answers: dict) -> str:
@@ -92,92 +143,64 @@ def main() -> int:
         print("Gradio is not installed. Run: pip install -e '.[demo]'", file=sys.stderr)
         return 1
 
-    from advocate_bot_qualtrics.core.bundle import get_bundle
     from advocate_bot_qualtrics.decision_tree.interactive_host import InteractiveChatEngine
 
-    bundle = get_bundle(args.practice_area)
-    engine = InteractiveChatEngine.from_user_input(practice_area_id=args.practice_area)
+    def outputs_for(engine, error=None, draft=""):
+        snapshot = engine.debug_snapshot()
+        history = _chat_history(engine)
+        if error:
+            history.append({"role": "assistant", "content": f"Error: {error}"})
+        status = "Review complete · Questions welcome" if engine.tree_complete else "Conversation in progress"
+        heading = f'<div class="chat-heading"><span class="status-dot" aria-hidden="true"></span>{status}</div>'
+        return history, draft, _case_details(snapshot), _format_debug(snapshot), heading, engine
 
-    def _chat_history() -> list[dict[str, str]]:
-        return [{"role": role, "content": text} for role, text in engine.transcript]
+    def new_session():
+        engine = InteractiveChatEngine.from_user_input(practice_area_id=args.practice_area)
+        engine.initial_messages()
+        return outputs_for(engine)
 
-    def suggestions() -> list[str]:
-        definition = bundle.tree.node(engine.current_node_id)
-        if definition.kind == "choice":
-            return [branch.label for branch in definition.branches]
-        if definition.input and definition.input.unknown_branch_id:
-            return ["I don't know"]
-        return []
-
-    def suggestion_updates(values: list[str]):
-        padded = values[:3] + [""] * (3 - len(values[:3]))
-        return [gr.update(value=value, visible=bool(value)) for value in padded]
-
-    def response_outputs(user_message: str, history: list[dict[str, str]]):
+    def respond(user_message, engine):
+        if engine is None:
+            engine = InteractiveChatEngine.from_user_input(practice_area_id=args.practice_area)
+            engine.initial_messages()
         if not user_message.strip():
-            return (history, "", _format_debug(engine.debug_snapshot()), suggestions(), *suggestion_updates(suggestions()))
-
+            return outputs_for(engine)
         step = engine.submit(user_message)
-        history = _chat_history()
-        if step.error:
-            history = history + [{"role": "assistant", "content": f"Error: {step.error}"}]
-        choices = suggestions()
-        return history, "", _format_debug(engine.debug_snapshot()), choices, *suggestion_updates(choices)
+        return outputs_for(engine, step.error, user_message if step.error else "")
 
-    def respond(user_message: str, history: list[dict[str, str]]):
-        return response_outputs(user_message, history)
-
-    def respond_suggestion(index: int, values: list[str], history: list[dict[str, str]]):
-        return response_outputs(values[index] if index < len(values) else "", history)
-
-    def reset_session():
-        engine.reset()
-        history = [{"role": "assistant", "content": msg} for msg in engine.initial_messages()]
-        choices = suggestions()
-        return history, "", _format_debug(engine.debug_snapshot()), choices, *suggestion_updates(choices)
-
-    with gr.Blocks(title="Advocate Bot") as demo:
+    with gr.Blocks(title="Debt case guide") as demo:
+        engine_state = gr.State(None)
         with gr.Column(elem_id="app-shell"):
-            gr.HTML('<div id="topbar"><span id="brand">Advocate Bot</span></div>')
-            with gr.Column(elem_id="conversation"):
-                gr.Markdown("### Consumer-debt screening\nShare only the information you are comfortable entering. No files are uploaded.")
-                chatbot = gr.Chatbot(show_label=False, height=520)
-            with gr.Column(elem_id="debug"):
-                gr.Markdown("#### Developer view")
-                debug_panel = gr.Markdown(_format_debug(engine.debug_snapshot()))
-                reset_btn = gr.Button("Start a new session", size="sm")
-            suggestion_state = gr.State(suggestions())
-            with gr.Row(elem_classes=["suggestion-row"]):
-                suggestion_one = gr.Button(visible=False, size="sm")
-                suggestion_two = gr.Button(visible=False, size="sm")
-                suggestion_three = gr.Button(visible=False, size="sm")
-            with gr.Column(elem_id="composer"):
-                with gr.Row(elem_id="composer-inner"):
-                    user_input = gr.Textbox(show_label=False, placeholder="Message Advocate Bot…", container=False, scale=12)
-                    send = gr.Button("↑", variant="primary", elem_id="send-button", scale=1)
+            gr.HTML('<header class="topbar"><div class="top-inner"><div class="brand"><span class="mark" aria-hidden="true">✦</span> Debt case guide</div><div class="top-note">A step-by-step conversation about your case</div></div></header>', elem_id="site-header")
+            with gr.Row(elem_id="main-layout"):
+                with gr.Column(elem_id="conversation"):
+                    gr.HTML('<h1>Let’s understand your case</h1><p class="intro">Answer one question at a time. You can use the case details beside the conversation to check what you’ve told us.</p>', elem_id="intro")
+                    with gr.Column(elem_id="chat-card"):
+                        chat_heading = gr.HTML('<div class="chat-heading"><span class="status-dot" aria-hidden="true"></span>Conversation in progress</div>')
+                        chatbot = gr.Chatbot(show_label=False, height=450, layout="bubble", buttons=[], elem_id="chat-messages")
+                        with gr.Column(elem_id="composer"):
+                            with gr.Row(elem_id="composer-inner"):
+                                user_input = gr.Textbox(label="Your answer", show_label=False, placeholder="Type your answer…", container=False, lines=1, max_lines=4, scale=12, elem_id="answer")
+                                send = gr.Button("Send", variant="primary", elem_id="send-button", scale=0, min_width=76)
+                            gr.HTML('<p class="composer-note">Share only what you’re comfortable entering. This prototype does not upload files.</p>')
+                with gr.Column(elem_id="sidebar"):
+                    case_details = gr.HTML(_case_details({}), elem_id="case-details")
+                    with gr.Accordion("Developer view", open=True, elem_id="debug"):
+                        debug_panel = gr.Markdown()
+                        reset_btn = gr.Button("Start a new session", size="sm", elem_id="reset-session")
 
-        initial = [{"role": "assistant", "content": msg} for msg in engine.initial_messages()]
-        demo.load(
-            lambda: (initial, "", _format_debug(engine.debug_snapshot()), suggestions(), *suggestion_updates(suggestions())),
-            outputs=[chatbot, user_input, debug_panel, suggestion_state, suggestion_one, suggestion_two, suggestion_three],
-        )
-
-        outputs = [chatbot, user_input, debug_panel, suggestion_state, suggestion_one, suggestion_two, suggestion_three]
-        send.click(respond, inputs=[user_input, chatbot], outputs=outputs)
-        user_input.submit(
-            respond, inputs=[user_input, chatbot], outputs=outputs
-        )
-        reset_btn.click(reset_session, outputs=outputs)
-        suggestion_one.click(lambda values, history: respond_suggestion(0, values, history), inputs=[suggestion_state, chatbot], outputs=outputs)
-        suggestion_two.click(lambda values, history: respond_suggestion(1, values, history), inputs=[suggestion_state, chatbot], outputs=outputs)
-        suggestion_three.click(lambda values, history: respond_suggestion(2, values, history), inputs=[suggestion_state, chatbot], outputs=outputs)
+        outputs = [chatbot, user_input, case_details, debug_panel, chat_heading, engine_state]
+        demo.load(new_session, outputs=outputs)
+        send.click(respond, inputs=[user_input, engine_state], outputs=outputs, concurrency_limit=1, concurrency_id="chat")
+        user_input.submit(respond, inputs=[user_input, engine_state], outputs=outputs, concurrency_limit=1, concurrency_id="chat")
+        reset_btn.click(new_session, outputs=outputs, concurrency_limit=1, concurrency_id="chat")
 
     demo.launch(
         server_name=args.host,
         server_port=args.port,
         share=args.share,
         debug=True,
-        css=CHATGPT_LIKE_CSS,
+        css=INTERFACE_CSS,
     )
     return 0
 

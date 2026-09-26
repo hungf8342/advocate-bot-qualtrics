@@ -10,6 +10,7 @@ from advocate_bot_qualtrics.config import (
     load_confidence_scoring_calibration,
 )
 from advocate_bot_qualtrics.core.bundle import PracticeAreaBundle, register_bundle
+from advocate_bot_qualtrics.practice_areas.consumer_debt.affirmative_defenses import assess_defense
 from advocate_bot_qualtrics.practice_areas.consumer_debt.computations import (
     run_fdcpa_computation,
     run_sol_computation,
@@ -45,9 +46,13 @@ TERMINAL_NODE_ID = "review_questions"
 
 
 def _run_hook(session: object, action: str) -> str:
+    if action.startswith("assess_"):
+        return assess_defense(session, action.removeprefix("assess_"))
     if action in {"sol_computation", "calculate_statute_of_limitations"}:
         return run_sol_computation(session)
-    return run_fdcpa_computation(session)
+    if action == "fdcpa_computation":
+        return run_fdcpa_computation(session)
+    raise ValueError(f"Unknown consumer-debt action: {action}")
 
 
 def _facts_for_llm(_facts: object | None) -> dict[str, Any]:

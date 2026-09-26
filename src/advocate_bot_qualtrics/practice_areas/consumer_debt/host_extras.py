@@ -3,16 +3,19 @@
 from __future__ import annotations
 
 from datetime import date
+from dataclasses import asdict
 
 from advocate_bot_qualtrics.core.schemas import CurrentNode
 from advocate_bot_qualtrics.practice_areas.consumer_debt.session import (
     InteractiveSessionState,
     apply_interactive_branch,
+    record_node_answer,
 )
+from advocate_bot_qualtrics.practice_areas.consumer_debt.preliminary import reused_branch
 from advocate_bot_qualtrics.practice_areas.consumer_debt.tree import (
     INTERACTIVE_ROUTES,
     INTERACTIVE_TREE,
-    resolve_interactive_next_node,
+    INTERACTIVE_TREE_DEFINITION,
 )
 
 _FILING_TOKEN = "{date_complaint_filed}"
@@ -22,7 +25,6 @@ _DATE_NODE_FIELDS: dict[str, str] = {
     "get_last_payment_OG_creditor": "last_payment_og_creditor",
     "get_last_payment_debt_collector": "last_payment_debt_collector",
 }
-_DISPUTE_DATE_NODES = frozenset({"get_filing_date", "get_last_payment_complaint"})
 
 DIFFERENT_COMPLAINT_RESTART_NODES = frozenset(
     {"different_complaint_filing", "different_complaint_last_payment"}
@@ -38,6 +40,8 @@ _HOOK_OUTCOME_KEYS = {
 
 
 def hook_outcome_key(node_id: str) -> str | None:
+    if node_id.endswith("_result"):
+        return node_id.removesuffix("_result")
     return _HOOK_OUTCOME_KEYS.get(node_id)
 
 
@@ -57,6 +61,24 @@ def render_node(
 
     question = source.question.replace(_FILING_TOKEN, _fmt_date(filing))
     question = question.replace(_LAST_PAYMENT_TOKEN, _fmt_date(last_payment))
+    from advocate_bot_qualtrics.practice_areas.consumer_debt.affirmative_defenses import defense_summary
+
+    consolidation = session.defense_answers.get("mitigation_consolidation")
+    negotiation_party = (
+        "you or your debt consolidation company" if consolidation == "yes"
+        else "you" if consolidation == "no"
+        else "you or a debt consolidation company acting for you, if any"
+    )
+    replacements = {
+        "{payment_recipient}": "the debt buyer" if session.defense_answers.get("sol_creditor_type") == "buyer" else "the original creditor",
+        "{negotiation_party}": negotiation_party,
+        "{agreement_party}": negotiation_party,
+        "{defense_summary}": defense_summary(session),
+        "{amount_sued}": session.amount_sued or "unknown",
+        "{open_date}": _fmt_date(session.open_date),
+    }
+    for token, value in replacements.items():
+        question = question.replace(token, value)
     branches = [
         branch.model_copy(
             update={
@@ -71,6 +93,21 @@ def render_node(
 
 
 def skip_collected_date_node(next_node_id: str, session: InteractiveSessionState) -> str:
+    """Reuse collected PRELIM-01 fields, following only declared branch targets."""
+    while (reused := reused_branch(session, next_node_id)) is not None:
+        branch, source = reused
+        definition = INTERACTIVE_TREE_DEFINITION.node(next_node_id)
+        target = INTERACTIVE_ROUTES.get((next_node_id, branch))
+        if target is None:
+            raise ValueError(f"Reused field has invalid branch {branch!r} for {next_node_id!r}")
+        value = session.last_payment_complaint if definition.kind == "input" else None
+        apply_interactive_branch(session, next_node_id, branch, submitted_date=value)
+        record = session.node_answers.get(source)
+        record_node_answer(session, next_node_id, branch,
+                           record.confidence_pct if record else 0,
+                           skipped=record.skipped if record else False)
+        session.reused_answers[next_node_id] = source
+        next_node_id = target
     field = _DATE_NODE_FIELDS.get(next_node_id)
     if field is None or getattr(session, field) is None:
         return next_node_id
@@ -84,23 +121,11 @@ def consume_embedded_dispute_date(
     *,
     terminal_node_id: str,
 ) -> None:
-    """Apply a date from the user's message and skip the dispute correction node."""
-    if embedded_date is None or engine.current_node_id not in _DISPUTE_DATE_NODES:
-        return
-    apply_interactive_branch(
-        engine.session,
-        engine.current_node_id,
-        "submit",
-        submitted_date=embedded_date,
-    )
-    next_id = resolve_interactive_next_node(
-        engine.current_node_id, "submit", engine.session
-    )
-    if not next_id:
-        return
-    engine.current_node_id = skip_collected_date_node(next_id, engine.session)
-    if engine.current_node_id == terminal_node_id:
-        engine._set_tree_complete()
+    """Compatibility callback; AFF-01 collects each date in its own question.
+
+    In particular, a filing-date answer must never fill the next payment node.
+    """
+    return None
 
 
 def build_debug_snapshot(
@@ -128,6 +153,14 @@ def build_debug_snapshot(
         "evidence": session.evidence,
         "sol_outcome": last_outcomes.get("sol", "—"),
         "fdcpa_outcome": last_outcomes.get("fdcpa", "—"),
+        "defense_results": session.defense_results,
+        "preliminary_fields": {
+            tag: {key: value.isoformat() if isinstance(value, date) else value
+                  for key, value in asdict(entry).items()}
+            for tag, entry in session.preliminary_fields.items()
+        },
+        "reused_answers": session.reused_answers,
+        "mitigation_checkboxes": session.mitigation_checkboxes,
         "node_answers": {
             node_id: {
                 "branch": record.branch_id,

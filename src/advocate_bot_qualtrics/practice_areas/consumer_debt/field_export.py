@@ -24,6 +24,8 @@ _FIELD_SPECS: tuple[tuple[str, str, tuple[str, ...], str], ...] = (
         "last_payment_complaint",
         "Last compliant payment date",
         (
+            "prelim_correct_payment",
+            "prelim_last_payment",
             "get_last_payment_complaint",
             "different_complaint_last_payment",
             "confirm_last_payment_complaint",

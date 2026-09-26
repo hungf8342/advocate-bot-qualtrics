@@ -1,6 +1,6 @@
 # Advocate Bot Qualtrics
 
-This is a confidential, user-entered consumer-debt decision-tree chatbot. It does not accept, upload, parse, or store complaint documents. The chat begins by asking the user for the plaintiff, amount sought, complaint date, and last payment date; those values are kept in the active session for the tree.
+This is a confidential, user-entered consumer-debt decision-tree chatbot. It does not accept, upload, parse, or store complaint documents. The chat collects Preliminary Questions from the clinic draft, then screens 21 affirmative defenses using those answers. Values and user corrections are kept in the active session.
 
 ## Setup
 
@@ -21,14 +21,11 @@ The demo has no file-upload control. Do not use its public-share option with rea
 
 ## Interactive flow
 
-The declarative consumer-debt tree is in [`interactive_tree.yaml`](src/advocate_bot_qualtrics/practice_areas/consumer_debt/interactive_tree.yaml). Its initial nodes collect:
+The declarative consumer-debt tree is in [`interactive_tree.yaml`](src/advocate_bot_qualtrics/practice_areas/consumer_debt/interactive_tree.yaml). Preliminary Questions collect the plaintiff, account recognition, law firm, claim type, oral/written agreement, amount, dates, attachments, verification, and debt consolidation status. Disputed amounts and dates are replaced with the user's corrections for later use; the original complaint entries remain available for questions about what the complaint contains.
 
-- plaintiff name;
-- amount sought;
-- complaint date; and
-- last payment date.
+The host reuses tagged answers, follows the YAML branches, and computes defense results. The LLM only classifies the user’s answer against the current node; it cannot advance to a branch outside the node’s declared branch IDs. The final review lists checked, unchecked, and unresolved defenses.
 
-The host validates and stores dates in the in-memory session, then performs deterministic SOL and FDCPA screening steps. The LLM only classifies the user’s answer against the current node; it cannot advance to a branch outside the node’s declared branch IDs.
+See [decision-tree structure and field reuse](docs/decision-tree.md) for editing guidance. Restart the demo after changing YAML or Python, then refresh the browser to start a new session.
 
 ## Tests
 

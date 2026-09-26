@@ -16,15 +16,16 @@ def test_consumer_debt_tree_loads_from_yaml_with_string_branch_ids():
     tree = load_tree_definition(INTERACTIVE_TREE_PATH)
 
     assert tree.id == "consumer_debt_interactive"
-    assert tree.version == "1.2"
+    assert tree.version == "2.1"
     assert tree.start_node_id == "get_plaintiff_name"
-    assert tree.node("get_plaintiff_name").input.type == "text"
-    assert tree.route("get_plaintiff_name", "submit") == "get_amount_sued"
+    assert tree.node("get_filing_date").input.type == "date"
+    assert tree.route("sol_creditor_type", "original") == "get_filing_date"
+    assert tree.route("sol_buyer_payment", "no") == "statute_of_limitations_result"
 
 
 def test_consumer_debt_tree_declares_inputs_actions_and_terminal_qa():
     assert INTERACTIVE_TREE_DEFINITION.node("get_filing_date").input is not None
-    assert INTERACTIVE_TREE_DEFINITION.node("sol_computation").action == "sol_computation"
+    assert INTERACTIVE_TREE_DEFINITION.node("statute_of_limitations_result").action == "assess_statute_of_limitations"
     assert INTERACTIVE_TREE_DEFINITION.node("review_questions").terminal_qa is True
 
 

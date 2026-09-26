@@ -41,7 +41,7 @@ INTERACTIVE_ROUTES: dict[tuple[str, str], str] = {
     for node in INTERACTIVE_TREE_DEFINITION.nodes
     for branch in node.branches
 }
-INTERACTIVE_CONDITIONAL_ROUTE_NODES: frozenset[str] = frozenset({"contact_third_parties"})
+INTERACTIVE_CONDITIONAL_ROUTE_NODES: frozenset[str] = frozenset()
 
 
 def idk_skip_branch_for_node(node_id: str) -> str | None:
@@ -53,8 +53,5 @@ def resolve_interactive_next_node(
     branch_id: str,
     session: InteractiveSessionState | None = None,
 ) -> str | None:
-    """Resolve an explicit branch target, with one legacy state guard."""
-    if current_node_id == "contact_third_parties":
-        if session is not None and not session.threatened and not session.disclosed:
-            return "fdcpa_computation"
+    """Resolve only the branch targets declared in the YAML."""
     return INTERACTIVE_TREE_DEFINITION.route(current_node_id, branch_id)
