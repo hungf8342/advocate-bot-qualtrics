@@ -7,6 +7,10 @@ nodes:
   - id: get_plaintiff_name
     kind: input
     question: "Who is suing you? Enter the plaintiff's name shown on the complaint."
+    explanation:
+      text: "The plaintiff is who is suing you for money. You can find the plaintiff name on the first page of the complaint, underneath the centered and bolded court name and on the same line as the case number."
+      images:
+        - {path: complaint-examples/plaintiff.png, alt: "Example complaint with the plaintiff name highlighted"}
     input: {field: plaintiff_name, type: text, valid_branch_id: submit, unknown_branch_id: unknown}
     idk_skip_branch_id: unknown
     branches:
@@ -15,11 +19,19 @@ nodes:
   - id: prelim_creditor_type
     kind: choice
     question: "Is that plaintiff the original creditor or a debt buyer? [PLAINTIFF]"
+    explanation:
+      text: 'An "original creditor" is the company you originally owed the debt to — for example, the bank or credit card company whose card you used. A "debt buyer" is a company that purchases old or unpaid debts from original creditors (often for pennies on the dollar) and then tries to collect on them. Companies like Cavalry SPV, Midland Credit Management, and Portfolio Recovery Associates are typically debt buyers.'
+    validation:
+      type: enum
+      categories:
+        original: "The user says this is the company that originally extended the credit or first owned the account."
+        buyer: "The user says this company bought or was assigned the debt from the original creditor."
+        unknown: "The user is unsure, gives only a company name without saying whether it bought the debt, or provides insufficient or conflicting information."
     idk_skip_branch_id: unknown
     branches:
       - {id: original, label: "Original creditor.", target: prelim_recognize}
       - {id: buyer, label: "Debt buyer.", target: prelim_recognize}
-      - {id: unknown, label: "I do not know.", target: prelim_recognize}
+      - {id: unknown, label: "Not sure.", target: prelim_recognize}
   - id: prelim_recognize
     kind: choice
     question: "Do you recognize the account being sued over as one you opened? [RECOGNIZE]"

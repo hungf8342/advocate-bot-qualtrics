@@ -249,7 +249,15 @@ class InteractiveChatEngine:
             step.user_intent = turn.user_intent
             return step
 
-        messages = [self._append_transcript("assistant", turn.assistant_reply)]
+        reply = turn.assistant_reply
+        if turn.user_intent == "ask_about_complaint" and definition.explanation is not None:
+            explanation = definition.explanation
+            images = [
+                f"![{item.alt.replace(']', r'\]')}]({item.path})"
+                for item in explanation.images
+            ]
+            reply = "\n\n".join([explanation.text, *images])
+        messages = [self._append_transcript("assistant", reply)]
 
         if turn.user_intent == "ask_about_complaint":
             reask = self._format_node_prompt(self.current_node_id)

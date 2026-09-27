@@ -39,6 +39,7 @@ footer { display: none !important; }
 #chat-messages .message.bot, #chat-messages .message.user { padding: 13px 16px; }
 #chat-messages .message.bot > .message, #chat-messages .message.user > .message { padding: 0 !important; }
 #chat-messages .message .prose { font-size: 15px; }
+#chat-messages .message-content img { max-width: 100%; height: auto; border-radius: 8px; margin-top: 10px; }
 #chat-messages .top-panel { display: none; }
 #chat-messages .message.bot { background: #f2f6f5; color: #223142; border-radius: 15px 15px 15px 4px; }
 #chat-messages .message.user { background: #175d68; color: #fff; border-radius: 15px 15px 4px 15px; }

@@ -8,6 +8,7 @@ from html import escape
 import re
 import sys
 from pathlib import Path
+from urllib.parse import quote
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -63,8 +64,24 @@ def _case_details(snapshot: dict) -> str:
 
 
 def _chat_history(engine) -> list[dict[str, str]]:
+    tree = getattr(getattr(engine, "bundle", None), "tree", None)
+    asset_urls = {
+        image.path: "/gradio_api/file=" + quote(str((PROJECT_ROOT / image.path).resolve()), safe="/")
+        for node in (tree.nodes if tree is not None else [])
+        if node.explanation is not None
+        for image in node.explanation.images
+    }
+
+    def display(role: str, message: str) -> str:
+        if role != "assistant":
+            return message
+        message = re.sub(r"\s*\[[A-Z][A-Z0-9-]*\]", "", message)
+        for path, url in asset_urls.items():
+            message = message.replace(f"]({path})", f"]({url})")
+        return message
+
     return [
-        {"role": role, "content": re.sub(r"\s*\[[A-Z][A-Z0-9-]*\]", "", text) if role == "assistant" else text}
+        {"role": role, "content": display(role, text)}
         for role, text in engine.transcript
     ]
 
@@ -201,6 +218,7 @@ def main() -> int:
         share=args.share,
         debug=True,
         css=INTERFACE_CSS,
+        allowed_paths=[str(PROJECT_ROOT / "complaint-examples")],
     )
     return 0
 

@@ -12,8 +12,17 @@ The existing schema is unchanged:
 - `start_node_id` identifies the first question.
 - A `choice` node has a `question` and `branches`; each branch has an `id`,
   `label`, and `target` node ID.
+- A choice node may declare `validation: {type: enum, categories: ...}`. Each
+  category key must match exactly one branch ID. The descriptions tell the
+  model how to classify a free-text answer; the host still rejects any branch
+  ID that is not declared on the node.
 - An `input` node also declares an `input` field, type, valid branch, and unknown
   branch. Date inputs require a usable date before following `submit`.
+- A node may declare an `explanation` with approved `text` and optional `images`.
+  An image uses a project-relative path and alt text. When a user asks about
+  that node, the host displays the approved text and images, then repeats the
+  question without advancing. The initial plaintiff explanation references
+  `complaint-examples/plaintiff.png`.
 - `idk_skip_branch_id` routes a bare “I don't know.” Missing information in the
   complaint has a separate `missing` branch where appropriate.
 - An `action` node names host-side logic and a `next` node. Each `assess_*` action
@@ -22,6 +31,9 @@ The existing schema is unchanged:
 
 The model's `next_node_id` is a **branch ID**, not a target node ID. The host resolves
 the branch to its target. Non-answer intents must have a null `next_node_id`.
+The first plaintiff node accepts free text. The following plaintiff-type node
+classifies answers as original creditor, debt buyer, or not sure; a company
+name by itself does not establish the category.
 
 ## Preliminary fields
 

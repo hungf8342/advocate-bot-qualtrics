@@ -8,7 +8,9 @@ from typing import Literal
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from advocate_bot_qualtrics.core.schemas import CurrentNode, TreeBranch
+from advocate_bot_qualtrics.core.schemas import (
+    CurrentNode, EnumValidation, NodeExplanation, TreeBranch,
+)
 
 
 NodeKind = Literal["choice", "input", "action", "terminal", "recommendation", "escalate", "notice"]
@@ -51,6 +53,8 @@ class TreeNodeDefinition(BaseModel):
     next: str | None = None
     idk_skip_branch_id: str | None = None
     terminal_qa: bool = False
+    explanation: NodeExplanation | None = None
+    validation: EnumValidation | None = None
 
     @model_validator(mode="after")
     def validate_kind_configuration(self) -> TreeNodeDefinition:
@@ -75,6 +79,13 @@ class TreeNodeDefinition(BaseModel):
             raise ValueError(f"terminal node '{self.id}' cannot define next")
         if self.idk_skip_branch_id is not None and self.idk_skip_branch_id not in branch_ids:
             raise ValueError(f"node '{self.id}' has an invalid idk skip branch")
+        if self.validation is not None:
+            if self.kind != "choice":
+                raise ValueError(f"node '{self.id}' only supports enum validation on choice nodes")
+            if set(self.validation.categories) != branch_ids or any(
+                not description.strip() for description in self.validation.categories.values()
+            ):
+                raise ValueError(f"node '{self.id}' enum categories must describe every branch")
         return self
 
     def to_current_node(self) -> CurrentNode:
@@ -85,6 +96,8 @@ class TreeNodeDefinition(BaseModel):
                 TreeBranch(branch_id=branch.id, label=branch.label)
                 for branch in self.branches
             ],
+            explanation=self.explanation,
+            validation=self.validation,
         )
 
 

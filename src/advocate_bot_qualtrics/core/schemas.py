@@ -2,9 +2,52 @@
 
 from __future__ import annotations
 
+from pathlib import PurePosixPath
+import re
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+
+class ExplanationImage(BaseModel):
+    """A project-local image referenced by an approved node explanation."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    path: str
+    alt: str
+
+    @field_validator("path")
+    @classmethod
+    def safe_relative_image(cls, path: str) -> str:
+        parts = PurePosixPath(path)
+        if (
+            not path
+            or re.fullmatch(r"[A-Za-z0-9_./-]+", path) is None
+            or parts.is_absolute()
+            or ".." in parts.parts
+            or parts.suffix.lower() not in {".png", ".jpg", ".jpeg", ".webp"}
+        ):
+            raise ValueError("explanation images must use a relative image path")
+        return path
+
+
+class NodeExplanation(BaseModel):
+    """Approved help text and optional visual examples for the active question."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    text: str = Field(min_length=1)
+    images: list[ExplanationImage] = Field(default_factory=list)
+
+
+class EnumValidation(BaseModel):
+    """Meaning of each permitted category for answer classification."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    type: Literal["enum"]
+    categories: dict[str, str]
 
 
 class TreeBranch(BaseModel):
@@ -31,6 +74,8 @@ class CurrentNode(BaseModel):
         default_factory=list,
         description="Valid branches for advancing to the next node.",
     )
+    explanation: NodeExplanation | None = None
+    validation: EnumValidation | None = None
 
 
 UserIntent = Literal[
