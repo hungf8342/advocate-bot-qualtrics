@@ -1,7 +1,7 @@
 # Source: Decision Tree Draft 9_24_2026.docx, PRELIM-01 followed by AFF-01.
 # Outcomes and clinic referrals are recorded by the assess_* action handlers.
 id: consumer_debt_interactive
-version: "2.1"
+version: "2.2"
 start_node_id: get_plaintiff_name
 nodes:
   - id: get_plaintiff_name
@@ -46,8 +46,16 @@ nodes:
     input: {field: law_firm, type: text, valid_branch_id: submit, unknown_branch_id: unknown}
     idk_skip_branch_id: unknown
     branches:
-      - {id: submit, label: "Value supplied.", target: prelim_suit_type}
-      - {id: unknown, label: "I do not know.", target: prelim_suit_type}
+      - {id: submit, label: "Value supplied.", target: get_filing_date}
+      - {id: unknown, label: "I do not know.", target: get_filing_date}
+  - id: get_filing_date
+    kind: input
+    question: "What is the complaint's filing date? Use the filing date, not the date you received it. [FILING-DATE]"
+    input: {"field":"filing_date","type":"date","valid_branch_id":"submit","unknown_branch_id":"no_date"}
+    idk_skip_branch_id: no_date
+    branches:
+      - {id: submit, label: "Date supplied.", target: prelim_suit_type}
+      - {id: no_date, label: "I do not know the date.", target: prelim_suit_type}
   - id: prelim_suit_type
     kind: choice
     question: "Does the complaint state breach of contract, common counts, or both? [SUIT-TYPE]"
@@ -178,7 +186,7 @@ nodes:
     question: "Statute of limitations: is the plaintiff the original creditor or a debt buyer?"
     idk_skip_branch_id: unknown
     branches:
-      - {"id":"original","label":"Original creditor.","target":"get_filing_date"}
+      - {"id":"original","label":"Original creditor.","target":"sol_payment_recipient"}
       - {"id":"buyer","label":"Debt buyer.","target":"sol_buyer_payment"}
       - {"id":"unknown","label":"I do not know.","target":"statute_of_limitations_result"}
   - id: sol_buyer_payment
@@ -186,17 +194,9 @@ nodes:
     question: "Have you made a payment to the debt buyer?"
     idk_skip_branch_id: unknown
     branches:
-      - {"id":"yes","label":"Yes.","target":"get_filing_date"}
+      - {"id":"yes","label":"Yes.","target":"sol_payment_recipient"}
       - {"id":"no","label":"No.","target":"statute_of_limitations_result"}
       - {"id":"unknown","label":"I do not know.","target":"statute_of_limitations_result"}
-  - id: get_filing_date
-    kind: input
-    question: "What is the complaint's filing date? Use the filing date, not the date you received it."
-    input: {"field":"filing_date","type":"date","valid_branch_id":"submit","unknown_branch_id":"no_date"}
-    idk_skip_branch_id: no_date
-    branches:
-      - {id: submit, label: "Date supplied.", target: sol_payment_recipient}
-      - {id: no_date, label: "I do not know the date.", target: sol_payment_recipient}
   - id: sol_payment_recipient
     kind: choice
     question: "Is the plaintiff the original creditor or a debt buyer? [PLAINTIFF]"

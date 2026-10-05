@@ -20,6 +20,7 @@ FIELD_LABELS = {
     "RECOGNIZE": "Do you recognize the account?",
     "AMOUNT": "Amount claimed / your correction",
     "LAW-FIRM": "Plaintiff’s law firm",
+    "FILING-DATE": "Complaint filing date",
     "SUIT-TYPE": "Type of claim",
     "ORAL": "Oral agreement only?",
     "LAST-PAYMENT-DATE": "Last payment date",
@@ -160,7 +161,7 @@ def main() -> int:
         print("Gradio is not installed. Run: pip install -e '.[demo]'", file=sys.stderr)
         return 1
 
-    from advocate_bot_qualtrics.decision_tree.interactive_host import InteractiveChatEngine
+    from advocate_bot_qualtrics.core.engine import InteractiveChatEngine
 
     def outputs_for(engine, error=None, draft=""):
         snapshot = engine.debug_snapshot()

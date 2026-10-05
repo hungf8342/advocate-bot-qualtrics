@@ -1,8 +1,8 @@
 import pytest
 
-from advocate_bot_qualtrics.decision_tree.errors import ChatError
-from advocate_bot_qualtrics.decision_tree.process_chat import _post_validate_turn
-from advocate_bot_qualtrics.decision_tree.schemas import ChatTurnResponse, CurrentNode, TreeBranch
+from advocate_bot_qualtrics.core.errors import ChatError
+from advocate_bot_qualtrics.core.process_chat import _post_validate_turn
+from advocate_bot_qualtrics.core.schemas import ChatTurnResponse, CurrentNode, TreeBranch
 
 
 def test_post_validate_sets_next_node_null_for_non_answer_intent():

@@ -1,1 +1,0 @@
-Pretend you're a defendant who needs lots of legal terms explained before you feel comfortable answering. Ask what things mean when you're unsure. Eventually answer when you understand, using dates from the complaint when you accept them.

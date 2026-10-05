@@ -2,7 +2,24 @@
 
 The current tree implements **Preliminary Questions (PRELIM-01)** followed by
 **Affirmative Defenses (AFF-01)** from `Decision Tree Draft 9_24_2026.docx`.
-The earlier `Tree-Structures.docx` describes an older workflow.
+
+## Code organization
+
+- `core/engine.py` runs the conversation, records answers, follows branches,
+  executes actions, and handles final Q&A.
+- `core/process_chat.py` asks the model to interpret a message and validates the
+  structured response against the current node's allowed branches.
+- `core/tree_definition.py` defines and validates the YAML node schema.
+- `practice_areas/consumer_debt/` owns the tree, captured fields, field reuse,
+  rendering, defense rules, and export mapping.
+- `llm/` contains model client calls; `scripts/interactive_chat_demo.py` provides
+  the demo UI.
+
+The former `advocate_bot_qualtrics.decision_tree` import paths have been removed.
+Use `advocate_bot_qualtrics.core.engine` for the engine, `core.process_chat` for
+chat processing, and `core.schemas` for chat/node models. Consumer-debt helpers
+live in the corresponding practice-area modules. The package-level
+`from advocate_bot_qualtrics import process_chat` entry point remains available.
 
 ## YAML structure
 
@@ -43,12 +60,18 @@ The mappings are explicit in
 bracketed text in a question is a label, not executable field-binding syntax.
 Update those mappings when adding or renaming tagged nodes.
 
+The complaint filing date is collected after the law-firm question, before claim
+type and payment dates. It is stored as `FILING-DATE` and `session.filing_date`;
+SOL uses this value without asking again. An unknown filing date remains unknown
+and date-dependent SOL screening is flagged for clinic review.
+
 | Field | Stored answer / later use |
 | --- | --- |
 | `PLAINTIFF` | Original creditor or debt buyer; routes SOL, standing, and failure-to-state-a-cause questions |
 | `PLAINTIFF-NAME` | Plaintiff's name, stored separately from creditor type |
 | `RECOGNIZE` | Reused in identity theft and wrong party |
 | `LAW-FIRM` | Plaintiff's law firm |
+| `FILING-DATE` | Complaint filing date, collected during preliminary intake and used in SOL screening |
 | `SUIT-TYPE` | Breach, common counts, both, missing, or unknown; controls both later claim-type gates |
 | `ORAL` | Maps yes/no to oral/written in SOL |
 | `AMOUNT` | Effective amount, updated if the user disagrees |
@@ -64,8 +87,8 @@ The three agreement questions are also stored as `AMOUNT-AGREEMENT`,
 `LANGUAGE` is in the draft's separate triage section, not PRELIM-01;
 its affirmative-defense question still collects the answer later.
 
-Each field contains its effective `value`, `status`, and `source_node`. Amount and
-date entries also retain `complaint_value`, `complaint_status`, `complaint_source`,
+Each field contains its effective `value`, `status`, and `source_node`. Amount,
+last-payment date, and account-opening date entries also retain `complaint_value`, `complaint_status`, `complaint_source`,
 and a `disputed` flag. On disagreement the old effective value is cleared and a
 correction question is asked. If the correction is unknown, the field remains
 unknown; the disputed complaint value is not restored. An unknown agreement answer

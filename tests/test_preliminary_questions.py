@@ -5,6 +5,7 @@ from datetime import date
 import pytest
 
 from advocate_bot_qualtrics.core.engine import InteractiveChatEngine
+from advocate_bot_qualtrics.core.schemas import ChatTurnResponse
 from advocate_bot_qualtrics.practice_areas.consumer_debt.affirmative_defenses import assess_defense
 from advocate_bot_qualtrics.practice_areas.consumer_debt.host_extras import skip_collected_date_node, render_node
 from advocate_bot_qualtrics.practice_areas.consumer_debt.preliminary import REUSED_FIELDS, reused_branch
@@ -17,6 +18,71 @@ def answer(session, node, branch, value=None):
                              submitted_date=value if isinstance(value, date) else None,
                              submitted_text=value if isinstance(value, str) else None)
     record_node_answer(session, node, branch, 90)
+
+
+@pytest.mark.parametrize("creditor", ["original", "buyer"])
+@pytest.mark.parametrize("filing_known", [True, False])
+def test_preliminary_filing_date_drives_sol_without_being_asked_again(monkeypatch, creditor, filing_known):
+    from advocate_bot_qualtrics.core import engine as engine_module
+
+    def fake_chat(payload, node, facts, bundle):
+        branch = {
+            "prelim_law_firm": "submit", "get_filing_date": "submit",
+            "prelim_consolidation": "no", "sol_buyer_payment": "yes",
+            "get_last_payment_debt_collector": "submit",
+        }[node.node_id]
+        return ChatTurnResponse(user_intent="answer_node", assistant_reply="Recorded.",
+                                next_node_id=branch, answer_confidence_pct=100)
+
+    monkeypatch.setattr(engine_module, "process_chat", fake_chat)
+    engine = InteractiveChatEngine.from_user_input()
+    engine.current_node_id = "prelim_law_firm"
+    assert engine.submit("Example Law").current_node_id == "get_filing_date"
+    step = engine.submit("2026-09-24" if filing_known else "I don't know")
+    assert step.error is None
+    assert step.current_node_id == "prelim_suit_type"
+    entry = engine.session.preliminary_fields["FILING-DATE"]
+    assert entry.value == engine.session.filing_date == (date(2026, 9, 24) if filing_known else None)
+    assert entry.status == ("known" if filing_known else "unknown")
+    assert entry.source_node == "get_filing_date"
+    assert engine.debug_snapshot()["preliminary_fields"]["FILING-DATE"]["value"] == (
+        "2026-09-24" if filing_known else None
+    )
+
+    answer(engine.session, "prelim_creditor_type", creditor)
+    answer(engine.session, "prelim_oral", "yes")
+    answer(engine.session, "prelim_last_payment", "submit", date(2020, 1, 1))
+    engine.current_node_id = "prelim_consolidation"
+    step = engine.submit("No")
+    if creditor == "buyer":
+        assert step.current_node_id == "sol_buyer_payment"
+        step = engine.submit("Yes")
+        assert step.current_node_id == "get_last_payment_debt_collector"
+        step = engine.submit("2020-01-01")
+    assert step.error is None
+    assert step.current_node_id == "ambiguity"
+    result = engine.session.defense_results["statute_of_limitations"]
+    assert result["status"] == ("checked" if filing_known else "unresolved")
+    if filing_known:
+        assert "filing 2026-09-24" in result["reason"]
+    else:
+        assert "confirm the complaint filing date" in result["reason"]
+    assert sum(role == "user" and text == "2026-09-24" for role, text in engine.transcript) == int(filing_known)
+
+
+def test_preliminary_filing_date_rejects_unparseable_answer(monkeypatch):
+    from advocate_bot_qualtrics.core import engine as engine_module
+
+    monkeypatch.setattr(engine_module, "process_chat", lambda *args: ChatTurnResponse(
+        user_intent="answer_node", assistant_reply="Recorded.", next_node_id="submit", answer_confidence_pct=100,
+    ))
+    engine = InteractiveChatEngine.from_user_input()
+    engine.current_node_id = "get_filing_date"
+    step = engine.submit("I see a stamp but cannot read it")
+    assert step.current_node_id == "get_filing_date"
+    assert engine.session.filing_date is None
+    assert "FILING-DATE" not in engine.session.preliminary_fields
+    assert "couldn't read a date" in step.assistant_messages[0]
 
 
 @pytest.mark.parametrize("original,agree,correction,tag,attr,first,corrected", [
@@ -127,6 +193,7 @@ def test_all_preliminary_fields_are_stored_and_reuse_is_valid():
     answers = {
         "get_plaintiff_name": ("submit", "Acme Bank"), "prelim_creditor_type": ("original", None),
         "prelim_recognize": ("yes", None), "prelim_law_firm": ("submit", "Example Law"),
+        "get_filing_date": ("submit", date(2026, 9, 24)),
         "prelim_suit_type": ("both", None), "prelim_oral": ("no", None),
         "get_amount_sued": ("submit", "$123"), "prelim_last_payment": ("submit", date(2020, 1, 1)),
         "prelim_open_date": ("submit", date(2010, 1, 1)), "prelim_statement": ("yes", None),
@@ -136,7 +203,7 @@ def test_all_preliminary_fields_are_stored_and_reuse_is_valid():
     for node, (branch, value) in answers.items():
         answer(session, node, branch, value)
     assert set(session.preliminary_fields) == {
-        "PLAINTIFF-NAME", "PLAINTIFF", "RECOGNIZE", "LAW-FIRM", "SUIT-TYPE", "ORAL", "AMOUNT",
+        "PLAINTIFF-NAME", "PLAINTIFF", "RECOGNIZE", "LAW-FIRM", "FILING-DATE", "SUIT-TYPE", "ORAL", "AMOUNT",
         "LAST-PAYMENT-DATE", "OPEN-DATE", "STATEMENT", "OWNERSHIP", "VERIFIED", "CONSOLIDATION",
     }
     assert session.law_firm == "Example Law"

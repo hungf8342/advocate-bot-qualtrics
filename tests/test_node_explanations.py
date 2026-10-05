@@ -70,12 +70,12 @@ def test_explanation_image_requires_project_relative_image_path(path):
     ("prelim_creditor_type", 'An "original creditor" is the company', False),
 ])
 def test_help_uses_approved_node_text_and_stays_on_the_question(monkeypatch, node_id, phrase, image_expected):
-    from advocate_bot_qualtrics.decision_tree import interactive_host
+    from advocate_bot_qualtrics.core import engine as engine_module
 
     def fake_chat(*args, **kwargs):
         return ChatTurnResponse(user_intent="ask_about_complaint", assistant_reply="Unapproved reply.")
 
-    monkeypatch.setattr(interactive_host, "process_chat", fake_chat)
+    monkeypatch.setattr(engine_module, "process_chat", fake_chat)
     engine = InteractiveChatEngine.from_user_input()
     engine.current_node_id = node_id
     step = engine.submit("What does that mean?")

@@ -26,7 +26,7 @@ def _three_year_anniversary(value: date) -> date:
 def run_sol_computation(session: InteractiveSessionState) -> str:
     """Evaluate whether statute of limitations is an affirmative defense.
 
-    Per Tree-Structures.docx:
+    Legacy screening rule (retained for compatibility):
     1. Take the most recent of complaint, OG-creditor, and debt-collector payment dates.
     2. Compare the filing date to that payment's third calendar anniversary.
     3. If the filing date is later, flag a possible SOL affirmative defense.

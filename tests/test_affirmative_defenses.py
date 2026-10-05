@@ -163,7 +163,7 @@ def test_graph_reachable_acyclic_and_every_path_finishes():
 @pytest.mark.parametrize("default", ["yes", "no", "unknown"])
 def test_automatic_traversal_finishes_with_checklist_and_open_questions(monkeypatch, tmp_path, default):
     """Exercise the real engine and hooks with a deterministic model substitute."""
-    from advocate_bot_qualtrics.decision_tree import interactive_host
+    from advocate_bot_qualtrics.core import engine as engine_module
 
     def fake_chat(payload, node, facts, bundle):
         definition = bundle.tree.node(node.node_id)
@@ -182,8 +182,8 @@ def test_automatic_traversal_finishes_with_checklist_and_open_questions(monkeypa
         assert branch in ids
         return ChatTurnResponse(user_intent="answer_node", assistant_reply="Recorded.", next_node_id=branch, answer_confidence_pct=100)
 
-    monkeypatch.setattr(interactive_host, "process_chat", fake_chat)
-    monkeypatch.setattr(interactive_host, "get_session_fields_xlsx_path", lambda: tmp_path / "fields.xlsx")
+    monkeypatch.setattr(engine_module, "process_chat", fake_chat)
+    monkeypatch.setenv("SESSION_FIELDS_XLSX_PATH", str(tmp_path / "fields.xlsx"))
     engine = InteractiveChatEngine.from_user_input()
     visited = []
     for _ in range(len(TREE.nodes)):
@@ -202,6 +202,9 @@ def test_automatic_traversal_finishes_with_checklist_and_open_questions(monkeypa
         assert step.branch_id in {b.id for b in TREE.node(node_id).branches}
     assert engine.tree_complete
     assert engine.current_node_id == "review_questions"
+    assert engine.export_done
+    assert engine.last_export_path == str(tmp_path / "fields.xlsx")
+    assert (tmp_path / "fields.xlsx").is_file()
     assert list(engine.session.defense_results) == list(DEFENSE_LABELS)
     if default == "yes":
         assert "prelim_last_payment" in visited

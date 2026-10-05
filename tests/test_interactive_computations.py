@@ -1,11 +1,11 @@
 from datetime import date
 
-from advocate_bot_qualtrics.decision_tree.interactive_computations import (
+from advocate_bot_qualtrics.practice_areas.consumer_debt.computations import (
     SOL_LIMIT_DAYS,
     run_fdcpa_computation,
     run_sol_computation,
 )
-from advocate_bot_qualtrics.decision_tree.interactive_session import InteractiveSessionState
+from advocate_bot_qualtrics.practice_areas.consumer_debt.session import InteractiveSessionState
 
 
 def test_sol_affirmative_when_beyond_limit():

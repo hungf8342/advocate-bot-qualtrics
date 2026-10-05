@@ -18,9 +18,7 @@ Use these commands for normal work:
 
 ```bash
 .venv/bin/python -m pytest
-.venv/bin/python scripts/extract_complaint_to_json.py
 .venv/bin/python scripts/interactive_chat_demo.py
-.venv/bin/python scripts/run_interactive_simulator.py
 ```
 
 For an interactive human terminal only, activation remains optional:
@@ -31,15 +29,24 @@ source .venv/bin/activate
 
 ## Scope
 
-- This repository uses two decision-tree modes:
-  - Interactive: user-driven progression via `process_chat(...)`
-  - Autonomous: AI-driven progression from `ComplaintFactSheet` JSON
+- The current application is interactive: user-driven progression via
+  `core/process_chat.py` and `core/engine.py`.
+- Consumer-debt questions and routing live in
+  `practice_areas/consumer_debt/interactive_tree.yaml`; screening rules live in
+  `affirmative_defenses.py` in the same directory.
+- The old `decision_tree/` compatibility package has been removed. Use canonical
+  `core/` and practice-area imports.
+- Document extraction, autonomous fact-sheet traversal, and the simulator are
+  not present in this checkout.
 
 ## Data contract
 
-- `ComplaintFactSheet` is fact-only (`schema_version: "1.1"`).
-- Do not reintroduce defense judgment fields into extraction output.
-- Defense analysis belongs in decision-tree logic, not extraction.
+- Case facts come from user answers and live in the active session.
+- The complaint filing date is collected in preliminary intake as `FILING-DATE`
+  and `session.filing_date`, then used directly by SOL screening.
+- Defense analysis belongs in practice-area decision logic. If document
+  extraction is restored, keep its output fact-only; do not add defense judgments
+  to `ComplaintFactSheet` (`schema_version: "1.1"`).
 
 ## LLM output requirements
 
@@ -59,7 +66,7 @@ source .venv/bin/activate
 ## Testing
 
 - Add or update tests whenever node schemas, routing validation, or prompts change.
-- Ensure autonomous traversal tests cover:
+- Ensure engine traversal tests cover:
   - valid branch constraints
   - terminal-node completion
   - summary/open-questions output

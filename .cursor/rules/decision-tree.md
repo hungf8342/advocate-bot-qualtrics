@@ -1,14 +1,17 @@
 # Decision Tree Project Rules
 
 ## Scope
-- This repository uses two decision-tree modes:
-  - Interactive: user-driven progression via `process_chat(...)`
-  - Autonomous: AI-driven progression from `ComplaintFactSheet` JSON
+- The application is interactive, using `core/process_chat.py` and `core/engine.py`.
+- Consumer-debt routing and screening live in `practice_areas/consumer_debt/`.
+- Use canonical imports; the `decision_tree/` compatibility package was removed.
+- Document extraction, autonomous fact-sheet traversal, and the simulator are absent.
 
 ## Data Contract
-- `ComplaintFactSheet` is fact-only (`schema_version: "1.1"`).
-- Do not reintroduce defense judgment fields into extraction output.
-- Defense analysis belongs in decision-tree logic, not extraction.
+- Case facts come from user answers and are session-local.
+- Preliminary intake stores the complaint filing date as `FILING-DATE` and
+  `session.filing_date`; SOL uses this captured date without asking again.
+- Defense analysis belongs in practice-area decision logic. If extraction is
+  restored, keep `ComplaintFactSheet` fact-only (`schema_version: "1.1"`).
 
 ## LLM Output Requirements
 - Interactive chat responses must remain structured:
@@ -25,7 +28,7 @@
 
 ## Testing
 - Add/update tests whenever node schemas, routing validation, or prompts change.
-- Ensure autonomous traversal tests cover:
+- Ensure engine traversal tests cover:
   - valid branch constraints
   - terminal-node completion
   - summary/open-questions output

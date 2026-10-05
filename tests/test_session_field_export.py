@@ -3,11 +3,11 @@ from pathlib import Path
 
 from openpyxl import load_workbook
 
-from advocate_bot_qualtrics.decision_tree.interactive_session import (
+from advocate_bot_qualtrics.practice_areas.consumer_debt.session import (
     InteractiveSessionState,
     record_node_answer,
 )
-from advocate_bot_qualtrics.decision_tree.session_field_export import (
+from advocate_bot_qualtrics.practice_areas.consumer_debt.field_export import (
     CORRECTION_CONFIDENCE_CAP,
     append_session_fields_row,
     build_field_confidence_rows,

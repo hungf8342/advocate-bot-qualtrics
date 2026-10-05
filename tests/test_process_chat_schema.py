@@ -1,4 +1,4 @@
-from advocate_bot_qualtrics.decision_tree.schemas import ChatTurnResponse, CurrentNode, TreeBranch
+from advocate_bot_qualtrics.core.schemas import ChatTurnResponse, CurrentNode, TreeBranch
 
 
 def test_chat_turn_response_schema_contains_fields():

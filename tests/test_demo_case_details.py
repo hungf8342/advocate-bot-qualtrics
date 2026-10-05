@@ -7,6 +7,14 @@ import runpy
 DEMO = runpy.run_path(str(Path(__file__).resolve().parents[1] / "scripts/interactive_chat_demo.py"))
 
 
+def test_case_details_show_preliminary_filing_date():
+    html = DEMO["_case_details"]({"preliminary_fields": {
+        "FILING-DATE": {"value": "2026-09-24", "status": "known"},
+    }})
+    assert "Complaint filing date" in html
+    assert "2026-09-24" in html
+
+
 def test_case_details_escape_user_content_and_show_effective_correction():
     html = DEMO["_case_details"]({"preliminary_fields": {
         "PLAINTIFF-NAME": {"value": '<img src=x onerror="alert(1)">', "status": "known"},

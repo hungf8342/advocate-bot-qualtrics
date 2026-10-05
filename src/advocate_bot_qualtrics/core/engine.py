@@ -15,6 +15,7 @@ from advocate_bot_qualtrics.core.confidence import (
 )
 from advocate_bot_qualtrics.core.dates import ParsedDate, parse_submitted_date, parse_user_date
 from advocate_bot_qualtrics.core.errors import ChatError
+from advocate_bot_qualtrics.core.process_chat import process_chat
 from advocate_bot_qualtrics.core.schemas import ChatTurnResponse, CurrentNode
 from advocate_bot_qualtrics.core.session import record_node_answer
 from advocate_bot_qualtrics.llm.chat_structured import submit_chat_turn
@@ -121,12 +122,8 @@ class InteractiveChatEngine:
         if self.export_done:
             return
         try:
-            from advocate_bot_qualtrics.decision_tree.interactive_host import (
-                get_session_fields_xlsx_path,
-            )
-
             path = self.bundle.append_session_fields_row(
-                get_session_fields_xlsx_path(),
+                self.bundle.get_session_fields_xlsx_path(),
                 self.session,
             )
             self.last_export_path = str(path)
@@ -184,8 +181,6 @@ class InteractiveChatEngine:
         payload = build_user_payload(self.transcript, user_message)
 
         try:
-            from advocate_bot_qualtrics.decision_tree.interactive_host import process_chat
-
             turn = process_chat(payload, rendered, self.facts, self.bundle)
         except ChatError as exc:
             return InteractiveChatStep(
@@ -388,8 +383,6 @@ class InteractiveChatEngine:
         payload = build_user_payload(self.transcript, user_message)
 
         try:
-            from advocate_bot_qualtrics.decision_tree.interactive_host import _process_terminal_qa
-
             turn = _process_terminal_qa(payload, rendered, self.facts, self.bundle)
         except ChatError as exc:
             return InteractiveChatStep(
@@ -504,18 +497,3 @@ def _process_terminal_qa(
             {**turn.model_dump(), "next_node_id": None}
         )
     return turn
-
-
-def render_interactive_node(
-    node_id: str,
-    facts: Any,
-    session: Any,
-    *,
-    practice_area_id: str = "consumer_debt",
-) -> CurrentNode:
-    """Compatibility helper for tests and external callers."""
-    return get_bundle(practice_area_id).render_node(node_id, facts, session)
-
-
-def parse_submitted_date_compat(text: str) -> date | None:
-    return parse_submitted_date(text)

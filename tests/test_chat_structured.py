@@ -1,7 +1,7 @@
 import pytest
 
 from advocate_bot_qualtrics.core.errors import ChatError
-from advocate_bot_qualtrics.decision_tree.schemas import ChatTurnResponse
+from advocate_bot_qualtrics.core.schemas import ChatTurnResponse
 from advocate_bot_qualtrics.llm import chat_structured
 
 

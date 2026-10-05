@@ -18,7 +18,7 @@ def test_user_intake_starts_blank_with_preliminary_questions():
     assert INTERACTIVE_START_NODE_ID == "get_plaintiff_name"
     apply_interactive_branch(session, "sol_creditor_type", "original")
     assert session.defense_answers["sol_creditor_type"] == "original"
-    assert resolve_interactive_next_node("sol_creditor_type", "original", session) == "get_filing_date"
+    assert resolve_interactive_next_node("sol_creditor_type", "original", session) == "sol_payment_recipient"
     assert "get_plaintiff_name" in INTERACTIVE_TREE_DEFINITION.node_map
     assert "get_amount_sued" in INTERACTIVE_TREE_DEFINITION.node_map
 

@@ -1,5 +1,5 @@
 from advocate_bot_qualtrics.config import load_confidence_scoring_calibration
-from advocate_bot_qualtrics.decision_tree.confidence import (
+from advocate_bot_qualtrics.core.confidence import (
     GENERIC_HEDGE_FALLBACK,
     clamp_answer_confidence,
     extract_latest_user_message,
@@ -9,7 +9,7 @@ from advocate_bot_qualtrics.decision_tree.confidence import (
     resolve_confidence_hedge_message,
     to_single_sentence,
 )
-from advocate_bot_qualtrics.decision_tree.schemas import CurrentNode, TreeBranch
+from advocate_bot_qualtrics.core.schemas import CurrentNode, TreeBranch
 
 
 def test_load_confidence_scoring_calibration_contains_bands():
@@ -89,14 +89,14 @@ def test_process_chat_payload_includes_calibration(monkeypatch):
     import importlib
 
     process_chat_module = importlib.import_module(
-        "advocate_bot_qualtrics.decision_tree.process_chat"
+        "advocate_bot_qualtrics.core.process_chat"
     )
 
     captured: dict = {}
 
     def fake_submit(*, system, payload):
         captured.update(payload if isinstance(payload, dict) else {})
-        from advocate_bot_qualtrics.decision_tree.schemas import ChatTurnResponse
+        from advocate_bot_qualtrics.core.schemas import ChatTurnResponse
 
         return ChatTurnResponse(
             user_intent="answer_node",

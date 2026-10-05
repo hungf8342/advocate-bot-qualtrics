@@ -25,6 +25,7 @@ class PreliminaryField:
 INPUT_FIELDS = {
     "get_plaintiff_name": ("PLAINTIFF-NAME", "plaintiff_name"),
     "prelim_law_firm": ("LAW-FIRM", "law_firm"),
+    "get_filing_date": ("FILING-DATE", "filing_date"),
     "get_amount_sued": ("AMOUNT", "amount_sued"),
     "prelim_last_payment": ("LAST-PAYMENT-DATE", "last_payment_complaint"),
     "prelim_open_date": ("OPEN-DATE", "open_date"),
