@@ -11,12 +11,20 @@ from advocate_bot_qualtrics.practice_areas.consumer_debt.session import (
     apply_interactive_branch,
     record_node_answer,
 )
-from advocate_bot_qualtrics.practice_areas.consumer_debt.preliminary import reused_branch
+from advocate_bot_qualtrics.practice_areas.consumer_debt.preliminary import (
+    reused_branch, VERIFICATION_FIELDS,
+)
+
 from advocate_bot_qualtrics.practice_areas.consumer_debt.tree import (
     INTERACTIVE_ROUTES,
     INTERACTIVE_TREE,
     INTERACTIVE_TREE_DEFINITION,
 )
+
+CHOICE_LABELS = {
+    "yes": "Yes", "no": "No", "original": "Original creditor", "buyer": "Debt buyer",
+    "breach": "Breach of contract", "common": "Common counts", "both": "Breach of contract and common counts",
+}
 
 _FILING_TOKEN = "{date_complaint_filed}"
 _LAST_PAYMENT_TOKEN = "{date_user_failed_to_pay}"
@@ -61,7 +69,26 @@ def render_node(
 
     question = source.question.replace(_FILING_TOKEN, _fmt_date(filing))
     question = question.replace(_LAST_PAYMENT_TOKEN, _fmt_date(last_payment))
-    from advocate_bot_qualtrics.practice_areas.consumer_debt.affirmative_defenses import defense_summary
+    from advocate_bot_qualtrics.practice_areas.consumer_debt.affirmative_defenses import (
+        complaint_payment, defense_facts, defense_summary, personalize, preliminary_value,
+    )
+
+    payment = complaint_payment(session)
+    elapsed = (f"{(filing - payment).days / 30.4375:.1f}" if filing and payment else "unknown")
+    entry = session.preliminary_fields.get("LAST-PAYMENT-DATE")
+    if entry and entry.complaint_status == "present" and isinstance(entry.complaint_value, date):
+        payment_restatement = f"The complaint lists the last payment date as {entry.complaint_value.isoformat()}."
+    elif entry and entry.complaint_status == "missing":
+        payment_restatement = "The complaint does not appear to list the last payment date."
+    else:
+        payment_restatement = ""
+    if session.defense_answers.get("sol_payment_estimate_agree") == "no":
+        payment_context = "You have indicated you disagree with how much time passed between your last payment and [PLAINTIFF] filing a complaint."
+    elif session.defense_answers.get("sol_payment_available") == "missing":
+        payment_context = "The complaint did not appear to include the last payment date."
+    else:
+        payment_context = "The time between your last payment and filing has not been confirmed."
+    payment_context += " If the complaint does not give the correct last payment date, your bank records, payment confirmations, or account history may help you estimate when you last paid. Whether the last payment was less than a year before [PLAINTIFF] filed the complaint would be useful enough."
 
     consolidation = session.defense_answers.get("mitigation_consolidation")
     negotiation_party = (
@@ -76,9 +103,50 @@ def render_node(
         "{defense_summary}": defense_summary(session),
         "{amount_sued}": session.amount_sued or "unknown",
         "{open_date}": _fmt_date(session.open_date),
+        "{defense_facts}": defense_facts(session, node_id.removesuffix("_intro")),
+        "{payment_elapsed_months}": elapsed,
+        "{complaint_payment_restatement}": payment_restatement,
+        "{payment_age_context}": payment_context,
+        "{fraud_parties}": "[PLAINTIFF] or [ORIGINAL.CREDITOR]" if preliminary_value(session, "PLAINTIFF") == "buyer" else "[PLAINTIFF]",
+        "{identity_uncertainty}": "You’ve indicated that you’re not sure whether someone stole your identity to create this debt." if session.defense_answers.get("identity_recognize") == "no" else "You’ve indicated that you’re not sure whether you recognize this account as one you opened.",
+        "{wrong_party_uncertainty}": "You’ve indicated that you’re not sure whether someone else opened the account." if session.defense_answers.get("wrong_party_recognize") == "no" else "You’ve indicated that you’re not sure whether you recognize this account as one you opened.",
     }
     for token, value in replacements.items():
         question = question.replace(token, value)
+    question = personalize(session, question)
+    if node_id in VERIFICATION_FIELDS:
+        entry = session.preliminary_fields.get(VERIFICATION_FIELDS[node_id])
+        value = entry.complaint_value if entry else None
+        display = (value.isoformat() if isinstance(value, date) else
+                   CHOICE_LABELS.get(str(value), str(value)) if value is not None else
+                   "Not stated in the complaint" if entry and entry.complaint_status == "missing" else
+                   "Not extracted / unknown")
+        question = question.replace("{parsed_value}", display)
+    explanation = source.explanation
+    if explanation is not None:
+        creditor = session.preliminary_fields.get("PLAINTIFF")
+        kind = creditor.value if creditor else None
+        paragraphs = []
+        for block in explanation.blocks:
+            if block.creditor_type is None or block.creditor_type == kind:
+                paragraphs.append(block.text)
+            elif kind not in {"original", "buyer"}:
+                label = "a debt buyer" if block.creditor_type == "buyer" else "an original creditor"
+                paragraphs.append(f"For {label}: {block.text}")
+        text = "\n\n".join(paragraphs) if explanation.blocks else explanation.text
+        for token, value in replacements.items():
+            text = text.replace(token, value)
+        for token, tag, fallback in (
+            ("[PLAINTIFF]", "PLAINTIFF-NAME", "the plaintiff"),
+            ("[ORIGINAL.CREDITOR]", "ORIGINAL.CREDITOR", "the original creditor"),
+        ):
+            entry = session.preliminary_fields.get(tag)
+            text = text.replace(token, str(entry.value) if entry and entry.value else fallback)
+        explanation = explanation.model_copy(update={"text": text, "blocks": []})
+        if explanation.show_with_question:
+            question = text + "\n\n" + question
+    if source.title:
+        question = f"### {source.title}\n\n{question}"
     branches = [
         branch.model_copy(
             update={
@@ -89,7 +157,7 @@ def render_node(
         )
         for branch in source.branches
     ]
-    return source.model_copy(update={"question": question, "branches": branches})
+    return source.model_copy(update={"question": question, "branches": branches, "explanation": explanation})
 
 
 def skip_collected_date_node(next_node_id: str, session: InteractiveSessionState) -> str:
@@ -113,6 +181,30 @@ def skip_collected_date_node(next_node_id: str, session: InteractiveSessionState
         return next_node_id
     skip_to = INTERACTIVE_ROUTES.get((next_node_id, "submit"))
     return skip_to if skip_to else next_node_id
+
+
+def debug_accept_preliminary(session: InteractiveSessionState, current_node_id: str) -> str | None:
+    """Debug-only bulk agreement; preserve prior answers and never invent personal facts."""
+    preliminary_ids = []
+    for definition in INTERACTIVE_TREE_DEFINITION.nodes:
+        if definition.id == "statute_of_limitations_intro":
+            break
+        preliminary_ids.append(definition.id)
+    if current_node_id not in preliminary_ids:
+        return None
+    for node, tag in VERIFICATION_FIELDS.items():
+        entry = session.preliminary_fields.get(tag)
+        if entry is not None and (entry.verification != "pending" or entry.disputed):
+            continue
+        branch = "yes" if entry and entry.complaint_status != "unknown" else "unknown"
+        apply_interactive_branch(session, node, branch)
+        record_node_answer(session, node, branch, 0, skipped=True)
+        session.debug_bulk_accepted.append(node)
+    for node in ("prelim_recognize", "prelim_oral", "prelim_consolidation"):
+        if node not in session.defense_answers:
+            apply_interactive_branch(session, node, "unknown")
+            record_node_answer(session, node, "unknown", 0, skipped=True)
+    return "statute_of_limitations_intro"
 
 
 def consume_embedded_dispute_date(
@@ -161,6 +253,7 @@ def build_debug_snapshot(
         },
         "reused_answers": session.reused_answers,
         "mitigation_checkboxes": session.mitigation_checkboxes,
+        "debug_bulk_accepted": session.debug_bulk_accepted,
         "node_answers": {
             node_id: {
                 "branch": record.branch_id,

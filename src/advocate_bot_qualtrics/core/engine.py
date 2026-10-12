@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import date
 from typing import Any
@@ -60,6 +61,8 @@ class InteractiveChatEngine:
     export_done: bool = False
     last_export_path: str | None = None
     last_outcomes: dict[str, str] = field(default_factory=dict)
+    complaint_fields: dict | None = None
+    allow_debug_shortcuts: bool = False
 
     def __post_init__(self) -> None:
         if self.bundle is None:
@@ -73,18 +76,22 @@ class InteractiveChatEngine:
         *,
         bundle: PracticeAreaBundle | None = None,
         practice_area_id: str = "consumer_debt",
+        complaint_fields: dict | None = None,
+        allow_debug_shortcuts: bool = False,
     ) -> InteractiveChatEngine:
         area = bundle or get_bundle(practice_area_id)
         engine = cls(
             bundle=area,
             facts=None,
-            session=area.init_session(),
+            session=area.init_session(deepcopy(complaint_fields)) if complaint_fields is not None else area.init_session(),
+            complaint_fields=deepcopy(complaint_fields),
+            allow_debug_shortcuts=allow_debug_shortcuts,
         )
         engine._drain_hooks()
         return engine
 
     def reset(self) -> list[str]:
-        self.session = self.bundle.init_session()
+        self.session = self.bundle.init_session(deepcopy(self.complaint_fields)) if self.complaint_fields is not None else self.bundle.init_session()
         self.current_node_id = self.bundle.start_node_id
         self.transcript = []
         self.tree_complete = False
@@ -142,6 +149,28 @@ class InteractiveChatEngine:
             )
 
         self._append_transcript("user", user_message)
+
+        if (
+            self.allow_debug_shortcuts
+            and " ".join(user_message.casefold().split()).rstrip(".! ") == "i agree with all"
+            and self.bundle.debug_accept_preliminary is not None
+        ):
+            next_id = self.bundle.debug_accept_preliminary(self.session, self.current_node_id)
+            if next_id is not None:
+                self.current_node_id = next_id
+                messages = [self._append_transcript(
+                    "assistant",
+                    "Debug shortcut: accepted the remaining parsed fields. Unanswered personal "
+                    "questions remain unknown. Continuing to affirmative defenses.",
+                )]
+                messages.extend(self._drain_hooks())
+                question = self._append_next_question()
+                if question:
+                    messages.append(question)
+                return InteractiveChatStep(
+                    assistant_messages=messages, current_node_id=self.current_node_id,
+                    tree_complete=self.tree_complete,
+                )
 
         if self._current_node_definition().kind == "action":
             messages = self._drain_hooks()
@@ -245,13 +274,15 @@ class InteractiveChatEngine:
             return step
 
         reply = turn.assistant_reply
-        if turn.user_intent == "ask_about_complaint" and definition.explanation is not None:
-            explanation = definition.explanation
+        if turn.user_intent == "ask_about_complaint" and rendered.explanation is not None:
+            explanation = rendered.explanation
             images = [
                 f"![{item.alt.replace(']', r'\]')}]({item.path})"
                 for item in explanation.images
             ]
             reply = "\n\n".join([explanation.text, *images])
+            if rendered.title:
+                reply = f"### {rendered.title}\n\n{reply}"
         messages = [self._append_transcript("assistant", reply)]
 
         if turn.user_intent == "ask_about_complaint":
@@ -419,7 +450,7 @@ class InteractiveChatEngine:
             rendered = self.bundle.render_node(
                 self.current_node_id, self.facts, self.session
             )
-            text = f"{rendered.question}\n\nResult: {outcome}"
+            text = f"{rendered.question}\n\nResult: {outcome}" if outcome else rendered.question
             messages.append(self._append_transcript("assistant", text))
 
             next_id = definition.next

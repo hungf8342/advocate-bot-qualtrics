@@ -6,7 +6,7 @@ from pathlib import PurePosixPath
 import re
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class ExplanationImage(BaseModel):
@@ -32,13 +32,30 @@ class ExplanationImage(BaseModel):
         return path
 
 
+class ExplanationBlock(BaseModel):
+    """One paragraph in document order, optionally limited to a creditor type."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    text: str = Field(min_length=1)
+    creditor_type: Literal["original", "buyer"] | None = None
+
+
 class NodeExplanation(BaseModel):
     """Approved help text and optional visual examples for the active question."""
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    text: str = Field(min_length=1)
+    text: str = ""
+    blocks: list[ExplanationBlock] = Field(default_factory=list)
     images: list[ExplanationImage] = Field(default_factory=list)
+    show_with_question: bool = False
+
+    @model_validator(mode="after")
+    def validate_content(self) -> NodeExplanation:
+        if bool(self.text) == bool(self.blocks):
+            raise ValueError("explanation needs either text or ordered blocks")
+        return self
 
 
 class EnumValidation(BaseModel):
@@ -70,6 +87,7 @@ class CurrentNode(BaseModel):
 
     node_id: str = Field(description="Active node id passed as context to the LLM.")
     question: str = Field(description="Question the user should answer at this node.")
+    title: str | None = None
     branches: list[TreeBranch] = Field(
         default_factory=list,
         description="Valid branches for advancing to the next node.",

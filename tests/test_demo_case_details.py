@@ -15,6 +15,19 @@ def test_case_details_show_preliminary_filing_date():
     assert "2026-09-24" in html
 
 
+def test_case_details_show_all_parsed_values_before_verification_and_escape_them():
+    html = DEMO["_case_details"]({"preliminary_fields": {
+        "CASE.NUMBER": {"value": None, "complaint_value": "<case>", "verification": "pending"},
+        "OWNERSHIP": {"value": "yes", "verification": "confirmed"},
+        "OWNERSHIP.PROOF": {"value": "no", "verification": "corrected", "parsed_value": "yes"},
+    }})
+    assert "&lt;case&gt;" in html
+    assert "Awaiting verification" in html
+    assert "Ownership / right to collect stated?" in html
+    assert "Ownership documents attached?" in html
+    assert "Originally parsed: yes" in html
+
+
 def test_case_details_escape_user_content_and_show_effective_correction():
     html = DEMO["_case_details"]({"preliminary_fields": {
         "PLAINTIFF-NAME": {"value": '<img src=x onerror="alert(1)">', "status": "known"},

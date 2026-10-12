@@ -1,0 +1,16 @@
+{
+  "CASE.NUMBER": "26CV-FICTION-002",
+  "PLAINTIFF": "Example Cedar Receivables LLC",
+  "PLAINTIFF.TYPE": "buyer",
+  "ORIGINAL.CREDITOR": "Example Valley Card Bank",
+  "LAW.FIRM": "Fictional Birch Law Office",
+  "SUIT.TYPE": "both",
+  "AMOUNT": "$1,875.50",
+  "OWNERSHIP": true,
+  "LAST.PAYMENT.DATE": null,
+  "OPEN.DATE": null,
+  "COMPLAINT.DATE": "2026-10-01",
+  "STATEMENT": false,
+  "OWNERSHIP.PROOF": false,
+  "VERIFIED": true
+}

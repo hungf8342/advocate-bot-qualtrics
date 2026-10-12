@@ -24,6 +24,7 @@ from advocate_bot_qualtrics.practice_areas.consumer_debt.host_extras import (
     RESTART_FILING_CONFIRM_MESSAGE,
     build_debug_snapshot,
     consume_embedded_dispute_date,
+    debug_accept_preliminary,
     hook_outcome_key,
     render_node,
     skip_collected_date_node,
@@ -46,6 +47,9 @@ TERMINAL_NODE_ID = "review_questions"
 
 
 def _run_hook(session: object, action: str) -> str:
+    if action.startswith("explain_"):
+        # The rendered node supplies the document explanation and known facts.
+        return ""
     if action.startswith("assess_"):
         return assess_defense(session, action.removeprefix("assess_"))
     if action in {"sol_computation", "calculate_statute_of_limitations"}:
@@ -89,6 +93,7 @@ def get_bundle() -> PracticeAreaBundle:
         facts_for_llm=_facts_for_llm,
         different_complaint_restart_nodes=DIFFERENT_COMPLAINT_RESTART_NODES,
         restart_filing_confirm_message=RESTART_FILING_CONFIRM_MESSAGE,
+        debug_accept_preliminary=debug_accept_preliminary,
     )
 
 

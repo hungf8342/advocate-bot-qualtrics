@@ -23,45 +23,33 @@ def assess(defense, answers, **kwargs):
     return session.defense_results[defense]["status"]
 
 
-@pytest.mark.parametrize("contract,state,years", [("oral", None, 2), ("written", "ca", 4), ("written", "de", 3)])
-@pytest.mark.parametrize("offset,expected", [(-1, "checked"), (0, "unchecked"), (1, "unchecked")])
-@pytest.mark.parametrize("creditor", ["original", "buyer"])
-def test_sol_strict_filing_date_cutoff(contract, state, years, offset, expected, creditor):
+@pytest.mark.parametrize("offset,expected", [(-1, "checked"), (0, "checked"), (1, "unchecked")])
+def test_sol_inclusive_one_year_preservation_cutoff(offset, expected):
     filing = date(2026, 9, 24)
-    assert assess(
-        "statute_of_limitations",
-        {"sol_creditor_type": creditor, "sol_buyer_payment": "yes", "sol_contract": contract, "sol_state_law": state},
-        filing_date=filing,
-        **{("last_payment_debt_collector" if creditor == "buyer" else "last_payment_complaint"):
-           calendar_cutoff(filing, years) + timedelta(days=offset)},
-    ) == expected
+    assert assess("statute_of_limitations", {"sol_creditor_type": "original", "sol_payment_estimate_agree": "yes"},
+                  filing_date=filing, last_payment_complaint=calendar_cutoff(filing, 1) + timedelta(days=offset)) == expected
 
 
 def test_sol_leap_day_and_historical_filing():
-    assert calendar_cutoff(date(2024, 2, 29), 3) == date(2021, 2, 28)
-    # Even though this payment is old today, it was recent at filing.
-    assert assess("statute_of_limitations", {"sol_creditor_type": "original"},
-                  filing_date=date(2020, 1, 1), last_payment_complaint=date(2019, 1, 1)) == "unchecked"
+    assert calendar_cutoff(date(2024, 2, 29), 1) == date(2023, 2, 28)
+    assert assess("statute_of_limitations", {"sol_creditor_type": "original", "sol_payment_estimate_agree": "yes"},
+                  filing_date=date(2020, 1, 1), last_payment_complaint=date(2019, 1, 1)) == "checked"
 
 
-def test_sol_debt_buyer_no_payment_preserves_without_dates():
-    assert assess("statute_of_limitations", {"sol_creditor_type": "buyer", "sol_buyer_payment": "no"}) == "checked"
+@pytest.mark.parametrize("payment", [None, date(2026, 9, 23), date(2020, 1, 1)])
+def test_sol_all_debt_buyers_preserve_without_payment_questions(payment):
+    assert assess("statute_of_limitations", {"sol_creditor_type": "buyer"}, last_payment_debt_collector=payment) == "checked"
 
 
-@pytest.mark.parametrize("state", ["other", "unknown"])
-def test_written_contract_needs_clinic_confirmed_law(state):
-    session = InteractiveSessionState(
-        defense_answers={"sol_creditor_type": "original", "sol_contract": "written", "sol_state_law": state},
-        filing_date=date(2026, 9, 24), last_payment_complaint=date(2010, 1, 1),
-    )
-    message = assess_defense(session, "statute_of_limitations")
-    assert session.defense_results["statute_of_limitations"]["status"] == "unresolved"
-    assert "Clinic staff must read" in message
+@pytest.mark.parametrize("branch,status", [("yes", "unchecked"), ("no", "checked"), ("unknown", "checked")])
+def test_sol_litigant_estimate_and_uncertainty_override_complaint(branch, status):
+    assert assess("statute_of_limitations", {"sol_creditor_type": "original", "sol_payment_estimate_agree": "no", "sol_payment_age": branch},
+                  filing_date=date(2026, 9, 24), last_payment_complaint=date(2020, 1, 1)) == status
 
 
 @pytest.mark.parametrize("filing,payment", [(None, date(2020, 1, 1)), (date(2026, 1, 1), None), (date(2026, 1, 1), date(2026, 2, 1))])
 def test_sol_missing_or_post_filing_dates_unresolved(filing, payment):
-    assert assess("statute_of_limitations", {"sol_creditor_type": "original", "sol_contract": "oral"},
+    assert assess("statute_of_limitations", {"sol_creditor_type": "original", "sol_payment_estimate_agree": "yes"},
                   filing_date=filing, last_payment_complaint=payment) == "unresolved"
 
 
@@ -74,10 +62,10 @@ def test_referrals_stay_unresolved_and_continue(defense, answers):
     result = TREE.node(defense + "_result")
     assert result.kind == "action"
     assert result.next in TREE.node_map
-    assert TREE.node(result.next).kind == "choice"
+    assert TREE.node(result.next).id.endswith("_intro")
 
 
-@pytest.mark.parametrize("defense,node", [("laches", "laches"), ("common_counts", "common_counts_reasons"), ("excuse_breach", "excuse_breach")])
+@pytest.mark.parametrize("defense,node", [("common_counts", "common_counts_reasons"), ("excuse_breach", "excuse_breach")])
 @pytest.mark.parametrize("branch,status", [("yes", "checked"), ("no", "unchecked"), ("unknown", "unresolved")])
 def test_any_of_subsections(defense, node, branch, status):
     assert assess(defense, {node: branch, "common_counts_claim": "yes"}) == status
@@ -112,9 +100,9 @@ def test_consolidation_wording_carries_to_later_subsections():
 
 def test_standing_and_cause_missing_information_and_unknowns():
     assert assess("standing_privity", {"standing_creditor_type": "buyer"}) == "checked"
-    assert assess("standing_privity", {"standing_creditor_type": "original", "standing_claim": "yes", "standing_agreement": "unknown"}) == "unresolved"
+    assert assess("standing_privity", {"standing_creditor_type": "original", "standing_claim": "yes", "standing_agreement": "unknown"}) == "unchecked"
     assert assess("standing_privity", {"standing_creditor_type": "original", "standing_claim": "no", "standing_agreement": "unknown"}) == "checked"
-    answers = {"cause_creditor_type": "buyer", "cause_statement": "yes", "cause_purchase_claim": "yes", "cause_purchase_documents": "yes", "cause_breach_contract": "no"}
+    answers = {"cause_creditor_type": "buyer", "cause_statement": "yes", "cause_purchase_documents": "yes", "cause_breach_contract": "no"}
     assert assess("failure_to_state_cause", answers) == "unchecked"
     assert assess("failure_to_state_cause", {**answers, "cause_breach_contract": "unknown"}) == "unresolved"
     assert assess("failure_to_state_cause", {**answers, "cause_breach_contract": "yes", "cause_open_date": "no", "cause_breach_date": "unknown"}) == "checked"
@@ -156,7 +144,7 @@ def test_graph_reachable_acyclic_and_every_path_finishes():
 
     visit(TREE.start_node_id, set())
     assert seen == set(TREE.node_map)
-    assert [n.action.removeprefix("assess_") for n in TREE.nodes if n.kind == "action"] == list(DEFENSE_LABELS)
+    assert [n.action.removeprefix("assess_") for n in TREE.nodes if n.kind == "action" and n.action.startswith("assess_")] == list(DEFENSE_LABELS)
     assert all(TREE.route(n.id, "invalid") is None for n in TREE.nodes)
 
 
@@ -171,12 +159,8 @@ def test_automatic_traversal_finishes_with_checklist_and_open_questions(monkeypa
         branch = default if default in ids else definition.idk_skip_branch_id
         if definition.kind == "input" and default != "unknown":
             branch = "submit"
-        if node.node_id.endswith("creditor_type") and default != "unknown":
+        if node.node_id.endswith("creditor_type") and not node.node_id.startswith("verify_") and default != "unknown":
             branch = "original" if default == "yes" else "buyer"
-        if node.node_id == "sol_contract" and default != "unknown":
-            branch = "written" if default == "yes" else "oral"
-        if node.node_id == "sol_state_law" and default != "unknown":
-            branch = "ca"
         if node.node_id == "prelim_suit_type" and default != "unknown":
             branch = "both"
         assert branch in ids
@@ -184,7 +168,10 @@ def test_automatic_traversal_finishes_with_checklist_and_open_questions(monkeypa
 
     monkeypatch.setattr(engine_module, "process_chat", fake_chat)
     monkeypatch.setenv("SESSION_FIELDS_XLSX_PATH", str(tmp_path / "fields.xlsx"))
-    engine = InteractiveChatEngine.from_user_input()
+    engine = InteractiveChatEngine.from_user_input(complaint_fields={
+        "PLAINTIFF.TYPE": "original", "COMPLAINT.DATE": "2026-09-24",
+        "LAST.PAYMENT.DATE": "2020-09-23", "SUIT.TYPE": "both",
+    })
     visited = []
     for _ in range(len(TREE.nodes)):
         if engine.tree_complete:
@@ -207,7 +194,7 @@ def test_automatic_traversal_finishes_with_checklist_and_open_questions(monkeypa
     assert (tmp_path / "fields.xlsx").is_file()
     assert list(engine.session.defense_results) == list(DEFENSE_LABELS)
     if default == "yes":
-        assert "prelim_last_payment" in visited
+        assert "verify_last_payment" in visited
         assert "get_last_payment_complaint" not in visited
         assert engine.session.filing_date == date(2026, 9, 24)
         assert engine.session.last_payment_complaint == date(2020, 9, 23)

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 from html import escape
 import re
 import sys
@@ -15,8 +16,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 INTERFACE_CSS = (PROJECT_ROOT / "scripts/assets/debt_chat.css").read_text(encoding="utf-8")
 
 FIELD_LABELS = {
+    "CASE.NUMBER": "Case number",
     "PLAINTIFF-NAME": "Who is suing you",
     "PLAINTIFF": "Type of plaintiff",
+    "ORIGINAL.CREDITOR": "Original creditor",
     "RECOGNIZE": "Do you recognize the account?",
     "AMOUNT": "Amount claimed / your correction",
     "LAW-FIRM": "Plaintiff’s law firm",
@@ -26,7 +29,8 @@ FIELD_LABELS = {
     "LAST-PAYMENT-DATE": "Last payment date",
     "OPEN-DATE": "Account opening date",
     "STATEMENT": "Statement attached?",
-    "OWNERSHIP": "Ownership documents attached?",
+    "OWNERSHIP": "Ownership / right to collect stated?",
+    "OWNERSHIP.PROOF": "Ownership documents attached?",
     "VERIFIED": "Complaint verified?",
     "CONSOLIDATION": "Using a debt consolidation company?",
 }
@@ -45,21 +49,33 @@ def _case_details(snapshot: dict) -> str:
         if entry is None and index >= 5:
             continue
         value = entry.get("value") if entry else None
+        pending = entry and entry.get("verification") in {"pending", "unknown"}
+        if pending:
+            value = entry.get("complaint_value")
         if value is None:
-            status = entry.get("status") if entry else None
+            status = ("missing" if pending and entry.get("complaint_status") == "missing"
+                      else entry.get("status") if entry else None)
             display = "Not stated in complaint" if status == "missing" else "Not sure" if entry else "Not answered yet"
         else:
             display = CHOICE_LABELS.get(str(value), str(value)) if tag not in {"PLAINTIFF-NAME", "LAW-FIRM", "AMOUNT"} else str(value)
         note = ""
+        if entry and entry.get("verification"):
+            label_status = {
+                "pending": "Awaiting verification", "confirmed": "Verified",
+                "corrected": "Your preferred value", "unknown": "Not verified",
+            }[entry["verification"]]
+            note = f'<small class="correction-note">{label_status}</small>'
+            if entry["verification"] == "corrected":
+                note += f'<small class="correction-note">Originally parsed: {escape(str(entry.get("parsed_value")))}</small>'
         if entry and entry.get("disputed"):
             original = entry.get("complaint_value")
-            note = f'<small class="correction-note">Your correction · Complaint: {escape(str(original))}</small>'
+            note += f'<small class="correction-note">Your correction · Complaint: {escape(str(original))}</small>'
         rows.append(f'<div class="field"><dt>{escape(label)}</dt><dd class="{"empty" if value is None else ""}">{escape(display)}{note}</dd></div>')
     card = (
         '<div class="case-card"><p class="eyebrow">For your reference</p><h2>Your case details</h2>'
-        '<p class="aside-intro">These are the answers collected so far. You can refer to them as you go.</p>'
+        '<p class="aside-intro">Review the information read from your complaint and your answers. Each parsed field needs your verification.</p>'
         f'<dl>{"".join(rows)}</dl><div class="aside-foot">This is a recap of your answers, '
-        'not a conclusion about your case.</div></div>'
+        'and the complaint information, not a conclusion about your case.</div></div>'
     )
     return f'<div class="desktop-details">{card}</div><details class="mobile-summary"><summary>Your case details</summary>{card}</details>'
 
@@ -76,7 +92,7 @@ def _chat_history(engine) -> list[dict[str, str]]:
     def display(role: str, message: str) -> str:
         if role != "assistant":
             return message
-        message = re.sub(r"\s*\[[A-Z][A-Z0-9-]*\]", "", message)
+        message = re.sub(r"\s*\[[A-Z][A-Z0-9.-]*\]", "", message)
         for path, url in asset_urls.items():
             message = message.replace(f"]({path})", f"]({url})")
         return message
@@ -110,6 +126,9 @@ def _format_debug(snapshot: dict) -> str:
 
 **Node answers (confidence)**
 {_format_node_answers(snapshot.get("node_answers") or {})}
+
+**Bulk confirmations (debug only)**
+{', '.join(snapshot.get("debug_bulk_accepted") or []) or '(none)'}
 
 **Excel export**
 - Session fields: `{snapshot.get("session_fields_xlsx") or "—"}`
@@ -149,11 +168,29 @@ def main() -> int:
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=7860)
     parser.add_argument(
+        "--debug-shortcuts", action="store_true",
+        help='Enable the debug-only "I agree with all" preliminary shortcut',
+    )
+    parser.add_argument(
+        "--complaint-fields", type=Path,
+        help="Load a fact-only JSON object of parsed preliminary fields (see examples/complaints)",
+    )
+    parser.add_argument(
         "--share",
         action="store_true",
         help="Create a public Gradio link (dev demos only; do not use with real client data)",
     )
     args = parser.parse_args()
+    complaint_fields = None
+    if args.complaint_fields is not None:
+        try:
+            complaint_fields = json.loads(args.complaint_fields.read_text(encoding="utf-8"))
+            if not isinstance(complaint_fields, dict):
+                raise ValueError("Complaint input must be a JSON object")
+            from advocate_bot_qualtrics.practice_areas.consumer_debt.session import init_session
+            init_session(complaint_fields)
+        except (OSError, ValueError) as exc:
+            parser.error(str(exc))
 
     try:
         import gradio as gr
@@ -173,13 +210,13 @@ def main() -> int:
         return history, draft, _case_details(snapshot), _format_debug(snapshot), heading, engine
 
     def new_session():
-        engine = InteractiveChatEngine.from_user_input(practice_area_id=args.practice_area)
+        engine = InteractiveChatEngine.from_user_input(practice_area_id=args.practice_area, complaint_fields=complaint_fields, allow_debug_shortcuts=args.debug_shortcuts)
         engine.initial_messages()
         return outputs_for(engine)
 
     def respond(user_message, engine):
         if engine is None:
-            engine = InteractiveChatEngine.from_user_input(practice_area_id=args.practice_area)
+            engine = InteractiveChatEngine.from_user_input(practice_area_id=args.practice_area, complaint_fields=complaint_fields, allow_debug_shortcuts=args.debug_shortcuts)
             engine.initial_messages()
         if not user_message.strip():
             return outputs_for(engine)
@@ -192,7 +229,7 @@ def main() -> int:
             gr.HTML('<header class="topbar"><div class="top-inner"><div class="brand"><span class="mark" aria-hidden="true">✦</span> Debt case guide</div><div class="top-note">A step-by-step conversation about your case</div></div></header>', elem_id="site-header")
             with gr.Row(elem_id="main-layout"):
                 with gr.Column(elem_id="conversation"):
-                    gr.HTML('<h1>Let’s understand your case</h1><p class="intro">Answer one question at a time. You can use the case details beside the conversation to check what you’ve told us.</p>', elem_id="intro")
+                    gr.HTML('<h1>Let’s understand your case</h1><p class="intro">Review the complaint information beside the conversation. We’ll help you verify it one question at a time.</p>', elem_id="intro")
                     with gr.Column(elem_id="chat-card"):
                         chat_heading = gr.HTML('<div class="chat-heading"><span class="status-dot" aria-hidden="true"></span>Conversation in progress</div>')
                         chatbot = gr.Chatbot(show_label=False, height=450, layout="bubble", buttons=[], elem_id="chat-messages")
@@ -204,6 +241,8 @@ def main() -> int:
                 with gr.Column(elem_id="sidebar"):
                     case_details = gr.HTML(_case_details({}), elem_id="case-details")
                     with gr.Accordion("Developer view", open=True, elem_id="debug"):
+                        if args.debug_shortcuts:
+                            gr.Markdown('Debug shortcut enabled: type **I agree with all** to accept remaining parsed fields and continue to defenses. Unanswered personal questions stay unknown.')
                         debug_panel = gr.Markdown()
                         reset_btn = gr.Button("Start a new session", size="sm", elem_id="reset-session")
 

@@ -47,6 +47,7 @@ class TreeNodeDefinition(BaseModel):
     id: str
     kind: NodeKind
     question: str
+    title: str | None = None
     branches: list[BranchDefinition] = Field(default_factory=list)
     input: InputDefinition | None = None
     action: str | None = None
@@ -92,6 +93,7 @@ class TreeNodeDefinition(BaseModel):
         return CurrentNode(
             node_id=self.id,
             question=self.question,
+            title=self.title,
             branches=[
                 TreeBranch(branch_id=branch.id, label=branch.label)
                 for branch in self.branches

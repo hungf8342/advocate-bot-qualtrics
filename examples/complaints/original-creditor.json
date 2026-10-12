@@ -1,0 +1,16 @@
+{
+  "CASE.NUMBER": "26CV-FICTION-001",
+  "PLAINTIFF": "Example Harbor Bank",
+  "PLAINTIFF.TYPE": "original",
+  "ORIGINAL.CREDITOR": null,
+  "LAW.FIRM": "Fictional Maple Legal Group",
+  "SUIT.TYPE": "breach",
+  "AMOUNT": "$4,250.00",
+  "OWNERSHIP": true,
+  "LAST.PAYMENT.DATE": "2021-03-15",
+  "OPEN.DATE": "2017-08-20",
+  "COMPLAINT.DATE": "2026-09-30",
+  "STATEMENT": true,
+  "OWNERSHIP.PROOF": true,
+  "VERIFIED": false
+}

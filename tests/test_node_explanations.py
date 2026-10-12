@@ -11,6 +11,7 @@ from advocate_bot_qualtrics.core.process_chat import _post_validate_turn
 from advocate_bot_qualtrics.core.schemas import ChatTurnResponse, ExplanationImage
 from advocate_bot_qualtrics.core.tree_definition import TreeDefinition
 from advocate_bot_qualtrics.practice_areas.consumer_debt.tree import INTERACTIVE_TREE_DEFINITION as TREE
+from advocate_bot_qualtrics.practice_areas.consumer_debt.host_extras import render_node
 
 
 def test_plaintiff_explanation_points_to_a_real_image_and_no_text_validation():
@@ -18,7 +19,7 @@ def test_plaintiff_explanation_points_to_a_real_image_and_no_text_validation():
     assert node.input.type == "text"
     assert node.validation is None
     assert node.explanation is not None
-    assert "underneath the centered and bolded court name" in node.explanation.text
+    assert "almost always in the top half of the page" in node.explanation.text
     assert [image.path for image in node.explanation.images] == ["complaint-examples/plaintiff.png"]
     project = Path(__file__).resolve().parents[1]
     assert (project / node.explanation.images[0].path).is_file()
@@ -36,7 +37,7 @@ def test_plaintiff_type_enum_covers_all_and_only_three_branches():
     assert rendered.validation == node.validation
     assert rendered.explanation == node.explanation
     for branch in ("original", "buyer", "unknown"):
-        assert TREE.route(node.id, branch) == "prelim_recognize"
+        assert TREE.route(node.id, branch) == "prelim_original_creditor_needed"
         accepted = _post_validate_turn(
             ChatTurnResponse(user_intent="answer_node", assistant_reply="Got it.", next_node_id=branch, answer_confidence_pct=90),
             current_node=rendered, latest_user_message=branch,
@@ -85,7 +86,8 @@ def test_help_uses_approved_node_text_and_stays_on_the_question(monkeypatch, nod
     assert phrase in step.assistant_messages[0]
     assert "Unapproved reply" not in step.assistant_messages[0]
     assert ("![Example complaint" in step.assistant_messages[0]) == image_expected
-    assert step.assistant_messages[-1] == TREE.node(node_id).question
+    assert step.assistant_messages[0].startswith(f"### {TREE.node(node_id).title}\n\n")
+    assert step.assistant_messages[-1] == render_node(node_id, None, engine.session).question
 
 
 def test_demo_maps_approved_image_reference_to_served_project_file():

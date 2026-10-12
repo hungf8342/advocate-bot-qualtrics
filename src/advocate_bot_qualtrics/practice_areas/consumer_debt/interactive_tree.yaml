@@ -1,670 +1,1909 @@
-# Source: Decision Tree Draft 9_24_2026.docx, PRELIM-01 followed by AFF-01.
-# Outcomes and clinic referrals are recorded by the assess_* action handlers.
+# Source: October 11 explanations and basic decision tree; updated explanations take precedence.
 id: consumer_debt_interactive
-version: "2.2"
-start_node_id: get_plaintiff_name
+version: '2.4'
+start_node_id: verify_case_number
 nodes:
-  - id: get_plaintiff_name
-    kind: input
-    question: "Who is suing you? Enter the plaintiff's name shown on the complaint."
+  - id: verify_case_number
+    kind: choice
+    question: 'The complaint was read as follows for case number: {parsed_value}. Do you agree with this
+      value?'
     explanation:
-      text: "The plaintiff is who is suing you for money. You can find the plaintiff name on the first page of the complaint, underneath the centered and bolded court name and on the same line as the case number."
-      images:
-        - {path: complaint-examples/plaintiff.png, alt: "Example complaint with the plaintiff name highlighted"}
-    input: {field: plaintiff_name, type: text, valid_branch_id: submit, unknown_branch_id: unknown}
+      text: The case number is the court-assigned number for identifying the case. It prominently appears
+        in the top right quadrant of the complaint’s first page.
+      show_with_question: true
     idk_skip_branch_id: unknown
     branches:
-      - {id: submit, label: "Value supplied.", target: prelim_creditor_type}
-      - {id: unknown, label: "I do not know.", target: prelim_creditor_type}
+      - id: 'yes'
+        label: Yes, I agree.
+        target: verify_plaintiff
+      - id: 'no'
+        label: No, I want to provide a different value.
+        target: prelim_case_number
+      - id: unknown
+        label: I am not sure.
+        target: verify_plaintiff
+    title: Case Number
+  - id: prelim_case_number
+    kind: input
+    question: What case number is shown in the complaint?
+    input:
+      field: case_number
+      type: text
+      valid_branch_id: submit
+      unknown_branch_id: unknown
+    idk_skip_branch_id: unknown
+    branches:
+      - id: submit
+        label: Value supplied.
+        target: verify_plaintiff
+      - id: missing
+        label: Not stated in the complaint.
+        target: verify_plaintiff
+      - id: unknown
+        label: I am not sure.
+        target: verify_plaintiff
+    explanation:
+      text: The case number is the court-assigned number for identifying the case. It prominently appears
+        in the top right quadrant of the complaint’s first page.
+      show_with_question: false
+    title: Case Number
+  - id: verify_plaintiff
+    kind: choice
+    question: 'The complaint was read as follows for plaintiff''s name: {parsed_value}. Do you agree with
+      this value?'
+    explanation:
+      text: The plaintiff is who is suing you for money. You can find the plaintiff name on the first
+        page of the complaint, almost always in the top half of the page.
+      images:
+        - path: complaint-examples/plaintiff.png
+          alt: Example complaint with the plaintiff name highlighted
+      show_with_question: true
+    idk_skip_branch_id: unknown
+    branches:
+      - id: 'yes'
+        label: Yes, I agree.
+        target: verify_creditor_type
+      - id: 'no'
+        label: No, I want to provide a different value.
+        target: get_plaintiff_name
+      - id: unknown
+        label: I am not sure.
+        target: verify_creditor_type
+    title: Plaintiff
+  - id: get_plaintiff_name
+    kind: input
+    question: Who is suing you? Enter the plaintiff's name shown on the complaint.
+    input:
+      field: plaintiff_name
+      type: text
+      valid_branch_id: submit
+      unknown_branch_id: unknown
+    idk_skip_branch_id: unknown
+    branches:
+      - id: submit
+        label: Value supplied.
+        target: verify_creditor_type
+      - id: missing
+        label: Not stated in the complaint.
+        target: verify_creditor_type
+      - id: unknown
+        label: I do not know.
+        target: verify_creditor_type
+    explanation:
+      text: The plaintiff is who is suing you for money. You can find the plaintiff name on the first
+        page of the complaint, almost always in the top half of the page.
+      images:
+        - path: complaint-examples/plaintiff.png
+          alt: Example complaint with the plaintiff name highlighted
+      show_with_question: false
+    title: Plaintiff
+  - id: verify_creditor_type
+    kind: choice
+    question: 'The complaint was read as follows for plaintiff type: {parsed_value}. Do you agree with
+      this value?'
+    explanation:
+      text: An "original creditor" is the company you originally owed the debt to — for example, the bank
+        or credit card company whose card you used. A "debt buyer" is a company that purchases old or
+        unpaid debts from original creditors (often for pennies on the dollar) and then tries to collect
+        on them. Companies like Cavalry SPV, Midland Credit Management, and Portfolio Recovery Associates
+        are typically debt buyers.
+      show_with_question: true
+    idk_skip_branch_id: unknown
+    branches:
+      - id: 'yes'
+        label: Yes, I agree.
+        target: prelim_original_creditor_needed
+      - id: 'no'
+        label: No, I want to provide a different value.
+        target: prelim_creditor_type
+      - id: unknown
+        label: I am not sure.
+        target: prelim_original_creditor_needed
+    title: Plaintiff Type
   - id: prelim_creditor_type
     kind: choice
-    question: "Is that plaintiff the original creditor or a debt buyer? [PLAINTIFF]"
-    explanation:
-      text: 'An "original creditor" is the company you originally owed the debt to — for example, the bank or credit card company whose card you used. A "debt buyer" is a company that purchases old or unpaid debts from original creditors (often for pennies on the dollar) and then tries to collect on them. Companies like Cavalry SPV, Midland Credit Management, and Portfolio Recovery Associates are typically debt buyers.'
+    question: Is that plaintiff the original creditor or a debt buyer? [PLAINTIFF]
     validation:
       type: enum
       categories:
-        original: "The user says this is the company that originally extended the credit or first owned the account."
-        buyer: "The user says this company bought or was assigned the debt from the original creditor."
-        unknown: "The user is unsure, gives only a company name without saying whether it bought the debt, or provides insufficient or conflicting information."
+        original: The user says this is the company that originally extended the credit or first owned
+          the account.
+        buyer: The user says this company bought or was assigned the debt from the original creditor.
+        unknown: The user is unsure, gives only a company name without saying whether it bought the debt,
+          or provides insufficient or conflicting information.
     idk_skip_branch_id: unknown
     branches:
-      - {id: original, label: "Original creditor.", target: prelim_recognize}
-      - {id: buyer, label: "Debt buyer.", target: prelim_recognize}
-      - {id: unknown, label: "Not sure.", target: prelim_recognize}
+      - id: original
+        label: Original creditor.
+        target: prelim_original_creditor_needed
+      - id: buyer
+        label: Debt buyer.
+        target: prelim_original_creditor_needed
+      - id: unknown
+        label: Not sure.
+        target: prelim_original_creditor_needed
+    explanation:
+      text: An "original creditor" is the company you originally owed the debt to — for example, the bank
+        or credit card company whose card you used. A "debt buyer" is a company that purchases old or
+        unpaid debts from original creditors (often for pennies on the dollar) and then tries to collect
+        on them. Companies like Cavalry SPV, Midland Credit Management, and Portfolio Recovery Associates
+        are typically debt buyers.
+      show_with_question: false
+    title: Plaintiff Type
+  - id: prelim_original_creditor_needed
+    kind: choice
+    question: Is the plaintiff a debt buyer?
+    branches:
+      - id: buyer
+        label: Debt buyer.
+        target: verify_original_creditor
+      - id: original
+        label: Original creditor.
+        target: prelim_recognize
+      - id: unknown
+        label: Not sure.
+        target: verify_original_creditor
+    title: Plaintiff Type
+  - id: verify_original_creditor
+    kind: choice
+    question: 'The complaint was read as follows for original creditor: {parsed_value}. Do you agree with
+      this value?'
+    explanation:
+      text: The original creditor is the company you first owed the debt to, before it was sold or transferred
+        to another company. For a credit card, this is usually the bank that issued the card, which may
+        be different from the store or brand printed on it. Look in the complaint’s numbered paragraphs
+        for “original creditor,” “original issuer,” or “charge-off creditor,” and check any attached account
+        statements. A charge-off creditor is the company that held the account when it recorded the unpaid
+        balance as a loss; it is not always the original creditor. Your older statements or account agreement
+        may help you confirm the name.
+      show_with_question: true
+    idk_skip_branch_id: unknown
+    branches:
+      - id: 'yes'
+        label: Yes, I agree.
+        target: prelim_recognize
+      - id: 'no'
+        label: No, I want to provide a different value.
+        target: prelim_original_creditor
+      - id: unknown
+        label: I am not sure.
+        target: prelim_recognize
+    title: Original Creditor
+  - id: prelim_original_creditor
+    kind: input
+    question: What original creditor is shown in the complaint?
+    input:
+      field: original_creditor
+      type: text
+      valid_branch_id: submit
+      unknown_branch_id: unknown
+    idk_skip_branch_id: unknown
+    branches:
+      - id: submit
+        label: Value supplied.
+        target: prelim_recognize
+      - id: missing
+        label: Not stated in the complaint.
+        target: prelim_recognize
+      - id: unknown
+        label: I am not sure.
+        target: prelim_recognize
+    explanation:
+      text: The original creditor is the company you first owed the debt to, before it was sold or transferred
+        to another company. For a credit card, this is usually the bank that issued the card, which may
+        be different from the store or brand printed on it. Look in the complaint’s numbered paragraphs
+        for “original creditor,” “original issuer,” or “charge-off creditor,” and check any attached account
+        statements. A charge-off creditor is the company that held the account when it recorded the unpaid
+        balance as a loss; it is not always the original creditor. Your older statements or account agreement
+        may help you confirm the name.
+      show_with_question: false
+    title: Original Creditor
   - id: prelim_recognize
     kind: choice
-    question: "Do you recognize the account being sued over as one you opened? [RECOGNIZE]"
+    question: Do you recognize this account as one you opened?
     idk_skip_branch_id: unknown
     branches:
-      - {id: yes, label: "Yes.", target: prelim_law_firm}
-      - {id: no, label: "No.", target: prelim_law_firm}
-      - {id: unknown, label: "I do not know.", target: prelim_law_firm}
+      - id: 'yes'
+        label: Yes.
+        target: verify_law_firm
+      - id: 'no'
+        label: No.
+        target: verify_law_firm
+      - id: unknown
+        label: I do not know.
+        target: verify_law_firm
+    explanation:
+      text: To determine if the plaintiff can sue you, check if you recognize the account in the complaint
+        as one you opened. Look for the original creditor’s name, the account number or its last few digits,
+        and any attached statements showing your name or purchases. Compare those details with your own
+        memory or records. You may recognize the account as yours even if you do not recognize the debt
+        buyer suing you. Recognizing the account does not mean you agree with the amount claimed. Using
+        someone else’s card is also different from opening an account yourself. If the details are too
+        limited to tell, you can say you are not sure.
+      show_with_question: true
+    title: Account Recognition
+  - id: verify_law_firm
+    kind: choice
+    question: 'The complaint was read as follows for law firm: {parsed_value}. Do you agree with this
+      value?'
+    explanation:
+      text: The law firm is the office of the lawyer representing the plaintiff in this lawsuit. Look
+        at the top left of the complaint’s first page for the law firm, lawyer’s name, firm name, address,
+        and telephone number. On a court form, this information is usually in the box labeled “Attorney
+        or Party Without Attorney,” with the plaintiff identified next to “Attorney for.” The firm’s name
+        may also appear near the lawyer’s signature at the end of the complaint. The law firm is often
+        different from the plaintiff or original creditor; if only an individual lawyer is listed, you
+        can provide that name.
+      show_with_question: true
+    idk_skip_branch_id: unknown
+    branches:
+      - id: 'yes'
+        label: Yes, I agree.
+        target: verify_suit_type
+      - id: 'no'
+        label: No, I want to provide a different value.
+        target: prelim_law_firm
+      - id: unknown
+        label: I am not sure.
+        target: verify_suit_type
+    title: Law Firm
   - id: prelim_law_firm
     kind: input
-    question: "Which law firm has the plaintiff hired?"
-    input: {field: law_firm, type: text, valid_branch_id: submit, unknown_branch_id: unknown}
+    question: Which law firm has the plaintiff hired?
+    input:
+      field: law_firm
+      type: text
+      valid_branch_id: submit
+      unknown_branch_id: unknown
     idk_skip_branch_id: unknown
     branches:
-      - {id: submit, label: "Value supplied.", target: get_filing_date}
-      - {id: unknown, label: "I do not know.", target: get_filing_date}
-  - id: get_filing_date
-    kind: input
-    question: "What is the complaint's filing date? Use the filing date, not the date you received it. [FILING-DATE]"
-    input: {"field":"filing_date","type":"date","valid_branch_id":"submit","unknown_branch_id":"no_date"}
-    idk_skip_branch_id: no_date
+      - id: submit
+        label: Value supplied.
+        target: verify_suit_type
+      - id: missing
+        label: Not stated in the complaint.
+        target: verify_suit_type
+      - id: unknown
+        label: I do not know.
+        target: verify_suit_type
+    explanation:
+      text: The law firm is the office of the lawyer representing the plaintiff in this lawsuit. Look
+        at the top left of the complaint’s first page for the law firm, lawyer’s name, firm name, address,
+        and telephone number. On a court form, this information is usually in the box labeled “Attorney
+        or Party Without Attorney,” with the plaintiff identified next to “Attorney for.” The firm’s name
+        may also appear near the lawyer’s signature at the end of the complaint. The law firm is often
+        different from the plaintiff or original creditor; if only an individual lawyer is listed, you
+        can provide that name.
+      show_with_question: false
+    title: Law Firm
+  - id: verify_suit_type
+    kind: choice
+    question: 'The complaint was read as follows for claim type: {parsed_value}. Do you agree with this
+      value?'
+    explanation:
+      text: This field asks which legal claims the plaintiff lists as the reasons for suing you. These
+        are called “causes of action.” “Breach of contract” means the plaintiff says you broke an agreement,
+        such as an agreement to repay borrowed money. “Common counts” are claims that you owe money, sometimes
+        labeled “open book account,” “account stated,” or “money lent.” Look for these claim names on
+        the first or second page of the complaint. A complaint can list both breach of contract and common
+        counts, so identify all the claims shown.
+      show_with_question: true
+    idk_skip_branch_id: unknown
     branches:
-      - {id: submit, label: "Date supplied.", target: prelim_suit_type}
-      - {id: no_date, label: "I do not know the date.", target: prelim_suit_type}
+      - id: 'yes'
+        label: Yes, I agree.
+        target: prelim_oral
+      - id: 'no'
+        label: No, I want to provide a different value.
+        target: prelim_suit_type
+      - id: unknown
+        label: I am not sure.
+        target: prelim_oral
+    title: Suit Type
   - id: prelim_suit_type
     kind: choice
-    question: "Does the complaint state breach of contract, common counts, or both? [SUIT-TYPE]"
+    question: Does the complaint state breach of contract, common counts, or both? [SUIT-TYPE]
     idk_skip_branch_id: unknown
     branches:
-      - {id: breach, label: "Breach of contract.", target: prelim_oral}
-      - {id: common, label: "Common counts.", target: prelim_oral}
-      - {id: both, label: "Both breach of contract and common counts.", target: prelim_oral}
-      - {id: missing, label: "Neither is stated in the complaint.", target: prelim_oral}
-      - {id: unknown, label: "I do not know.", target: prelim_oral}
+      - id: breach
+        label: Breach of contract.
+        target: prelim_oral
+      - id: common
+        label: Common counts.
+        target: prelim_oral
+      - id: both
+        label: Both breach of contract and common counts.
+        target: prelim_oral
+      - id: missing
+        label: Neither is stated in the complaint.
+        target: prelim_oral
+      - id: unknown
+        label: I do not know.
+        target: prelim_oral
+    explanation:
+      text: This field asks which legal claims the plaintiff lists as the reasons for suing you. These
+        are called “causes of action.” “Breach of contract” means the plaintiff says you broke an agreement,
+        such as an agreement to repay borrowed money. “Common counts” are claims that you owe money, sometimes
+        labeled “open book account,” “account stated,” or “money lent.” Look for these claim names on
+        the first or second page of the complaint. A complaint can list both breach of contract and common
+        counts, so identify all the claims shown.
+      show_with_question: false
+    title: Suit Type
   - id: prelim_oral
     kind: choice
-    question: "Did you open this account only by talking to the original creditor, with no written agreement? [ORAL]"
+    question: Did you open this account orally, with no written contract?
     idk_skip_branch_id: unknown
     branches:
-      - {id: yes, label: "Yes.", target: get_amount_sued}
-      - {id: no, label: "No.", target: get_amount_sued}
-      - {id: unknown, label: "I do not know.", target: get_amount_sued}
-  - id: get_amount_sued
-    kind: input
-    question: "According to the complaint, how much do you owe? [AMOUNT]"
-    input: {field: amount_sued, type: currency, valid_branch_id: submit, unknown_branch_id: unknown}
-    idk_skip_branch_id: unknown
-    branches:
-      - {id: submit, label: "Value supplied.", target: prelim_amount_agree}
-      - {id: missing, label: "The complaint does not include this information.", target: prelim_last_payment}
-      - {id: unknown, label: "I do not know.", target: prelim_last_payment}
-  - id: prelim_amount_agree
+      - id: 'yes'
+        label: Yes.
+        target: verify_amount
+      - id: 'no'
+        label: No.
+        target: verify_amount
+      - id: unknown
+        label: I do not know.
+        target: verify_amount
+    explanation:
+      text: An oral agreement is an agreement made through spoken words with the original creditor. A
+        written agreement has terms recorded in a document, such as a credit card agreement, loan agreement,
+        or electronic agreement. This field asks whether the agreement the lawsuit is based on is described
+        as oral or written. If there is an attached agreement, there is a written agreement. If there
+        is no attached agreement, check in the breach-of-contract section for “credit card agreement”,
+        “loan agreement”, or “electronic agreement.” Not remembering a signature, or not seeing an agreement
+        attached, does not by itself mean the agreement was oral.
+      show_with_question: true
+    title: Oral Agreement
+  - id: verify_amount
     kind: choice
-    question: "The complaint amount you entered is {amount_sued}. Do you agree that you owe this amount?"
+    question: 'The complaint was read as follows for amount claimed: {parsed_value}. Do you agree with
+      this value?'
+    explanation:
+      text: This is the amount of money the plaintiff claims you owe in this lawsuit. It will appear on
+        the first or second page of the complaint. The plaintiff may ask for interest, court costs, or
+        attorney’s fees separately. This field records the plaintiff’s claim; you can separately say whether
+        you agree with it.
+      show_with_question: true
     idk_skip_branch_id: unknown
     branches:
-      - {id: yes, label: "Yes.", target: prelim_last_payment}
-      - {id: no, label: "No.", target: prelim_correct_amount}
-      - {id: unknown, label: "I do not know.", target: prelim_last_payment}
+      - id: 'yes'
+        label: Yes, I agree.
+        target: verify_ownership
+      - id: 'no'
+        label: No, I want to provide a different value.
+        target: prelim_correct_amount
+      - id: unknown
+        label: I am not sure.
+        target: verify_ownership
+    title: Amount Claimed
   - id: prelim_correct_amount
     kind: input
-    question: "What amount do you believe you owe? This will replace the complaint amount for later questions."
-    input: {field: amount_sued, type: currency, valid_branch_id: submit, unknown_branch_id: unknown}
+    question: What amount do you believe you owe? We will use your answer for later questions.
+    input:
+      field: amount_sued
+      type: currency
+      valid_branch_id: submit
+      unknown_branch_id: unknown
     idk_skip_branch_id: unknown
     branches:
-      - {id: submit, label: "Value supplied.", target: prelim_last_payment}
-      - {id: unknown, label: "I do not know.", target: prelim_last_payment}
-  - id: prelim_last_payment
-    kind: input
-    question: "According to the complaint, when was the last date of payment? If it is not stated, choose missing. [LAST-PAYMENT-DATE]"
-    input: {field: last_payment_complaint, type: date, valid_branch_id: submit, unknown_branch_id: no_date}
-    idk_skip_branch_id: no_date
-    branches:
-      - {id: submit, label: "Value supplied.", target: prelim_payment_agree}
-      - {id: missing, label: "The complaint does not include this information.", target: prelim_open_date}
-      - {id: no_date, label: "I do not know.", target: prelim_open_date}
-  - id: prelim_payment_agree
+      - id: submit
+        label: Value supplied.
+        target: verify_ownership
+      - id: unknown
+        label: I do not know.
+        target: verify_ownership
+    title: Amount Claimed
+    explanation:
+      show_with_question: false
+      text: This is the amount of money the plaintiff claims you owe in this lawsuit. It will appear on
+        the first or second page of the complaint. The plaintiff may ask for interest, court costs, or
+        attorney’s fees separately. This field records the plaintiff’s claim; you can separately say whether
+        you agree with it.
+  - id: verify_ownership
     kind: choice
-    question: "The complaint's last payment date you entered is {date_user_failed_to_pay}. Do you agree with this date?"
+    question: 'The complaint was read as follows for statement of ownership or right to collect: {parsed_value}.
+      Do you agree with this value?'
+    explanation:
+      blocks:
+        - text: 'The complaint must say the plaintiff owns the debt and has the right to sue to collect
+            it. The plaintiff does not need to provide additional proof in order to state ownership. '
+        - text: 'When [ORIGINAL.CREDITOR] or other company sold the debt to [PLAINTIFF], it assigned the
+            right to collect the debt to [PLAINTIFF]. A debt buyer must state they bought the account
+            from the original creditor or another company.  Look in the numbered paragraphs for phrases
+            such as “legal owner,” “assignee,” “assigned to plaintiff,” or “all right, title, and interest.” '
+          creditor_type: buyer
+        - text: 'An original creditor must state it is the legal owner (“true owner”) of the debt and
+            that it has the right to bring a debt collection case. Look in the numbered paragraphs for
+            phrases such as “legal owner,” “sole owner,” or “all right, title, and interest.” '
+          creditor_type: original
+      show_with_question: true
     idk_skip_branch_id: unknown
     branches:
-      - {id: yes, label: "Yes.", target: prelim_open_date}
-      - {id: no, label: "No.", target: prelim_correct_payment}
-      - {id: unknown, label: "I do not know.", target: prelim_open_date}
+      - id: 'yes'
+        label: Yes, I agree.
+        target: verify_last_payment
+      - id: 'no'
+        label: No, I want to provide a different value.
+        target: prelim_ownership_claim
+      - id: unknown
+        label: I am not sure.
+        target: verify_last_payment
+    title: Ownership
+  - id: prelim_ownership_claim
+    kind: choice
+    question: Does the complaint state that the plaintiff owns the debt or has the right to collect it?
+    idk_skip_branch_id: unknown
+    branches:
+      - id: 'yes'
+        label: Yes.
+        target: verify_last_payment
+      - id: 'no'
+        label: No.
+        target: verify_last_payment
+      - id: unknown
+        label: I am not sure.
+        target: verify_last_payment
+    explanation:
+      blocks:
+        - text: 'The complaint must say the plaintiff owns the debt and has the right to sue to collect
+            it. The plaintiff does not need to provide additional proof in order to state ownership. '
+        - text: 'When [ORIGINAL.CREDITOR] or other company sold the debt to [PLAINTIFF], it assigned the
+            right to collect the debt to [PLAINTIFF]. A debt buyer must state they bought the account
+            from the original creditor or another company.  Look in the numbered paragraphs for phrases
+            such as “legal owner,” “assignee,” “assigned to plaintiff,” or “all right, title, and interest.” '
+          creditor_type: buyer
+        - text: 'An original creditor must state it is the legal owner (“true owner”) of the debt and
+            that it has the right to bring a debt collection case. Look in the numbered paragraphs for
+            phrases such as “legal owner,” “sole owner,” or “all right, title, and interest.” '
+          creditor_type: original
+      show_with_question: false
+    title: Ownership
+  - id: verify_last_payment
+    kind: choice
+    question: 'The complaint was read as follows for last payment date: {parsed_value}. Do you agree with
+      this value?'
+    explanation:
+      blocks: &id001
+        - text: 'If you’ve made any payments to [PLAINTIFF], the last payment date is the date of the
+            most recent payment on the account to [PLAINTIFF]. Otherwise, this is the date of the most
+            recent payment to [ORIGINAL.CREDITOR] or another company which owned the debt. '
+          creditor_type: buyer
+        - text: 'The last payment date is the date of the most recent payment to [PLAINTIFF]. '
+          creditor_type: original
+        - text: 'The complaint may list it in the numbered paragraphs as “last payment date,” and an attached
+            statement may show a payment and its date. A “charge-off” date, the date a creditor recorded
+            the unpaid balance as a loss, is different from a payment date. '
+        - text: '{complaint_payment_restatement}'
+      show_with_question: true
+    idk_skip_branch_id: unknown
+    branches:
+      - id: 'yes'
+        label: Yes, I agree.
+        target: verify_open_date
+      - id: 'no'
+        label: No, I want to provide a different value.
+        target: prelim_correct_payment
+      - id: unknown
+        label: I am not sure.
+        target: verify_open_date
+    title: Last Payment Date
   - id: prelim_correct_payment
     kind: input
-    question: "When did you actually last make a payment? This will replace the complaint's last payment date for later questions. Include partial payments."
-    input: {field: last_payment_complaint, type: date, valid_branch_id: submit, unknown_branch_id: no_date}
+    question: When did you actually last make a payment? We will use your answer for later questions.
+      Include partial payments.
+    input:
+      field: last_payment_complaint
+      type: date
+      valid_branch_id: submit
+      unknown_branch_id: no_date
     idk_skip_branch_id: no_date
     branches:
-      - {id: submit, label: "Value supplied.", target: prelim_open_date}
-      - {id: no_date, label: "I do not know.", target: prelim_open_date}
-  - id: prelim_open_date
-    kind: input
-    question: "According to the complaint, when was the account opened? If it is not stated, choose missing. [OPEN-DATE]"
-    input: {field: open_date, type: date, valid_branch_id: submit, unknown_branch_id: no_date}
-    idk_skip_branch_id: no_date
-    branches:
-      - {id: submit, label: "Value supplied.", target: prelim_open_agree}
-      - {id: missing, label: "The complaint does not include this information.", target: prelim_statement}
-      - {id: no_date, label: "I do not know.", target: prelim_statement}
-  - id: prelim_open_agree
+      - id: submit
+        label: Value supplied.
+        target: verify_open_date
+      - id: no_date
+        label: I do not know.
+        target: verify_open_date
+    title: Last Payment Date
+    explanation:
+      blocks: *id001
+      show_with_question: false
+  - id: verify_open_date
     kind: choice
-    question: "The complaint's account opening date you entered is {open_date}. Do you agree with this date?"
+    question: 'The complaint was read as follows for account opening date: {parsed_value}. Do you agree
+      with this value?'
+    explanation:
+      text: This is the date the account was first opened or the agreement began. Look in the complaint’s
+        numbered paragraphs for “account opened,” “entered into an agreement,” or “contract date,” and
+        check any attached agreement or account records. This is different from the date the account was
+        sold to a debt buyer, the date of the last payment, or the date the lawsuit was filed. The statement
+        date printed on a monthly bill is not necessarily the account-opening date. If the complaint does
+        not give a clear opening date, you can say it is not listed; if you disagree with the date, your
+        own account records may help you confirm it.
+      show_with_question: true
     idk_skip_branch_id: unknown
     branches:
-      - {id: yes, label: "Yes.", target: prelim_statement}
-      - {id: no, label: "No.", target: prelim_correct_open_date}
-      - {id: unknown, label: "I do not know.", target: prelim_statement}
+      - id: 'yes'
+        label: Yes, I agree.
+        target: verify_filing_date
+      - id: 'no'
+        label: No, I want to provide a different value.
+        target: prelim_correct_open_date
+      - id: unknown
+        label: I am not sure.
+        target: verify_filing_date
+    title: Account Opening Date
   - id: prelim_correct_open_date
     kind: input
-    question: "When did you actually open the account? This will replace the complaint's opening date for later questions."
-    input: {field: open_date, type: date, valid_branch_id: submit, unknown_branch_id: no_date}
+    question: When did you actually open the account? We will use your answer for later questions.
+    input:
+      field: open_date
+      type: date
+      valid_branch_id: submit
+      unknown_branch_id: no_date
     idk_skip_branch_id: no_date
     branches:
-      - {id: submit, label: "Value supplied.", target: prelim_statement}
-      - {id: no_date, label: "I do not know.", target: prelim_statement}
+      - id: submit
+        label: Value supplied.
+        target: verify_filing_date
+      - id: no_date
+        label: I do not know.
+        target: verify_filing_date
+    title: Account Opening Date
+    explanation:
+      show_with_question: false
+      text: This is the date the account was first opened or the agreement began. Look in the complaint’s
+        numbered paragraphs for “account opened,” “entered into an agreement,” or “contract date,” and
+        check any attached agreement or account records. This is different from the date the account was
+        sold to a debt buyer, the date of the last payment, or the date the lawsuit was filed. The statement
+        date printed on a monthly bill is not necessarily the account-opening date. If the complaint does
+        not give a clear opening date, you can say it is not listed; if you disagree with the date, your
+        own account records may help you confirm it.
+  - id: verify_filing_date
+    kind: choice
+    question: 'The complaint was read as follows for complaint filing date: {parsed_value}. Do you agree
+      with this value?'
+    explanation:
+      text: This is the date the plaintiff filed the complaint with the court, starting the lawsuit. Look
+        for a court stamp or electronic filing mark on the first page, often near the top right, labeled
+        “Filed,” “Electronically Filed,” or “E-Filed.” Use the complaint’s filing date, rather than the
+        date next to the lawyer’s signature, the date on the summons, or the date you received the papers.
+        If the complaint is marked “Amended,” or you see more than one filing date, clinic staff can help
+        identify the original complaint’s filing date. If no filing mark is visible, the court’s case
+        record may show when the complaint was filed.
+      show_with_question: true
+    idk_skip_branch_id: unknown
+    branches:
+      - id: 'yes'
+        label: Yes, I agree.
+        target: verify_statement
+      - id: 'no'
+        label: No, I want to provide a different value.
+        target: get_filing_date
+      - id: unknown
+        label: I am not sure.
+        target: verify_statement
+    title: Complaint Filing Date
+  - id: get_filing_date
+    kind: input
+    question: What is the complaint's filing date? Use the filing date, not the date you received it.
+      [FILING-DATE]
+    input:
+      field: filing_date
+      type: date
+      valid_branch_id: submit
+      unknown_branch_id: no_date
+    idk_skip_branch_id: no_date
+    branches:
+      - id: submit
+        label: Date supplied.
+        target: verify_statement
+      - id: missing
+        label: Not stated in the complaint.
+        target: verify_statement
+      - id: no_date
+        label: I do not know the date.
+        target: verify_statement
+    explanation:
+      text: This is the date the plaintiff filed the complaint with the court, starting the lawsuit. Look
+        for a court stamp or electronic filing mark on the first page, often near the top right, labeled
+        “Filed,” “Electronically Filed,” or “E-Filed.” Use the complaint’s filing date, rather than the
+        date next to the lawyer’s signature, the date on the summons, or the date you received the papers.
+        If the complaint is marked “Amended,” or you see more than one filing date, clinic staff can help
+        identify the original complaint’s filing date. If no filing mark is visible, the court’s case
+        record may show when the complaint was filed.
+      show_with_question: false
+    title: Complaint Filing Date
+  - id: verify_statement
+    kind: choice
+    question: 'The complaint was read as follows for attached final statement: {parsed_value}. Do you
+      agree with this value?'
+    explanation:
+      blocks: &id002
+        - text: 'An account statement is a bill or record from the creditor showing activity and the balance
+            on an account. A credit card statement usually includes the creditor’s name, your name, part
+            of the account number, a statement period, charges, payments, and a balance. This field asks
+            whether a final statement showing your final balance is attached to the complaint. '
+        - text: The final statement should include a charge-off date, reflecting when [ORIGINAL.CREDITOR]
+            recorded the balance as a loss.
+          creditor_type: buyer
+        - text: Look through the pages after the complaint for documents labeled “Exhibit” or “Attachment,”
+            especially pages that look like monthly bills. A credit card agreement lists account terms
+            and is different from a statement. A paragraph saying how much you owe is also different from
+            an attached statement.
+      show_with_question: true
+    idk_skip_branch_id: unknown
+    branches:
+      - id: 'yes'
+        label: Yes, I agree.
+        target: verify_ownership_proof
+      - id: 'no'
+        label: No, I want to provide a different value.
+        target: prelim_statement
+      - id: unknown
+        label: I am not sure.
+        target: verify_ownership_proof
+    title: Account Statement
   - id: prelim_statement
     kind: choice
-    question: "Does the complaint have a final credit card statement attached? [STATEMENT]"
+    question: Is a final account statement attached (with a charge-off date if the plaintiff is a debt
+      buyer)?
     idk_skip_branch_id: unknown
     branches:
-      - {id: yes, label: "Yes.", target: prelim_ownership}
-      - {id: no, label: "No.", target: prelim_ownership}
-      - {id: unknown, label: "I do not know.", target: prelim_ownership}
+      - id: 'yes'
+        label: Yes.
+        target: verify_ownership_proof
+      - id: 'no'
+        label: No.
+        target: verify_ownership_proof
+      - id: unknown
+        label: I do not know.
+        target: verify_ownership_proof
+    explanation:
+      blocks: *id002
+      show_with_question: false
+    title: Account Statement
+  - id: verify_ownership_proof
+    kind: choice
+    question: 'The complaint was read as follows for attached ownership documents: {parsed_value}. Do
+      you agree with this value?'
+    explanation:
+      blocks:
+        - text: Proof of ownership consists of documents supporting the plaintiff’s claimed ownership
+            or right to collect, attached to the complaint. Flip to the exhibits and attachments after
+            the main complaint form.
+        - text: 'Look for an “assignment,” “bill of sale,” or purchase agreement, along with a schedule
+            or account record which shows that [PLAINTIFF] purchased your debt from [ORIGINAL.CREDITOR]
+            or another company. A document about the sale of many accounts (from other consumers with
+            debt) may count. A final account statement can help identify the account, but does not necessarily
+            show a transfer to [PLAINTIFF]. '
+          creditor_type: buyer
+        - text: Look for an account agreement and records (like account statements) connecting your account
+            to [PLAINTIFF].
+          creditor_type: original
+      show_with_question: true
+    idk_skip_branch_id: unknown
+    branches:
+      - id: 'yes'
+        label: Yes, I agree.
+        target: verify_verified
+      - id: 'no'
+        label: No, I want to provide a different value.
+        target: prelim_ownership
+      - id: unknown
+        label: I am not sure.
+        target: verify_verified
+    title: Proof of Ownership
   - id: prelim_ownership
     kind: choice
-    question: "Does the complaint have a credit card agreement attached (for an original creditor), or a specific debt transfer contract or last statement showing the charge-off date (for a debt buyer)? [OWNERSHIP]"
+    question: Does the complaint have a credit card agreement attached (for an original creditor), or
+      a specific debt transfer contract or last statement showing the charge-off date (for a debt buyer)?
+      [OWNERSHIP]
     idk_skip_branch_id: unknown
     branches:
-      - {id: yes, label: "Yes.", target: prelim_verified}
-      - {id: no, label: "No.", target: prelim_verified}
-      - {id: unknown, label: "I do not know.", target: prelim_verified}
+      - id: 'yes'
+        label: Yes.
+        target: verify_verified
+      - id: 'no'
+        label: No.
+        target: verify_verified
+      - id: unknown
+        label: I do not know.
+        target: verify_verified
+    explanation:
+      blocks:
+        - text: Proof of ownership consists of documents supporting the plaintiff’s claimed ownership
+            or right to collect, attached to the complaint. Flip to the exhibits and attachments after
+            the main complaint form.
+        - text: 'Look for an “assignment,” “bill of sale,” or purchase agreement, along with a schedule
+            or account record which shows that [PLAINTIFF] purchased your debt from [ORIGINAL.CREDITOR]
+            or another company. A document about the sale of many accounts (from other consumers with
+            debt) may count. A final account statement can help identify the account, but does not necessarily
+            show a transfer to [PLAINTIFF]. '
+          creditor_type: buyer
+        - text: Look for an account agreement and records (like account statements) connecting your account
+            to [PLAINTIFF].
+          creditor_type: original
+      show_with_question: false
+    title: Proof of Ownership
+  - id: verify_verified
+    kind: choice
+    question: 'The complaint was read as follows for verification under oath or penalty of perjury: {parsed_value}.
+      Do you agree with this value?'
+    explanation:
+      text: A verified complaint includes a signed statement declaring that its contents are true under
+        oath or under penalty of perjury. Look near the end of the main body of the complaint or on a
+        separate attached page for a heading such as “Verification” and wording about the truth of the
+        complaint. The statement may be signed by the plaintiff, a company representative, or an attorney.
+        A lawyer’s ordinary signature at the end of the complaint does not, by itself, make the complaint
+        verified. A declaration about delivering the papers to you, called a proof of service, is different
+        from a verification of the complaint. If you are unsure which document you have, clinic staff
+        can help you identify it.
+      show_with_question: true
+    idk_skip_branch_id: unknown
+    branches:
+      - id: 'yes'
+        label: Yes, I agree.
+        target: prelim_consolidation
+      - id: 'no'
+        label: No, I want to provide a different value.
+        target: prelim_verified
+      - id: unknown
+        label: I am not sure.
+        target: prelim_consolidation
+    title: Verification
   - id: prelim_verified
     kind: choice
-    question: "Is the complaint verified by a lawyer signing under penalty of perjury? [VERIFIED]"
+    question: Does the complaint include a signed verification under oath or penalty of perjury?
     idk_skip_branch_id: unknown
     branches:
-      - {id: yes, label: "Yes.", target: prelim_consolidation}
-      - {id: no, label: "No.", target: prelim_consolidation}
-      - {id: unknown, label: "I do not know.", target: prelim_consolidation}
+      - id: 'yes'
+        label: Yes.
+        target: prelim_consolidation
+      - id: 'no'
+        label: No.
+        target: prelim_consolidation
+      - id: unknown
+        label: I do not know.
+        target: prelim_consolidation
+    explanation:
+      text: A verified complaint includes a signed statement declaring that its contents are true under
+        oath or under penalty of perjury. Look near the end of the main body of the complaint or on a
+        separate attached page for a heading such as “Verification” and wording about the truth of the
+        complaint. The statement may be signed by the plaintiff, a company representative, or an attorney.
+        A lawyer’s ordinary signature at the end of the complaint does not, by itself, make the complaint
+        verified. A declaration about delivering the papers to you, called a proof of service, is different
+        from a verification of the complaint. If you are unsure which document you have, clinic staff
+        can help you identify it.
+      show_with_question: false
+    title: Verification
   - id: prelim_consolidation
     kind: choice
-    question: "Are you working with a debt consolidation company? [CONSOLIDATION]"
+    question: Are you working with a debt consolidation company? [CONSOLIDATION]
     idk_skip_branch_id: unknown
     branches:
-      - {id: yes, label: "Yes.", target: sol_creditor_type}
-      - {id: no, label: "No.", target: sol_creditor_type}
-      - {id: unknown, label: "I do not know.", target: sol_creditor_type}
+      - id: 'yes'
+        label: Yes.
+        target: statute_of_limitations_intro
+      - id: 'no'
+        label: No.
+        target: statute_of_limitations_intro
+      - id: unknown
+        label: I do not know.
+        target: statute_of_limitations_intro
+    explanation:
+      text: This field asks whether you are working with a company or organization that helps manage,
+        combine, or negotiate your debts. Some programs arrange payments to creditors; others try to negotiate
+        a settlement for less than the amount claimed. You might make a single monthly payment to the
+        company or authorize it to contact creditors for you. Taking out a new loan to pay off other debts
+        is different from having a company negotiate or manage payments on your behalf.
+      show_with_question: true
+    title: Debt Consolidation
+  - id: statute_of_limitations_intro
+    kind: action
+    title: Statute of Limitations
+    question: '{defense_facts}'
+    explanation:
+      text: Statute of limitations is a rule that says if [PLAINTIFF] waits too long, they cannot sue
+        you. The maximum length of time they can wait varies from 2 to 6 years, depending on which state’s
+        law applies. But for preserving this defense in an answer, complaints filed more than or equal
+        to a year after last payment would suffice.
+      show_with_question: true
+    action: explain_statute_of_limitations
+    next: sol_creditor_type
   - id: sol_creditor_type
     kind: choice
-    question: "Statute of limitations: is the plaintiff the original creditor or a debt buyer?"
-    idk_skip_branch_id: unknown
+    question: Is [PLAINTIFF] the original creditor or a debt buyer?
     branches:
-      - {"id":"original","label":"Original creditor.","target":"sol_payment_recipient"}
-      - {"id":"buyer","label":"Debt buyer.","target":"sol_buyer_payment"}
-      - {"id":"unknown","label":"I do not know.","target":"statute_of_limitations_result"}
-  - id: sol_buyer_payment
+      - id: original
+        label: Original creditor.
+        target: sol_payment_available
+      - id: buyer
+        label: Debt buyer.
+        target: statute_of_limitations_result
+      - id: unknown
+        label: I am not sure; I may need clinic staff help.
+        target: statute_of_limitations_result
+    idk_skip_branch_id: unknown
+    title: Statute of Limitations
+    explanation:
+      text: Statute of limitations is a rule that says if [PLAINTIFF] waits too long, they cannot sue
+        you. The maximum length of time they can wait varies from 2 to 6 years, depending on which state’s
+        law applies. But for preserving this defense in an answer, complaints filed more than or equal
+        to a year after last payment would suffice.
+      show_with_question: false
+  - id: sol_payment_available
     kind: choice
-    question: "Have you made a payment to the debt buyer?"
-    idk_skip_branch_id: unknown
+    question: Are the complaint’s last-payment and filing dates available to compare?
     branches:
-      - {"id":"yes","label":"Yes.","target":"sol_payment_recipient"}
-      - {"id":"no","label":"No.","target":"statute_of_limitations_result"}
-      - {"id":"unknown","label":"I do not know.","target":"statute_of_limitations_result"}
-  - id: sol_payment_recipient
+      - id: present
+        label: Both dates are available.
+        target: sol_payment_estimate_agree
+      - id: missing
+        label: The complaint does not list a last payment date.
+        target: sol_payment_age
+      - id: unknown
+        label: I am not sure; I may need clinic staff help.
+        target: sol_payment_age
+    idk_skip_branch_id: unknown
+    title: Statute of Limitations
+    explanation:
+      text: Statute of limitations is a rule that says if [PLAINTIFF] waits too long, they cannot sue
+        you. The maximum length of time they can wait varies from 2 to 6 years, depending on which state’s
+        law applies. But for preserving this defense in an answer, complaints filed more than or equal
+        to a year after last payment would suffice.
+      show_with_question: false
+  - id: sol_payment_estimate_agree
     kind: choice
-    question: "Is the plaintiff the original creditor or a debt buyer? [PLAINTIFF]"
+    question: 'According to the complaint, the complaint was filed about {payment_elapsed_months} months
+      after your last payment to [PLAINTIFF].
+
+
+      Do you agree with this estimate?'
+    branches:
+      - id: 'yes'
+        label: Yes.
+        target: statute_of_limitations_result
+      - id: 'no'
+        label: No.
+        target: sol_payment_age
+      - id: unknown
+        label: I am not sure; I may need clinic staff help.
+        target: sol_payment_age
     idk_skip_branch_id: unknown
-    branches:
-      - {id: original, label: "Original creditor.", target: get_last_payment_complaint}
-      - {id: buyer, label: "Debt buyer.", target: get_last_payment_debt_collector}
-      - {id: unknown, label: "I do not know.", target: statute_of_limitations_result}
-  - id: get_last_payment_debt_collector
-    kind: input
-    question: "When did you last make a payment specifically to the debt buyer? Include partial payments."
-    input: {field: last_payment_debt_collector, type: date, valid_branch_id: submit, unknown_branch_id: no_date}
-    idk_skip_branch_id: no_date
-    branches:
-      - {id: submit, label: "Date supplied.", target: sol_contract}
-      - {id: no_date, label: "I do not know the date.", target: sol_contract}
-  - id: get_last_payment_complaint
-    kind: input
-    question: "When did you last make a payment to {payment_recipient}? Include partial payments, no matter how small."
-    input: {"field":"last_payment_complaint","type":"date","valid_branch_id":"submit","unknown_branch_id":"no_date"}
-    idk_skip_branch_id: no_date
-    branches:
-      - {"id":"submit","label":"Date supplied.","target":"sol_contract"}
-      - {"id":"no_date","label":"I do not know the date.","target":"sol_contract"}
-  - id: sol_contract
+    title: Statute of Limitations
+    explanation:
+      text: Statute of limitations is a rule that says if [PLAINTIFF] waits too long, they cannot sue
+        you. The maximum length of time they can wait varies from 2 to 6 years, depending on which state’s
+        law applies. But for preserving this defense in an answer, complaints filed more than or equal
+        to a year after last payment would suffice.
+      show_with_question: false
+  - id: sol_payment_age
     kind: choice
-    question: "Was the account agreement oral (no written agreement) or written?"
-    idk_skip_branch_id: unknown
+    question: '{payment_age_context}
+
+
+      Was your last payment less than a year before the complaint was filed?'
     branches:
-      - {"id":"oral","label":"Oral agreement.","target":"statute_of_limitations_result"}
-      - {"id":"written","label":"Written agreement.","target":"sol_state_law"}
-      - {"id":"unknown","label":"I do not know.","target":"statute_of_limitations_result"}
-  - id: sol_state_law
-    kind: choice
-    question: "Clinic staff need to read the credit card agreement to determine which state's law applies. Which law have clinic staff confirmed? If it has not been confirmed, choose unknown; we will flag it for clinic review and continue."
+      - id: 'yes'
+        label: Yes.
+        target: statute_of_limitations_result
+      - id: 'no'
+        label: No, it was a year or more before filing.
+        target: statute_of_limitations_result
+      - id: unknown
+        label: I am not sure; I may need clinic staff help.
+        target: statute_of_limitations_result
     idk_skip_branch_id: unknown
-    branches:
-      - {"id":"ca","label":"Clinic staff confirmed California (4 years).","target":"statute_of_limitations_result"}
-      - {"id":"de","label":"Clinic staff confirmed Delaware (3 years).","target":"statute_of_limitations_result"}
-      - {"id":"other","label":"Clinic staff identified another state; its cutoff needs review.","target":"statute_of_limitations_result"}
-      - {"id":"unknown","label":"Clinic staff have not determined the applicable law.","target":"statute_of_limitations_result"}
+    title: Statute of Limitations
+    explanation:
+      text: Statute of limitations is a rule that says if [PLAINTIFF] waits too long, they cannot sue
+        you. The maximum length of time they can wait varies from 2 to 6 years, depending on which state’s
+        law applies. But for preserving this defense in an answer, complaints filed more than or equal
+        to a year after last payment would suffice.
+      show_with_question: false
   - id: statute_of_limitations_result
     kind: action
-    question: "Recording the statute of limitations screening result."
+    title: Statute of Limitations
+    question: Personalized Application
     action: assess_statute_of_limitations
+    next: ambiguity_intro
+  - id: ambiguity_intro
+    kind: action
+    title: Ambiguity
+    question: '{defense_facts}'
+    explanation:
+      text: 'Ambiguity may be applicable if you are at all confused about the suit, the amount sued for,
+        or what the charges are. Many litigants check off ambiguity, since it is a broad defense. '
+      show_with_question: true
+    action: explain_ambiguity
     next: ambiguity
   - id: ambiguity
     kind: choice
-    question: "Are you at all confused about the suit, the amount sued for, or what the charges are?"
-    idk_skip_branch_id: unknown
+    question: Are you at all confused about the suit, the amount sued for, or what the charges are?
     branches:
-      - {"id":"yes","label":"Yes.","target":"ambiguity_result"}
-      - {"id":"no","label":"No.","target":"ambiguity_result"}
-      - {"id":"unknown","label":"I do not know.","target":"ambiguity_result"}
+      - id: 'yes'
+        label: Yes.
+        target: ambiguity_result
+      - id: 'no'
+        label: No.
+        target: ambiguity_result
+      - id: unknown
+        label: I am not sure; I may need clinic staff help.
+        target: ambiguity_result
+    idk_skip_branch_id: unknown
+    title: Ambiguity
+    explanation:
+      text: 'Ambiguity may be applicable if you are at all confused about the suit, the amount sued for,
+        or what the charges are. Many litigants check off ambiguity, since it is a broad defense. '
+      show_with_question: false
   - id: ambiguity_result
     kind: action
-    question: "Recording the ambiguity screening result."
+    title: Ambiguity
+    question: Personalized Application
     action: assess_ambiguity
+    next: standing_privity_intro
+  - id: standing_privity_intro
+    kind: action
+    title: Standing/privity
+    question: '{defense_facts}'
+    explanation:
+      text: To sue for your debt, [PLAINTIFF] must state it actually owns the debt.
+      show_with_question: true
+    action: explain_standing_privity
     next: standing_creditor_type
   - id: standing_creditor_type
     kind: choice
-    question: "Standing/privity: is the plaintiff the original creditor or a debt buyer?"
-    idk_skip_branch_id: unknown
+    question: Is [PLAINTIFF] the original creditor or a debt buyer?
     branches:
-      - {"id":"original","label":"Original creditor.","target":"standing_claim"}
-      - {"id":"buyer","label":"Debt buyer.","target":"standing_privity_result"}
-      - {"id":"unknown","label":"I do not know.","target":"standing_privity_result"}
+      - id: original
+        label: Original creditor.
+        target: standing_claim
+      - id: buyer
+        label: Debt buyer.
+        target: standing_privity_result
+      - id: unknown
+        label: I am not sure; I may need clinic staff help.
+        target: standing_privity_result
+    idk_skip_branch_id: unknown
+    title: Standing/privity
+    explanation:
+      text: To sue for your debt, [PLAINTIFF] must state it actually owns the debt.
+      show_with_question: false
   - id: standing_claim
     kind: choice
-    question: "Did the plaintiff state that it is the legal owner of this debt and has the right to bring a case to collect it?"
-    idk_skip_branch_id: unknown
+    question: Did [PLAINTIFF] state it is the legal owner of the debt and has the right to bring a case
+      to collect it?
     branches:
-      - {"id":"yes","label":"Yes.","target":"standing_agreement"}
-      - {"id":"no","label":"No.","target":"standing_agreement"}
-      - {"id":"unknown","label":"I do not know.","target":"standing_agreement"}
-  - id: standing_agreement
-    kind: choice
-    question: "Did the plaintiff provide a copy of the agreement showing legal ownership of the debt and the right to bring the case?"
+      - id: 'yes'
+        label: Yes.
+        target: standing_privity_result
+      - id: 'no'
+        label: No.
+        target: standing_privity_result
+      - id: unknown
+        label: I am not sure; I may need clinic staff help.
+        target: standing_privity_result
     idk_skip_branch_id: unknown
-    branches:
-      - {"id":"yes","label":"Yes.","target":"standing_privity_result"}
-      - {"id":"no","label":"No.","target":"standing_privity_result"}
-      - {"id":"unknown","label":"I do not know.","target":"standing_privity_result"}
+    title: Standing/privity
+    explanation:
+      text: To sue for your debt, [PLAINTIFF] must state it actually owns the debt.
+      show_with_question: false
   - id: standing_privity_result
     kind: action
-    question: "Recording the standing privity screening result."
+    title: Standing/privity
+    question: Personalized Application
     action: assess_standing_privity
+    next: failure_to_state_cause_intro
+  - id: failure_to_state_cause_intro
+    kind: action
+    title: Failure to State a Cause of Action
+    question: '{defense_facts}'
+    explanation:
+      text: To sue for your debt, [PLAINTIFF] must follow certain requirements by attaching proof to the
+        complaint.
+      show_with_question: true
+    action: explain_failure_to_state_cause
     next: cause_creditor_type
   - id: cause_creditor_type
     kind: choice
-    question: "Failure to state a cause of action: is the plaintiff the original creditor or a debt buyer?"
-    idk_skip_branch_id: unknown
+    question: Is [PLAINTIFF] the original creditor or a debt buyer?
     branches:
-      - {"id":"original","label":"Original creditor.","target":"cause_original_owner"}
-      - {"id":"buyer","label":"Debt buyer.","target":"cause_statement"}
-      - {"id":"unknown","label":"I do not know.","target":"failure_to_state_cause_result"}
+      - id: original
+        label: Original creditor.
+        target: cause_original_owner
+      - id: buyer
+        label: Debt buyer.
+        target: cause_statement
+      - id: unknown
+        label: I am not sure; I may need clinic staff help.
+        target: failure_to_state_cause_result
+    idk_skip_branch_id: unknown
+    title: Failure to State a Cause of Action
+    explanation:
+      text: To sue for your debt, [PLAINTIFF] must follow certain requirements by attaching proof to the
+        complaint.
+      show_with_question: false
   - id: cause_statement
     kind: choice
-    question: "Does the complaint have a credit card statement attached that identifies the original creditor?"
-    idk_skip_branch_id: unknown
+    question: Does the complaint attach a final account statement from [ORIGINAL.CREDITOR] with a charge-off
+      date?
     branches:
-      - {"id":"yes","label":"Yes.","target":"cause_purchase_claim"}
-      - {"id":"no","label":"No.","target":"cause_purchase_claim"}
-      - {"id":"unknown","label":"I do not know.","target":"cause_purchase_claim"}
-  - id: cause_purchase_claim
-    kind: choice
-    question: "Did the plaintiff say it bought the debt?"
+      - id: 'yes'
+        label: Yes.
+        target: cause_purchase_documents
+      - id: 'no'
+        label: No.
+        target: cause_purchase_documents
+      - id: unknown
+        label: I am not sure; I may need clinic staff help.
+        target: cause_purchase_documents
     idk_skip_branch_id: unknown
-    branches:
-      - {"id":"yes","label":"Yes.","target":"cause_purchase_documents"}
-      - {"id":"no","label":"No.","target":"cause_purchase_documents"}
-      - {"id":"unknown","label":"I do not know.","target":"cause_purchase_documents"}
+    title: Failure to State a Cause of Action
+    explanation:
+      text: To sue for your debt, [PLAINTIFF] must follow certain requirements by attaching proof to the
+        complaint.
+      show_with_question: false
   - id: cause_purchase_documents
     kind: choice
-    question: "Does the complaint include documents showing the plaintiff bought the debt, or a final statement showing charge-off?"
+    question: Does the complaint attach documents showing [PLAINTIFF] purchased your debt from [ORIGINAL.CREDITOR]
+      or another company?
+    branches:
+      - id: 'yes'
+        label: Yes.
+        target: cause_attachment_screen
+      - id: 'no'
+        label: No.
+        target: cause_attachment_screen
+      - id: unknown
+        label: I am not sure; I may need clinic staff help.
+        target: cause_attachment_screen
+    idk_skip_branch_id: unknown
+    title: Failure to State a Cause of Action
+    explanation:
+      text: To sue for your debt, [PLAINTIFF] must follow certain requirements by attaching proof to the
+        complaint.
+      show_with_question: false
+  - id: cause_attachment_screen
+    kind: choice
+    title: Failure to State a Cause of Action
+    question: Does the complaint include either a qualifying final statement or documents showing the
+      debt transfer?
     idk_skip_branch_id: unknown
     branches:
-      - {"id":"yes","label":"Yes.","target":"cause_breach_contract"}
-      - {"id":"no","label":"No.","target":"cause_breach_contract"}
-      - {"id":"unknown","label":"I do not know.","target":"cause_breach_contract"}
+      - id: 'yes'
+        label: At least one qualifying attachment.
+        target: cause_breach_contract
+      - id: 'no'
+        label: Neither qualifying attachment.
+        target: failure_to_state_cause_result
+      - id: unknown
+        label: Ask clinic staff to help check the attachments.
+        target: cause_breach_contract
   - id: cause_breach_contract
     kind: choice
-    question: "Does the complaint assert breach of contract?"
-    idk_skip_branch_id: unknown
+    question: Does the complaint assert breach of contract, including a complaint that also asserts common
+      counts?
     branches:
-      - {"id":"yes","label":"Yes.","target":"cause_open_date"}
-      - {"id":"no","label":"No.","target":"failure_to_state_cause_result"}
-      - {"id":"unknown","label":"I do not know.","target":"failure_to_state_cause_result"}
+      - id: 'yes'
+        label: Yes.
+        target: cause_open_date
+      - id: 'no'
+        label: No.
+        target: failure_to_state_cause_result
+      - id: unknown
+        label: I am not sure; I may need clinic staff help.
+        target: failure_to_state_cause_result
+    idk_skip_branch_id: unknown
+    title: Failure to State a Cause of Action
+    explanation:
+      text: To sue for your debt, [PLAINTIFF] must follow certain requirements by attaching proof to the
+        complaint.
+      show_with_question: false
   - id: cause_original_owner
     kind: choice
-    question: "Does the complaint state that the original creditor is the legal owner of the debt?"
-    idk_skip_branch_id: unknown
+    question: Does the complaint attach an account agreement or account records supporting [PLAINTIFF]’s
+      ownership?
     branches:
-      - {"id":"yes","label":"Yes.","target":"cause_open_date"}
-      - {"id":"no","label":"No.","target":"cause_open_date"}
-      - {"id":"unknown","label":"I do not know.","target":"cause_open_date"}
+      - id: 'yes'
+        label: Yes.
+        target: cause_open_date
+      - id: 'no'
+        label: No.
+        target: cause_open_date
+      - id: unknown
+        label: I am not sure; I may need clinic staff help.
+        target: cause_open_date
+    idk_skip_branch_id: unknown
+    title: Failure to State a Cause of Action
+    explanation:
+      text: To sue for your debt, [PLAINTIFF] must follow certain requirements by attaching proof to the
+        complaint.
+      show_with_question: false
   - id: cause_open_date
     kind: choice
-    question: "Does the complaint include the date the contract was entered into?"
-    idk_skip_branch_id: unknown
+    question: Does the complaint include the date the account was opened or the agreement began?
     branches:
-      - {"id":"yes","label":"Yes.","target":"cause_breach_date"}
-      - {"id":"no","label":"No.","target":"cause_breach_date"}
-      - {"id":"unknown","label":"I do not know.","target":"cause_breach_date"}
+      - id: 'yes'
+        label: Yes.
+        target: cause_breach_date
+      - id: 'no'
+        label: No.
+        target: cause_breach_date
+      - id: unknown
+        label: I am not sure; I may need clinic staff help.
+        target: cause_breach_date
+    idk_skip_branch_id: unknown
+    title: Failure to State a Cause of Action
+    explanation:
+      text: To sue for your debt, [PLAINTIFF] must follow certain requirements by attaching proof to the
+        complaint.
+      show_with_question: false
   - id: cause_breach_date
     kind: choice
-    question: "Does the complaint include the date of the contract breach?"
-    idk_skip_branch_id: unknown
+    question: Does the complaint include a last payment date?
     branches:
-      - {"id":"yes","label":"Yes.","target":"failure_to_state_cause_result"}
-      - {"id":"no","label":"No.","target":"failure_to_state_cause_result"}
-      - {"id":"unknown","label":"I do not know.","target":"failure_to_state_cause_result"}
+      - id: 'yes'
+        label: Yes.
+        target: failure_to_state_cause_result
+      - id: 'no'
+        label: No.
+        target: failure_to_state_cause_result
+      - id: unknown
+        label: I am not sure; I may need clinic staff help.
+        target: failure_to_state_cause_result
+    idk_skip_branch_id: unknown
+    title: Failure to State a Cause of Action
+    explanation:
+      text: To sue for your debt, [PLAINTIFF] must follow certain requirements by attaching proof to the
+        complaint.
+      show_with_question: false
   - id: failure_to_state_cause_result
     kind: action
-    question: "Recording the failure to state cause screening result."
+    title: Failure to State a Cause of Action
+    question: Personalized Application
     action: assess_failure_to_state_cause
+    next: mistake_intro
+  - id: mistake_intro
+    kind: action
+    title: Mistake
+    question: '{defense_facts}'
+    explanation:
+      text: Mistake may be applicable if there was any error made in the whole process. This includes
+        incorrect late fees, more money sued for than owed, or anything that makes you confused about
+        the amount sued. Many litigants check off mistake, since it is a broad defense.
+      show_with_question: true
+    action: explain_mistake
     next: mistake
   - id: mistake
     kind: choice
-    question: "Was there any error in the process, such as an incorrect late fee, more money sued for than owed, or anything that makes you confused about the amount sued for?"
-    idk_skip_branch_id: unknown
+    question: Was there any error made in the whole process, like an incorrect late fee applied, more
+      money sued for than owed, or anything that makes you confused about the amount sued?
     branches:
-      - {"id":"yes","label":"Yes.","target":"mistake_result"}
-      - {"id":"no","label":"No.","target":"mistake_result"}
-      - {"id":"unknown","label":"I do not know.","target":"mistake_result"}
+      - id: 'yes'
+        label: Yes.
+        target: mistake_result
+      - id: 'no'
+        label: No.
+        target: mistake_result
+      - id: unknown
+        label: I am not sure; I may need clinic staff help.
+        target: mistake_result
+    idk_skip_branch_id: unknown
+    title: Mistake
+    explanation:
+      text: Mistake may be applicable if there was any error made in the whole process. This includes
+        incorrect late fees, more money sued for than owed, or anything that makes you confused about
+        the amount sued. Many litigants check off mistake, since it is a broad defense.
+      show_with_question: false
   - id: mistake_result
     kind: action
-    question: "Recording the mistake screening result."
+    title: Mistake
+    question: Personalized Application
     action: assess_mistake
+    next: identity_theft_intro
+  - id: identity_theft_intro
+    kind: action
+    title: Identity Theft
+    question: '{defense_facts}'
+    explanation:
+      text: Identity theft happens when someone uses your name or personal information without your permission
+        to open an account or create debt. This defense may apply if [PLAINTIFF] is trying to collect
+        debt created by that person. For example, someone may have used your information to open a credit
+        card that you never applied for. Not recognizing an account does not, by itself, mean your identity
+        was stolen.
+      show_with_question: true
+    action: explain_identity_theft
     next: identity_recognize
   - id: identity_recognize
     kind: choice
-    question: "Identity theft: do you recognize the account being sued over as one you opened?"
-    idk_skip_branch_id: unknown
+    question: Do you recognize the account being sued over as one you opened?
     branches:
-      - {"id":"yes","label":"Yes.","target":"identity_theft_result"}
-      - {"id":"no","label":"No.","target":"identity_suspected"}
-      - {"id":"unknown","label":"I do not know.","target":"identity_theft_result"}
+      - id: 'yes'
+        label: Yes.
+        target: identity_theft_result
+      - id: 'no'
+        label: No.
+        target: identity_suspected
+      - id: unknown
+        label: I am not sure; I may need clinic staff help.
+        target: identity_help
+    idk_skip_branch_id: unknown
+    title: Identity Theft
+    explanation:
+      text: Identity theft happens when someone uses your name or personal information without your permission
+        to open an account or create debt. This defense may apply if [PLAINTIFF] is trying to collect
+        debt created by that person. For example, someone may have used your information to open a credit
+        card that you never applied for. Not recognizing an account does not, by itself, mean your identity
+        was stolen.
+      show_with_question: false
   - id: identity_suspected
     kind: choice
-    question: "Do you think someone stole your identity to create this debt?"
-    idk_skip_branch_id: unknown
+    question: Do you think someone stole your identity to create this debt?
     branches:
-      - {"id":"yes","label":"Yes.","target":"identity_theft_result"}
-      - {"id":"no","label":"No.","target":"identity_theft_result"}
-      - {"id":"unknown","label":"I do not know.","target":"identity_theft_result"}
+      - id: 'yes'
+        label: Yes.
+        target: identity_theft_result
+      - id: 'no'
+        label: No.
+        target: identity_theft_result
+      - id: unknown
+        label: I am not sure; I may need clinic staff help.
+        target: identity_help
+    idk_skip_branch_id: unknown
+    title: Identity Theft
+    explanation:
+      text: Identity theft happens when someone uses your name or personal information without your permission
+        to open an account or create debt. This defense may apply if [PLAINTIFF] is trying to collect
+        debt created by that person. For example, someone may have used your information to open a credit
+        card that you never applied for. Not recognizing an account does not, by itself, mean your identity
+        was stolen.
+      show_with_question: false
+  - id: identity_help
+    kind: choice
+    question: '{identity_uncertainty}
+
+
+      Do you have further questions on how to determine whether this account exists because of identity
+      theft?'
+    branches:
+      - id: 'yes'
+        label: Yes.
+        target: identity_theft_result
+      - id: 'no'
+        label: No.
+        target: identity_theft_result
+      - id: unknown
+        label: I am not sure; I may need clinic staff help.
+        target: identity_theft_result
+    idk_skip_branch_id: unknown
+    title: Identity Theft
+    explanation:
+      text: Identity theft happens when someone uses your name or personal information without your permission
+        to open an account or create debt. This defense may apply if [PLAINTIFF] is trying to collect
+        debt created by that person. For example, someone may have used your information to open a credit
+        card that you never applied for. Not recognizing an account does not, by itself, mean your identity
+        was stolen.
+      show_with_question: false
   - id: identity_theft_result
     kind: action
-    question: "Recording the identity theft screening result."
+    title: Identity Theft
+    question: Personalized Application
     action: assess_identity_theft
+    next: wrong_party_intro
+  - id: wrong_party_intro
+    kind: action
+    title: Wrong Party
+    question: '{defense_facts}'
+    explanation:
+      text: Wrong party means [PLAINTIFF] is suing you for a debt that someone else is legally responsible
+        for. For example, you may have been confused with someone who has a similar name. Another example
+        is being sued for a credit card someone else is responsible for, even if they allowed you to use
+        that card. Whether you signed an agreement or were a joint account holder may matter in that instance.
+      show_with_question: true
+    action: explain_wrong_party
     next: wrong_party_recognize
   - id: wrong_party_recognize
     kind: choice
-    question: "Wrong party: do you recognize the account being sued over as one you opened?"
-    idk_skip_branch_id: unknown
+    question: Do you recognize the account being sued over as one you opened?
     branches:
-      - {"id":"yes","label":"Yes.","target":"wrong_party_result"}
-      - {"id":"no","label":"No.","target":"wrong_party_owner"}
-      - {"id":"unknown","label":"I do not know.","target":"wrong_party_result"}
+      - id: 'yes'
+        label: Yes.
+        target: wrong_party_result
+      - id: 'no'
+        label: No.
+        target: wrong_party_owner
+      - id: unknown
+        label: I am not sure; I may need clinic staff help.
+        target: wrong_party_help
+    idk_skip_branch_id: unknown
+    title: Wrong Party
+    explanation:
+      text: Wrong party means [PLAINTIFF] is suing you for a debt that someone else is legally responsible
+        for. For example, you may have been confused with someone who has a similar name. Another example
+        is being sued for a credit card someone else is responsible for, even if they allowed you to use
+        that card. Whether you signed an agreement or were a joint account holder may matter in that instance.
+      show_with_question: false
   - id: wrong_party_owner
     kind: choice
-    question: "Does someone else own the card and bear financial responsibility, even if you used the card?"
-    idk_skip_branch_id: unknown
+    question: Did someone else open the account (even if you’ve used the card)?
     branches:
-      - {"id":"yes","label":"Yes.","target":"wrong_party_result"}
-      - {"id":"no","label":"No.","target":"wrong_party_result"}
-      - {"id":"unknown","label":"I do not know.","target":"wrong_party_result"}
+      - id: 'yes'
+        label: Yes.
+        target: wrong_party_result
+      - id: 'no'
+        label: No.
+        target: wrong_party_result
+      - id: unknown
+        label: I am not sure; I may need clinic staff help.
+        target: wrong_party_help
+    idk_skip_branch_id: unknown
+    title: Wrong Party
+    explanation:
+      text: Wrong party means [PLAINTIFF] is suing you for a debt that someone else is legally responsible
+        for. For example, you may have been confused with someone who has a similar name. Another example
+        is being sued for a credit card someone else is responsible for, even if they allowed you to use
+        that card. Whether you signed an agreement or were a joint account holder may matter in that instance.
+      show_with_question: false
+  - id: wrong_party_help
+    kind: choice
+    question: '{wrong_party_uncertainty}
+
+
+      Do you have further questions on how to determine whether this account belongs to you or not?'
+    branches:
+      - id: 'yes'
+        label: Yes.
+        target: wrong_party_result
+      - id: 'no'
+        label: No.
+        target: wrong_party_result
+      - id: unknown
+        label: I am not sure; I may need clinic staff help.
+        target: wrong_party_result
+    idk_skip_branch_id: unknown
+    title: Wrong Party
+    explanation:
+      text: Wrong party means [PLAINTIFF] is suing you for a debt that someone else is legally responsible
+        for. For example, you may have been confused with someone who has a similar name. Another example
+        is being sued for a credit card someone else is responsible for, even if they allowed you to use
+        that card. Whether you signed an agreement or were a joint account holder may matter in that instance.
+      show_with_question: false
   - id: wrong_party_result
     kind: action
-    question: "Recording the wrong party screening result."
+    title: Wrong Party
+    question: Personalized Application
     action: assess_wrong_party
+    next: laches_intro
+  - id: laches_intro
+    kind: action
+    title: Laches
+    question: '{defense_facts}'
+    explanation:
+      text: Laches may apply if [PLAINTIFF] waited an unreasonably long time to sue and that delay made
+        it harder for you to defend yourself. For example, account records may have been lost or become
+        unavailable while [PLAINTIFF] waited. The following questions help identify whether the delay
+        made it harder to obtain information about your account.
+      show_with_question: true
+    action: explain_laches
     next: laches
   - id: laches
     kind: choice
-    question: "Do any of these apply: you are locked out of your online account portal; you lack your own account statements and rely only on statements from the bank or debt collector; or you have difficulty finding account information you previously had?"
-    idk_skip_branch_id: unknown
+    question: Are you locked out of your online portal?
     branches:
-      - {"id":"yes","label":"Yes.","target":"laches_result"}
-      - {"id":"no","label":"No.","target":"laches_result"}
-      - {"id":"unknown","label":"I do not know.","target":"laches_result"}
+      - id: 'yes'
+        label: Yes.
+        target: laches_statements
+      - id: 'no'
+        label: No.
+        target: laches_statements
+      - id: unknown
+        label: I am not sure; I may need clinic staff help.
+        target: laches_statements
+    idk_skip_branch_id: unknown
+    title: Laches
+    explanation:
+      text: Laches may apply if [PLAINTIFF] waited an unreasonably long time to sue and that delay made
+        it harder for you to defend yourself. For example, account records may have been lost or become
+        unavailable while [PLAINTIFF] waited. The following questions help identify whether the delay
+        made it harder to obtain information about your account.
+      show_with_question: false
+  - id: laches_statements
+    kind: choice
+    question: Are you reliant only on the bank’s/debt collector’s provided statements (as opposed to having
+      your own copies of your account statements)?
+    branches:
+      - id: 'yes'
+        label: Yes.
+        target: laches_lost_info
+      - id: 'no'
+        label: No.
+        target: laches_lost_info
+      - id: unknown
+        label: I am not sure; I may need clinic staff help.
+        target: laches_lost_info
+    idk_skip_branch_id: unknown
+    title: Laches
+    explanation:
+      text: Laches may apply if [PLAINTIFF] waited an unreasonably long time to sue and that delay made
+        it harder for you to defend yourself. For example, account records may have been lost or become
+        unavailable while [PLAINTIFF] waited. The following questions help identify whether the delay
+        made it harder to obtain information about your account.
+      show_with_question: false
+  - id: laches_lost_info
+    kind: choice
+    question: Would you have difficulty finding information that you used to have about your accounts
+      because [PLAINTIFF] waited too long to sue?
+    branches:
+      - id: 'yes'
+        label: Yes.
+        target: laches_result
+      - id: 'no'
+        label: No.
+        target: laches_result
+      - id: unknown
+        label: I am not sure; I may need clinic staff help.
+        target: laches_result
+    idk_skip_branch_id: unknown
+    title: Laches
+    explanation:
+      text: Laches may apply if [PLAINTIFF] waited an unreasonably long time to sue and that delay made
+        it harder for you to defend yourself. For example, account records may have been lost or become
+        unavailable while [PLAINTIFF] waited. The following questions help identify whether the delay
+        made it harder to obtain information about your account.
+      show_with_question: false
   - id: laches_result
     kind: action
-    question: "Recording the laches screening result."
+    title: Laches
+    question: Personalized Application
     action: assess_laches
+    next: fraud_intro
+  - id: fraud_intro
+    kind: action
+    title: Fraud, Misrepresentation, Concealment
+    question: '{defense_facts}'
+    explanation:
+      text: 'Fraud, misrepresentation, and concealment involve being misled about important facts related
+        to the debt. Misrepresentation means giving false or misleading information; concealment means
+        hiding important information that should have been disclosed. Fraud generally involves deception
+        that you relied on and that caused you harm. For example, a creditor may have misled you about
+        fees or penalties, and you agreed to the account or made payments based on that information. These
+        defenses may apply when the misleading information or hidden facts affected the debt [PLAINTIFF]
+        is trying to collect. '
+      show_with_question: true
+    action: explain_fraud
     next: fraud_identity
   - id: fraud_identity
     kind: choice
-    question: "Fraud, misrepresentation, or concealment: do you think someone stole your identity to create this debt?"
-    idk_skip_branch_id: unknown
+    question: Do you think someone stole your identity to create this debt?
     branches:
-      - {"id":"yes","label":"Yes.","target":"fraud_hidden_facts"}
-      - {"id":"no","label":"No.","target":"fraud_hidden_facts"}
-      - {"id":"unknown","label":"I do not know.","target":"fraud_hidden_facts"}
+      - id: 'yes'
+        label: Yes.
+        target: fraud_result
+      - id: 'no'
+        label: No.
+        target: fraud_hidden_facts
+      - id: unknown
+        label: I am not sure; I may need clinic staff help.
+        target: fraud_hidden_facts
+    idk_skip_branch_id: unknown
+    title: Fraud, Misrepresentation, Concealment
+    explanation:
+      text: 'Fraud, misrepresentation, and concealment involve being misled about important facts related
+        to the debt. Misrepresentation means giving false or misleading information; concealment means
+        hiding important information that should have been disclosed. Fraud generally involves deception
+        that you relied on and that caused you harm. For example, a creditor may have misled you about
+        fees or penalties, and you agreed to the account or made payments based on that information. These
+        defenses may apply when the misleading information or hidden facts affected the debt [PLAINTIFF]
+        is trying to collect. '
+      show_with_question: false
   - id: fraud_hidden_facts
     kind: choice
-    question: "Did the plaintiff or original creditor lie or hide important facts about your account, such as late penalties?"
-    idk_skip_branch_id: unknown
+    question: Did {fraud_parties} lie or hide important facts about your account, like late penalties?
     branches:
-      - {"id":"yes","label":"Yes.","target":"fraud_result"}
-      - {"id":"no","label":"No.","target":"fraud_result"}
-      - {"id":"unknown","label":"I do not know.","target":"fraud_result"}
+      - id: 'yes'
+        label: Yes.
+        target: fraud_result
+      - id: 'no'
+        label: No.
+        target: fraud_result
+      - id: unknown
+        label: I am not sure; I may need clinic staff help.
+        target: fraud_result
+    idk_skip_branch_id: unknown
+    title: Fraud, Misrepresentation, Concealment
+    explanation:
+      text: 'Fraud, misrepresentation, and concealment involve being misled about important facts related
+        to the debt. Misrepresentation means giving false or misleading information; concealment means
+        hiding important information that should have been disclosed. Fraud generally involves deception
+        that you relied on and that caused you harm. For example, a creditor may have misled you about
+        fees or penalties, and you agreed to the account or made payments based on that information. These
+        defenses may apply when the misleading information or hidden facts affected the debt [PLAINTIFF]
+        is trying to collect. '
+      show_with_question: false
   - id: fraud_result
     kind: action
-    question: "Recording the fraud screening result."
+    title: Fraud, Misrepresentation, Concealment
+    question: Personalized Application
     action: assess_fraud
     next: mitigation_consolidation
   - id: mitigation_consolidation
     kind: choice
-    question: "Are you working with a debt consolidation company?"
+    question: Are you working with a debt consolidation company?
     idk_skip_branch_id: unknown
     branches:
-      - {"id":"yes","label":"Yes.","target":"mitigation_contact"}
-      - {"id":"no","label":"No.","target":"mitigation_contact"}
-      - {"id":"unknown","label":"I do not know.","target":"mitigation_contact"}
+      - id: 'yes'
+        label: Yes.
+        target: mitigation_contact
+      - id: 'no'
+        label: No.
+        target: mitigation_contact
+      - id: unknown
+        label: I do not know.
+        target: mitigation_contact
   - id: mitigation_contact
     kind: choice
-    question: "Did the plaintiff try to call or email {negotiation_party} to set up a payment plan or agreement before suing?"
+    question: Did the plaintiff try to call or email {negotiation_party} to set up a payment plan or agreement
+      before suing?
     idk_skip_branch_id: unknown
     branches:
-      - {"id":"yes","label":"Yes.","target":"mitigation_settlement"}
-      - {"id":"no","label":"No.","target":"mitigation_settlement"}
-      - {"id":"unknown","label":"I do not know.","target":"mitigation_settlement"}
+      - id: 'yes'
+        label: Yes.
+        target: mitigation_settlement
+      - id: 'no'
+        label: No.
+        target: mitigation_settlement
+      - id: unknown
+        label: I do not know.
+        target: mitigation_settlement
   - id: mitigation_settlement
     kind: choice
-    question: "Did the plaintiff sue after declining a settlement offer made by {negotiation_party}? Answer yes only if you know this happened."
+    question: Did the plaintiff sue after declining a settlement offer made by {negotiation_party}? Answer
+      yes only if you know this happened.
     idk_skip_branch_id: unknown
     branches:
-      - {"id":"yes","label":"Yes.","target":"failure_to_mitigate_result"}
-      - {"id":"no","label":"No.","target":"failure_to_mitigate_result"}
-      - {"id":"unknown","label":"I do not know.","target":"failure_to_mitigate_result"}
+      - id: 'yes'
+        label: Yes.
+        target: failure_to_mitigate_result
+      - id: 'no'
+        label: No.
+        target: failure_to_mitigate_result
+      - id: unknown
+        label: I do not know.
+        target: failure_to_mitigate_result
   - id: failure_to_mitigate_result
     kind: action
-    question: "Recording the failure to mitigate screening result."
+    question: Recording the failure to mitigate screening result.
     action: assess_failure_to_mitigate
     next: common_counts_claim
   - id: common_counts_claim
     kind: choice
-    question: "Does the complaint assert a common-count claim (including a complaint that also asserts breach of contract)?"
+    question: Does the complaint assert a common-count claim (including a complaint that also asserts
+      breach of contract)?
     idk_skip_branch_id: unknown
     branches:
-      - {"id":"yes","label":"Yes.","target":"common_counts_reasons"}
-      - {"id":"no","label":"No.","target":"common_counts_result"}
-      - {"id":"unknown","label":"I do not know.","target":"common_counts_result"}
+      - id: 'yes'
+        label: Yes.
+        target: common_counts_reasons
+      - id: 'no'
+        label: No.
+        target: common_counts_result
+      - id: unknown
+        label: I do not know.
+        target: common_counts_result
   - id: common_counts_reasons
     kind: choice
-    question: "Do any of these apply: the plaintiff failed to credit payments; agreed to accept a lower payment but now asks for more than agreed; failed to make payments under an insurance plan you purchased; someone stole your identity to create this debt; or part of the transaction resulted from fraud, misrepresentation, or concealment?"
+    question: 'Do any of these apply: the plaintiff failed to credit payments; agreed to accept a lower
+      payment but now asks for more than agreed; failed to make payments under an insurance plan you purchased;
+      someone stole your identity to create this debt; or part of the transaction resulted from fraud,
+      misrepresentation, or concealment?'
     idk_skip_branch_id: unknown
     branches:
-      - {"id":"yes","label":"Yes.","target":"common_counts_result"}
-      - {"id":"no","label":"No.","target":"common_counts_result"}
-      - {"id":"unknown","label":"I do not know.","target":"common_counts_result"}
+      - id: 'yes'
+        label: Yes.
+        target: common_counts_result
+      - id: 'no'
+        label: No.
+        target: common_counts_result
+      - id: unknown
+        label: I do not know.
+        target: common_counts_result
   - id: common_counts_result
     kind: action
-    question: "Recording the common counts screening result."
+    question: Recording the common counts screening result.
     action: assess_common_counts
     next: unconscionable_contract
   - id: unconscionable_contract
     kind: choice
-    question: "Do you think the terms of your account or the way the plaintiff handled the account was unfair?"
+    question: Do you think the terms of your account or the way the plaintiff handled the account was
+      unfair?
     idk_skip_branch_id: unknown
     branches:
-      - {"id":"yes","label":"Yes.","target":"unconscionable_contract_result"}
-      - {"id":"no","label":"No.","target":"unconscionable_contract_result"}
-      - {"id":"unknown","label":"I do not know.","target":"unconscionable_contract_result"}
+      - id: 'yes'
+        label: Yes.
+        target: unconscionable_contract_result
+      - id: 'no'
+        label: No.
+        target: unconscionable_contract_result
+      - id: unknown
+        label: I do not know.
+        target: unconscionable_contract_result
   - id: unconscionable_contract_result
     kind: action
-    question: "Recording the unconscionable contract screening result."
+    question: Recording the unconscionable contract screening result.
     action: assess_unconscionable_contract
     next: rescission
   - id: rescission
     kind: choice
-    question: "Did the original creditor refuse a request by {negotiation_party} to close the account before you stopped making payments?"
+    question: Did the original creditor refuse a request by {negotiation_party} to close the account before
+      you stopped making payments?
     idk_skip_branch_id: unknown
     branches:
-      - {"id":"yes","label":"Yes.","target":"rescission_result"}
-      - {"id":"no","label":"No.","target":"rescission_result"}
-      - {"id":"unknown","label":"I do not know.","target":"rescission_result"}
+      - id: 'yes'
+        label: Yes.
+        target: rescission_result
+      - id: 'no'
+        label: No.
+        target: rescission_result
+      - id: unknown
+        label: I do not know.
+        target: rescission_result
   - id: rescission_result
     kind: action
-    question: "Recording the rescission screening result."
+    question: Recording the rescission screening result.
     action: assess_rescission
     next: consideration_identity
   - id: consideration_identity
     kind: choice
-    question: "Lack of consideration: do you think your identity was stolen?"
+    question: 'Lack of consideration: do you think your identity was stolen?'
     idk_skip_branch_id: unknown
     branches:
-      - {"id":"yes","label":"Yes.","target":"consideration_used_card"}
-      - {"id":"no","label":"No.","target":"consideration_used_card"}
-      - {"id":"unknown","label":"I do not know.","target":"consideration_used_card"}
+      - id: 'yes'
+        label: Yes.
+        target: consideration_used_card
+      - id: 'no'
+        label: No.
+        target: consideration_used_card
+      - id: unknown
+        label: I do not know.
+        target: consideration_used_card
   - id: consideration_used_card
     kind: choice
-    question: "Did you ever use the card yourself, as opposed to only other people (such as family or friends) using it?"
+    question: Did you ever use the card yourself, as opposed to only other people (such as family or friends)
+      using it?
     idk_skip_branch_id: unknown
     branches:
-      - {"id":"yes","label":"Yes.","target":"lack_of_consideration_result"}
-      - {"id":"no","label":"No.","target":"lack_of_consideration_result"}
-      - {"id":"unknown","label":"I do not know.","target":"lack_of_consideration_result"}
+      - id: 'yes'
+        label: Yes.
+        target: lack_of_consideration_result
+      - id: 'no'
+        label: No.
+        target: lack_of_consideration_result
+      - id: unknown
+        label: I do not know.
+        target: lack_of_consideration_result
   - id: lack_of_consideration_result
     kind: action
-    question: "Recording the lack of consideration screening result."
+    question: Recording the lack of consideration screening result.
     action: assess_lack_of_consideration
     next: accord_satisfaction
   - id: accord_satisfaction
     kind: choice
-    question: "Are {agreement_party} following an existing agreement with the plaintiff to settle the debt?"
+    question: Are {agreement_party} following an existing agreement with the plaintiff to settle the debt?
     idk_skip_branch_id: unknown
     branches:
-      - {"id":"yes","label":"Yes.","target":"accord_satisfaction_result"}
-      - {"id":"no","label":"No.","target":"accord_satisfaction_result"}
-      - {"id":"unknown","label":"I do not know.","target":"accord_satisfaction_result"}
+      - id: 'yes'
+        label: Yes.
+        target: accord_satisfaction_result
+      - id: 'no'
+        label: No.
+        target: accord_satisfaction_result
+      - id: unknown
+        label: I do not know.
+        target: accord_satisfaction_result
   - id: accord_satisfaction_result
     kind: action
-    question: "Recording the accord satisfaction screening result."
+    question: Recording the accord satisfaction screening result.
     action: assess_accord_satisfaction
     next: excuse_breach
   - id: excuse_breach
     kind: choice
-    question: "Do any of these apply: the plaintiff changed contract terms without your consent; failed to credit payments; agreed to change the original contract but is not honoring the new agreement; failed to make payments under an insurance plan you purchased; or behaved unreasonably in accommodating your financial situation regarding this account?"
+    question: 'Do any of these apply: the plaintiff changed contract terms without your consent; failed
+      to credit payments; agreed to change the original contract but is not honoring the new agreement;
+      failed to make payments under an insurance plan you purchased; or behaved unreasonably in accommodating
+      your financial situation regarding this account?'
     idk_skip_branch_id: unknown
     branches:
-      - {"id":"yes","label":"Yes.","target":"excuse_breach_result"}
-      - {"id":"no","label":"No.","target":"excuse_breach_result"}
-      - {"id":"unknown","label":"I do not know.","target":"excuse_breach_result"}
+      - id: 'yes'
+        label: Yes.
+        target: excuse_breach_result
+      - id: 'no'
+        label: No.
+        target: excuse_breach_result
+      - id: unknown
+        label: I do not know.
+        target: excuse_breach_result
   - id: excuse_breach_result
     kind: action
-    question: "Recording the excuse breach screening result."
+    question: Recording the excuse breach screening result.
     action: assess_excuse_breach
     next: capacity_minor
   - id: capacity_minor
     kind: choice
-    question: "Were you under 18 when you signed the contract?"
+    question: Were you under 18 when you signed the contract?
     idk_skip_branch_id: unknown
     branches:
-      - {"id":"yes","label":"Yes.","target":"capacity_incapacitated"}
-      - {"id":"no","label":"No.","target":"capacity_incapacitated"}
-      - {"id":"unknown","label":"I do not know.","target":"capacity_incapacitated"}
+      - id: 'yes'
+        label: Yes.
+        target: capacity_incapacitated
+      - id: 'no'
+        label: No.
+        target: capacity_incapacitated
+      - id: unknown
+        label: I do not know.
+        target: capacity_incapacitated
   - id: capacity_incapacitated
     kind: choice
-    question: "Were you mentally incapacitated when you signed the contract?"
+    question: Were you mentally incapacitated when you signed the contract?
     idk_skip_branch_id: unknown
     branches:
-      - {"id":"yes","label":"Yes.","target":"capacity_disclosure"}
-      - {"id":"no","label":"No.","target":"capacity_result"}
-      - {"id":"unknown","label":"I do not know.","target":"capacity_result"}
+      - id: 'yes'
+        label: Yes.
+        target: capacity_disclosure
+      - id: 'no'
+        label: No.
+        target: capacity_result
+      - id: unknown
+        label: I do not know.
+        target: capacity_result
   - id: capacity_disclosure
     kind: choice
-    question: "Are you willing to disclose this mental incapacity to the court, knowing it may become public record?"
+    question: Are you willing to disclose this mental incapacity to the court, knowing it may become public
+      record?
     idk_skip_branch_id: unknown
     branches:
-      - {"id":"yes","label":"Yes.","target":"capacity_result"}
-      - {"id":"no","label":"No.","target":"capacity_result"}
-      - {"id":"unknown","label":"I do not know.","target":"capacity_result"}
+      - id: 'yes'
+        label: Yes.
+        target: capacity_result
+      - id: 'no'
+        label: No.
+        target: capacity_result
+      - id: unknown
+        label: I do not know.
+        target: capacity_result
   - id: capacity_result
     kind: action
-    question: "Recording the capacity screening result."
+    question: Recording the capacity screening result.
     action: assess_capacity
     next: waiver
   - id: waiver
     kind: choice
-    question: "Did you miss, skip, or delay a payment without penalties such as late fees?"
+    question: Did you miss, skip, or delay a payment without penalties such as late fees?
     idk_skip_branch_id: unknown
     branches:
-      - {"id":"yes","label":"Yes.","target":"waiver_result"}
-      - {"id":"no","label":"No.","target":"waiver_result"}
-      - {"id":"unknown","label":"I do not know.","target":"waiver_result"}
+      - id: 'yes'
+        label: Yes.
+        target: waiver_result
+      - id: 'no'
+        label: No.
+        target: waiver_result
+      - id: unknown
+        label: I do not know.
+        target: waiver_result
   - id: waiver_result
     kind: action
-    question: "Recording the waiver screening result."
+    question: Recording the waiver screening result.
     action: assess_waiver
     next: oral_modification
   - id: oral_modification
     kind: choice
-    question: "Did you and the plaintiff orally agree to change the original contract?"
+    question: Did you and the plaintiff orally agree to change the original contract?
     idk_skip_branch_id: unknown
     branches:
-      - {"id":"yes","label":"Yes.","target":"oral_modification_result"}
-      - {"id":"no","label":"No.","target":"oral_modification_result"}
-      - {"id":"unknown","label":"I do not know.","target":"oral_modification_result"}
+      - id: 'yes'
+        label: Yes.
+        target: oral_modification_result
+      - id: 'no'
+        label: No.
+        target: oral_modification_result
+      - id: unknown
+        label: I do not know.
+        target: oral_modification_result
   - id: oral_modification_result
     kind: action
-    question: "Recording the oral modification screening result."
+    question: Recording the oral modification screening result.
     action: assess_oral_modification
     next: tender_payment
   - id: tender_payment
     kind: choice
-    question: "Did you offer payment that the plaintiff refused to accept?"
+    question: Did you offer payment that the plaintiff refused to accept?
     idk_skip_branch_id: unknown
     branches:
-      - {"id":"yes","label":"Yes.","target":"tender_payment_result"}
-      - {"id":"no","label":"No.","target":"tender_payment_result"}
-      - {"id":"unknown","label":"I do not know.","target":"tender_payment_result"}
+      - id: 'yes'
+        label: Yes.
+        target: tender_payment_result
+      - id: 'no'
+        label: No.
+        target: tender_payment_result
+      - id: unknown
+        label: I do not know.
+        target: tender_payment_result
   - id: tender_payment_result
     kind: action
-    question: "Recording the tender payment screening result."
+    question: Recording the tender payment screening result.
     action: assess_tender_payment
     next: language_primary
   - id: language_primary
     kind: choice
-    question: "Do you primarily speak a language other than English?"
+    question: Do you primarily speak a language other than English?
     idk_skip_branch_id: unknown
     branches:
-      - {"id":"yes","label":"Yes.","target":"language_negotiation"}
-      - {"id":"no","label":"No.","target":"language_negotiation"}
-      - {"id":"unknown","label":"I do not know.","target":"language_negotiation"}
+      - id: 'yes'
+        label: Yes.
+        target: language_negotiation
+      - id: 'no'
+        label: No.
+        target: language_negotiation
+      - id: unknown
+        label: I do not know.
+        target: language_negotiation
   - id: language_negotiation
     kind: choice
-    question: "Was the contract negotiated in your primary language?"
+    question: Was the contract negotiated in your primary language?
     idk_skip_branch_id: unknown
     branches:
-      - {"id":"yes","label":"Yes.","target":"language_contract"}
-      - {"id":"no","label":"No.","target":"language_contract"}
-      - {"id":"unknown","label":"I do not know.","target":"language_contract"}
+      - id: 'yes'
+        label: Yes.
+        target: language_contract
+      - id: 'no'
+        label: No.
+        target: language_contract
+      - id: unknown
+        label: I do not know.
+        target: language_contract
   - id: language_contract
     kind: choice
-    question: "Did the plaintiff fail to give you a contract in your primary language?"
+    question: Did the plaintiff fail to give you a contract in your primary language?
     idk_skip_branch_id: unknown
     branches:
-      - {"id":"yes","label":"Yes.","target":"language_1632_result"}
-      - {"id":"no","label":"No.","target":"language_1632_result"}
-      - {"id":"unknown","label":"I do not know.","target":"language_1632_result"}
+      - id: 'yes'
+        label: Yes.
+        target: language_1632_result
+      - id: 'no'
+        label: No.
+        target: language_1632_result
+      - id: unknown
+        label: I do not know.
+        target: language_1632_result
   - id: language_1632_result
     kind: action
-    question: "Recording the language 1632 screening result."
+    question: Recording the language 1632 screening result.
     action: assess_language_1632
     next: review_questions
   - id: review_questions
     kind: terminal
-    question: "Affirmative-defense review complete. {defense_summary}\n\nWhat questions do you have about these results or the items needing clinic review?"
+    question: 'Affirmative-defense review complete. {defense_summary}
+
+
+      What questions do you have about these results or the items needing clinic review?'
     terminal_qa: true
     branches: []

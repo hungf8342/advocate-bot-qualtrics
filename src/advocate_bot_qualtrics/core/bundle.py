@@ -24,7 +24,7 @@ class PracticeAreaBundle:
     load_calibration_prompt: Callable[[], str]
     get_session_fields_xlsx_path: Callable[[], Path]
 
-    init_session: Callable[[Any], Any]
+    init_session: Callable[..., Any]
     is_hook_node: Callable[[str], bool]
     advance_from_hook: Callable[[str], str | None]
     is_date_submit_node: Callable[[str], bool]
@@ -45,6 +45,7 @@ class PracticeAreaBundle:
 
     different_complaint_restart_nodes: frozenset[str]
     restart_filing_confirm_message: str
+    debug_accept_preliminary: Callable[[Any, str], str | None] | None = None
 
 
 _REGISTRY: dict[str, PracticeAreaBundle] = {}

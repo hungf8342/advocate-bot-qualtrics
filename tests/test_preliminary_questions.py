@@ -28,19 +28,18 @@ def test_preliminary_filing_date_drives_sol_without_being_asked_again(monkeypatc
     def fake_chat(payload, node, facts, bundle):
         branch = {
             "prelim_law_firm": "submit", "get_filing_date": "submit",
-            "prelim_consolidation": "no", "sol_buyer_payment": "yes",
-            "get_last_payment_debt_collector": "submit",
+            "prelim_consolidation": "no",
+            "sol_payment_estimate_agree": "yes", "sol_payment_age": "unknown",
         }[node.node_id]
         return ChatTurnResponse(user_intent="answer_node", assistant_reply="Recorded.",
                                 next_node_id=branch, answer_confidence_pct=100)
 
     monkeypatch.setattr(engine_module, "process_chat", fake_chat)
     engine = InteractiveChatEngine.from_user_input()
-    engine.current_node_id = "prelim_law_firm"
-    assert engine.submit("Example Law").current_node_id == "get_filing_date"
+    engine.current_node_id = "get_filing_date"
     step = engine.submit("2026-09-24" if filing_known else "I don't know")
     assert step.error is None
-    assert step.current_node_id == "prelim_suit_type"
+    assert step.current_node_id == "verify_statement"
     entry = engine.session.preliminary_fields["FILING-DATE"]
     assert entry.value == engine.session.filing_date == (date(2026, 9, 24) if filing_known else None)
     assert entry.status == ("known" if filing_known else "unknown")
@@ -54,19 +53,12 @@ def test_preliminary_filing_date_drives_sol_without_being_asked_again(monkeypatc
     answer(engine.session, "prelim_last_payment", "submit", date(2020, 1, 1))
     engine.current_node_id = "prelim_consolidation"
     step = engine.submit("No")
-    if creditor == "buyer":
-        assert step.current_node_id == "sol_buyer_payment"
-        step = engine.submit("Yes")
-        assert step.current_node_id == "get_last_payment_debt_collector"
-        step = engine.submit("2020-01-01")
+    if creditor == "original":
+        assert step.current_node_id == ("sol_payment_estimate_agree" if filing_known else "sol_payment_age")
+        step = engine.submit("Yes" if filing_known else "I don't know")
     assert step.error is None
     assert step.current_node_id == "ambiguity"
-    result = engine.session.defense_results["statute_of_limitations"]
-    assert result["status"] == ("checked" if filing_known else "unresolved")
-    if filing_known:
-        assert "filing 2026-09-24" in result["reason"]
-    else:
-        assert "confirm the complaint filing date" in result["reason"]
+    assert engine.session.defense_results["statute_of_limitations"]["status"] == "checked"
     assert sum(role == "user" and text == "2026-09-24" for role, text in engine.transcript) == int(filing_known)
 
 
@@ -111,7 +103,7 @@ def test_unknown_correction_never_reverts_to_disputed_complaint_date():
     answer(session, "prelim_payment_agree", "no")
     answer(session, "prelim_correct_payment", "no_date")
     assert session.last_payment_complaint is None
-    assert reused_branch(session, "get_last_payment_complaint")[0] == "no_date"
+    assert reused_branch(session, "sol_payment_available")[0] == "unknown"
     assert reused_branch(session, "cause_breach_date")[0] == "yes"
 
 
@@ -123,21 +115,18 @@ def test_complaint_presence_distinguishes_missing_from_unknown(branch, expected)
         assert reused_branch(session, reused)[0] == expected
 
 
-def test_corrected_payment_changes_sol_but_not_complaint_presence():
+def test_litigant_payment_estimate_changes_sol_but_not_complaint_presence():
     session = init_session()
     answer(session, "prelim_creditor_type", "original")
-    answer(session, "prelim_oral", "yes")
     answer(session, "prelim_last_payment", "submit", date(2020, 1, 1))
-    answer(session, "prelim_payment_agree", "no")
-    answer(session, "prelim_correct_payment", "submit", date(2025, 1, 1))
     answer(session, "get_filing_date", "submit", date(2026, 9, 24))
-    skip_collected_date_node("sol_creditor_type", session)
-    assert skip_collected_date_node("sol_payment_recipient", session) == "statute_of_limitations_result"
+    assert skip_collected_date_node("sol_creditor_type", session) == "sol_payment_estimate_agree"
+    answer(session, "sol_payment_estimate_agree", "no")
+    answer(session, "sol_payment_age", "yes")
     assess_defense(session, "statute_of_limitations")
     assert session.defense_results["statute_of_limitations"]["status"] == "unchecked"
     assert reused_branch(session, "cause_breach_date")[0] == "yes"
-    assert session.reused_answers["get_last_payment_complaint"] == "prelim_correct_payment"
-    assert session.node_answers["get_last_payment_complaint"].confidence_pct == 90
+    assert session.preliminary_fields["LAST-PAYMENT-DATE"].complaint_value == date(2020, 1, 1)
 
 
 def test_corrected_preliminary_payment_has_export_provenance():
@@ -164,19 +153,13 @@ def test_debug_snapshot_serializes_fields_and_disagreement():
     assert field["disputed"] is True
 
 
-def test_debt_buyer_payment_is_separate_from_corrected_complaint_date():
+def test_debt_buyer_preserves_without_collecting_another_payment_date():
     session = init_session()
     answer(session, "prelim_creditor_type", "buyer")
     answer(session, "prelim_last_payment", "submit", date(2010, 1, 1))
-    answer(session, "prelim_oral", "yes")
-    assert skip_collected_date_node("sol_creditor_type", session) == "sol_buyer_payment"
-    answer(session, "sol_buyer_payment", "yes")
-    answer(session, "get_filing_date", "submit", date(2026, 9, 24))
-    assert skip_collected_date_node("sol_payment_recipient", session) == "get_last_payment_debt_collector"
-    answer(session, "get_last_payment_debt_collector", "submit", date(2026, 1, 1))
-    skip_collected_date_node("sol_contract", session)
+    assert skip_collected_date_node("sol_creditor_type", session) == "statute_of_limitations_result"
     assess_defense(session, "statute_of_limitations")
-    assert session.defense_results["statute_of_limitations"]["status"] == "unchecked"
+    assert session.defense_results["statute_of_limitations"]["status"] == "checked"
     assert session.preliminary_fields["LAST-PAYMENT-DATE"].value == date(2010, 1, 1)
 
 
@@ -197,14 +180,14 @@ def test_all_preliminary_fields_are_stored_and_reuse_is_valid():
         "prelim_suit_type": ("both", None), "prelim_oral": ("no", None),
         "get_amount_sued": ("submit", "$123"), "prelim_last_payment": ("submit", date(2020, 1, 1)),
         "prelim_open_date": ("submit", date(2010, 1, 1)), "prelim_statement": ("yes", None),
-        "prelim_ownership": ("no", None), "prelim_verified": ("yes", None),
+        "prelim_ownership": ("no", None), "prelim_ownership_claim": ("yes", None), "prelim_verified": ("yes", None),
         "prelim_consolidation": ("yes", None),
     }
     for node, (branch, value) in answers.items():
         answer(session, node, branch, value)
     assert set(session.preliminary_fields) == {
         "PLAINTIFF-NAME", "PLAINTIFF", "RECOGNIZE", "LAW-FIRM", "FILING-DATE", "SUIT-TYPE", "ORAL", "AMOUNT",
-        "LAST-PAYMENT-DATE", "OPEN-DATE", "STATEMENT", "OWNERSHIP", "VERIFIED", "CONSOLIDATION",
+        "LAST-PAYMENT-DATE", "OPEN-DATE", "STATEMENT", "OWNERSHIP", "OWNERSHIP.PROOF", "VERIFIED", "CONSOLIDATION",
     }
     assert session.law_firm == "Example Law"
     assert session.preliminary_fields["VERIFIED"].value == "yes"
@@ -231,6 +214,6 @@ def test_real_engine_reuses_fields_after_hooks_and_resets_them(monkeypatch):
     assert engine.session.defense_results["identity_theft"]["status"] == "unchecked"
     assert engine.session.defense_results["wrong_party"]["status"] == "unchecked"
     engine.reset()
-    assert engine.current_node_id == "get_plaintiff_name"
+    assert engine.current_node_id == "verify_case_number"
     assert engine.session.preliminary_fields == {}
     assert engine.session.reused_answers == {}

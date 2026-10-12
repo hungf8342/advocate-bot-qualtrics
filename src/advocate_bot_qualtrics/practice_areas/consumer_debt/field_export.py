@@ -17,7 +17,7 @@ _FIELD_SPECS: tuple[tuple[str, str, tuple[str, ...], str], ...] = (
     (
         "filing_date",
         "Date claim was filed",
-        ("get_filing_date", "different_complaint_filing", "confirm_filing_date"),
+        ("get_filing_date", "verify_filing_date", "different_complaint_filing", "confirm_filing_date"),
         "filing_date_changed",
     ),
     (
@@ -26,6 +26,7 @@ _FIELD_SPECS: tuple[tuple[str, str, tuple[str, ...], str], ...] = (
         (
             "prelim_correct_payment",
             "prelim_last_payment",
+            "verify_last_payment",
             "get_last_payment_complaint",
             "different_complaint_last_payment",
             "confirm_last_payment_complaint",

@@ -1,6 +1,6 @@
 # Advocate Bot Qualtrics
 
-This is a confidential, user-entered consumer-debt decision-tree chatbot. It does not accept, upload, parse, or store complaint documents. The chat collects Preliminary Questions from the clinic draft, then screens 21 affirmative defenses using those answers. Values and user corrections are kept in the active session.
+This is a confidential consumer-debt decision-tree chatbot. It accepts fact-only preliminary fields from a separate complaint scraper, asks litigants to verify them, and then screens 21 affirmative defenses. Parsed values and litigant corrections are kept in the active session. Complaint scraping itself is handled outside this application.
 
 ## Setup
 
@@ -17,15 +17,37 @@ Set `ZAI_API_KEY` in `.env` for the interactive chat model. Never commit `.env`.
 .venv/bin/python scripts/interactive_chat_demo.py
 ```
 
+To try the preliminary verification flow with an imaginary complaint:
+
+```bash
+.venv/bin/python scripts/interactive_chat_demo.py --complaint-fields examples/complaints/original-creditor.json
+```
+
+Use `examples/complaints/debt-buyer.json` for a debt-buyer example with missing dates.
+The temporary JSON format and programmatic entry point are documented in
+[the sample input guide](examples/complaints/README.md). Without an input file,
+parsed fields are shown as unknown and can be filled through the correction questions.
+
+For debugging, add `--debug-shortcuts` and type **I agree with all** during
+preliminary intake to accept remaining parsed fields and continue to defenses.
+This option is off by default. Prior answers and corrections are retained;
+unanswered recognition, oral-agreement, and consolidation questions stay unknown.
+Synthetic confirmations are marked in the developer snapshot.
+
 The demo has no file-upload control. Do not use its public-share option with real client information.
 
 ## Interactive flow
 
-The declarative consumer-debt tree is in [`interactive_tree.yaml`](src/advocate_bot_qualtrics/practice_areas/consumer_debt/interactive_tree.yaml). Preliminary Questions collect the plaintiff, account recognition, law firm, complaint filing date, claim type, oral/written agreement, amount, dates, attachments, verification, and debt consolidation status. Disputed amounts and dates are replaced with the user's corrections for later use; the original complaint entries remain available for questions about what the complaint contains.
+The declarative consumer-debt tree is in [`interactive_tree.yaml`](src/advocate_bot_qualtrics/practice_areas/consumer_debt/interactive_tree.yaml). Preliminary Questions display approved explanations and ask whether the litigant agrees with each parsed field. A "No" asks for their preferred value; there is one agreement question per field. Account recognition, oral agreement, and debt consolidation remain direct questions. The sidebar shows all parsed fields before verification and labels their verification status. Ownership assertions and attached ownership evidence are separate fields.
 
-The host (the Python conversation engine) reuses tagged answers, follows the YAML branches, and computes defense results. The complaint filing date is collected after the law-firm question, displayed in the case details, and used for SOL screening without asking again. Unknown filing dates leave date-dependent SOL screening unresolved for clinic review.
+The host (the Python conversation engine) reuses verified answers and preferred values, follows the YAML branches, and computes defense results. Original parsed values remain available for reference and complaint-presence checks. The complaint filing date is verified after the account-opening date and used without asking again. Original-creditor SOL screening asks the litigant to confirm the complaint's payment-to-filing estimate, or answer whether payment was less than a year before filing. A year or more, or uncertainty, preserves the defense. Debt buyers always preserve it under the selected clinic workflow. This one-year screen is separate from the legal filing deadline.
 
-The LLM classifies answers and generates help and final Q&A responses. The host validates routing against the current node's declared branch IDs and displays approved node explanations when available. The final review lists checked, unchecked, and unresolved defenses. Conditional scripted explanations and an approved library for other questions are planned; they are not implemented yet.
+The LLM classifies answers and generates help and final Q&A responses. The host validates routing against the current node's declared branch IDs and displays approved node explanations. The first nine defenses integrate the updated October explanations: statute of limitations, ambiguity, standing/privity, failure to state a cause of action, mistake, identity theft, wrong party, laches, and fraud/misrepresentation/concealment. Each subsection shows a heading, general explanation, known facts, applicable questions, and personalized outcome. The final review lists checked, unchecked, and unresolved defenses, including clinic referrals.
+
+Preliminary questions have headings, and conditional explanation paragraphs retain
+their original document positions. The [affirmative-defense integration review](docs/affirmative-defense-integration-review.md)
+preserves the earlier planning discussion. See [the current flow documentation](docs/decision-tree.md)
+for the implemented rules and subsequent user decisions.
 
 ## Project structure
 
@@ -36,7 +58,7 @@ The LLM classifies answers and generates help and final Q&A responses. The host 
 - `scripts/`: local demo and its UI assets.
 - `tests/`: automated routing, intake, screening, Q&A, presentation, and export checks.
 
-The former `advocate_bot_qualtrics.decision_tree` compatibility package has been removed; use the canonical modules above. The package-level `process_chat` import remains available. The simulator remnants, sample fact-sheet fixture, and older `Tree-Structures.docx` draft have also been removed. The current source draft is `Decision Tree Draft 9_24_2026.docx`.
+The former `advocate_bot_qualtrics.decision_tree` compatibility package has been removed; use the canonical modules above. The package-level `process_chat` import remains available. The current source documents are in `docs/source-material/2026-10-11/`.
 
 See [decision-tree structure and field reuse](docs/decision-tree.md) for editing guidance. Restart the demo after changing YAML or Python, then refresh the browser to start a new session.
 

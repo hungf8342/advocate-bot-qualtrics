@@ -9,6 +9,7 @@ from advocate_bot_qualtrics.core.session import NodeAnswerRecord, record_node_an
 from advocate_bot_qualtrics.practice_areas.consumer_debt.preliminary import (
     PreliminaryField,
     collect_preliminary_answer,
+    load_complaint_fields,
 )
 from advocate_bot_qualtrics.practice_areas.consumer_debt.tree import (
     INTERACTIVE_HOOK_ADVANCES,
@@ -45,6 +46,8 @@ _FDCPA_FLAG_NODES: dict[str, str] = {
 
 @dataclass
 class InteractiveSessionState:
+    case_number: str | None = None
+    original_creditor: str | None = None
     plaintiff_name: str | None = None
     amount_sued: str | None = None
     law_firm: str | None = None
@@ -64,11 +67,15 @@ class InteractiveSessionState:
     defense_answers: dict[str, str] = field(default_factory=dict)
     defense_results: dict[str, dict[str, str]] = field(default_factory=dict)
     mitigation_checkboxes: dict[str, bool] = field(default_factory=dict)
+    debug_bulk_accepted: list[str] = field(default_factory=list)
 
 
-def init_session() -> InteractiveSessionState:
-    """Start a blank, in-memory session populated only by user answers."""
-    return InteractiveSessionState()
+def init_session(complaint_fields: dict | None = None) -> InteractiveSessionState:
+    """Start a session with optional unverified, fact-only scraper input."""
+    session = InteractiveSessionState()
+    if complaint_fields is not None:
+        load_complaint_fields(session, complaint_fields)
+    return session
 
 
 def is_interactive_hook_node(node_id: str) -> bool:
