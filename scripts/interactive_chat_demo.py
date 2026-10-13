@@ -97,10 +97,16 @@ def _chat_history(engine) -> list[dict[str, str]]:
             message = message.replace(f"]({path})", f"]({url})")
         return message
 
-    return [
-        {"role": role, "content": display(role, text)}
-        for role, text in engine.transcript
-    ]
+    history = []
+    for role, text in engine.transcript:
+        content = display(role, text)
+        if not content.strip():
+            continue
+        if role == "assistant" and history and history[-1]["role"] == "assistant":
+            history[-1]["content"] += "\n\n" + content
+        else:
+            history.append({"role": role, "content": content})
+    return history
 
 
 def _format_debug(snapshot: dict) -> str:
@@ -115,8 +121,11 @@ def _format_debug(snapshot: dict) -> str:
 - Last payment (OG creditor): {snapshot.get("last_payment_og_creditor")}
 - Last payment (debt collector): {snapshot.get("last_payment_debt_collector")}
 
-**Defense results**
+**Internal screening assessments**
 {chr(10).join(f'- `{defense}`: {result["status"]}' for defense, result in (snapshot.get("defense_results") or {}).items()) or '- (none yet)'}
+
+**Litigant selections**
+{chr(10).join(f'- `{defense}`: {selection}' for defense, selection in (snapshot.get("defense_selections") or {}).items()) or '- (none yet)'}
 
 **Preliminary fields**
 {_format_preliminary_fields(snapshot.get("preliminary_fields") or {})}
@@ -240,7 +249,7 @@ def main() -> int:
                             gr.HTML('<p class="composer-note">Share only what you’re comfortable entering. This prototype does not upload files.</p>')
                 with gr.Column(elem_id="sidebar"):
                     case_details = gr.HTML(_case_details({}), elem_id="case-details")
-                    with gr.Accordion("Developer view", open=True, elem_id="debug"):
+                    with gr.Accordion("Developer view", open=False, elem_id="debug"):
                         if args.debug_shortcuts:
                             gr.Markdown('Debug shortcut enabled: type **I agree with all** to accept remaining parsed fields and continue to defenses. Unanswered personal questions stay unknown.')
                         debug_panel = gr.Markdown()

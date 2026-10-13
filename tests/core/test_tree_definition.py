@@ -16,7 +16,7 @@ def test_consumer_debt_tree_loads_from_yaml_with_string_branch_ids():
     tree = load_tree_definition(INTERACTIVE_TREE_PATH)
 
     assert tree.id == "consumer_debt_interactive"
-    assert tree.version == "2.4"
+    assert tree.version == "2.6"
     assert tree.start_node_id == "verify_case_number"
     assert tree.node("get_filing_date").input.type == "date"
     assert tree.route("prelim_law_firm", "submit") == "verify_suit_type"

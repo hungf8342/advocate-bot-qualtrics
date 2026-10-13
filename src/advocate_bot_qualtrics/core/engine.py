@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import date
@@ -172,8 +173,11 @@ class InteractiveChatEngine:
                     tree_complete=self.tree_complete,
                 )
 
-        if self._current_node_definition().kind == "action":
+        if self._current_node_definition().kind in {"action", "condition"}:
             messages = self._drain_hooks()
+            question = self._append_next_question()
+            if question:
+                messages.append(question)
             return InteractiveChatStep(
                 assistant_messages=messages,
                 current_node_id=self.current_node_id,
@@ -204,7 +208,7 @@ class InteractiveChatEngine:
                     user_message=user_message,
                     confidence_pct=0,
                     skipped=True,
-                    prefix_messages=[_IDK_SKIP_MESSAGE],
+                    prefix_messages=[] if definition.discussion_mode in {"decision", "clarification", "questions"} else [_IDK_SKIP_MESSAGE],
                 )
 
         payload = build_user_payload(self.transcript, user_message)
@@ -274,7 +278,7 @@ class InteractiveChatEngine:
             return step
 
         reply = turn.assistant_reply
-        if turn.user_intent == "ask_about_complaint" and rendered.explanation is not None:
+        if turn.user_intent == "ask_about_complaint" and rendered.explanation is not None and rendered.discussion_topic is None:
             explanation = rendered.explanation
             images = [
                 f"![{item.alt.replace(']', r'\]')}]({item.path})"
@@ -283,9 +287,14 @@ class InteractiveChatEngine:
             reply = "\n\n".join([explanation.text, *images])
             if rendered.title:
                 reply = f"### {rendered.title}\n\n{reply}"
+        if turn.user_intent == "off_topic" and rendered.discussion_topic:
+            reply = (
+                f"Let’s finish {rendered.discussion_topic} first. "
+                "Please ask about this defense or answer the current question."
+            )
         messages = [self._append_transcript("assistant", reply)]
 
-        if turn.user_intent == "ask_about_complaint":
+        if turn.user_intent == "ask_about_complaint" or (turn.user_intent == "off_topic" and rendered.discussion_topic):
             reask = self._format_node_prompt(self.current_node_id)
             messages.append(self._append_transcript("assistant", reask))
 
@@ -440,8 +449,16 @@ class InteractiveChatEngine:
 
     def _drain_hooks(self) -> list[str]:
         messages: list[str] = []
-        while self._current_node_definition().kind == "action":
+        while self._current_node_definition().kind in {"action", "condition"}:
             definition = self._current_node_definition()
+            if definition.kind == "condition":
+                next_id = self.bundle.skip_collected_date_node(self.current_node_id, self.session)
+                if next_id == self.current_node_id:
+                    raise ValueError(f"Condition '{next_id}' has no fact binding")
+                self.current_node_id = next_id
+                if next_id == self.bundle.terminal_node_id:
+                    self._set_tree_complete()
+                continue
             outcome = self.bundle.run_hook(self.session, definition.action or definition.id)
             outcome_key = self.bundle.hook_outcome_key(self.current_node_id)
             if outcome_key:
@@ -450,8 +467,9 @@ class InteractiveChatEngine:
             rendered = self.bundle.render_node(
                 self.current_node_id, self.facts, self.session
             )
-            text = f"{rendered.question}\n\nResult: {outcome}" if outcome else rendered.question
-            messages.append(self._append_transcript("assistant", text))
+            text = "\n\n".join(part for part in (rendered.question, outcome) if part.strip())
+            if text:
+                messages.append(self._append_transcript("assistant", text))
 
             next_id = definition.next
             if not next_id:
@@ -476,6 +494,22 @@ class InteractiveChatEngine:
     def _append_transcript(self, role: str, text: str) -> str:
         if role == "assistant":
             text = self.bundle.annotate_assistant_text(text, self.facts)
+            # Consecutive assistant messages form one displayed turn. Keep each
+            # heading once, including when an explanation and its question join.
+            headings = set()
+            for previous_role, previous_text in reversed(self.transcript):
+                if previous_role != "assistant":
+                    break
+                headings.update(h.casefold() for h in re.findall(r"^###\s+(.+)$", previous_text, re.MULTILINE))
+
+            def keep_heading(match: re.Match) -> str:
+                heading = match.group(1).casefold()
+                if heading in headings:
+                    return ""
+                headings.add(heading)
+                return match.group(0)
+
+            text = re.sub(r"^###\s+(.+)\n*", keep_heading, text, flags=re.MULTILINE).strip()
         self.transcript.append((role, text))
         return text
 

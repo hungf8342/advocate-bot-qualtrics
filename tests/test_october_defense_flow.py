@@ -55,15 +55,20 @@ def test_headings_general_facts_and_application_are_in_order_even_when_facts_reu
     engine = InteractiveChatEngine.from_user_input()
     engine.session = confirmed_session()
     apply_interactive_branch(engine.session, 'prelim_recognize', 'yes')
-    engine.current_node_id = 'ambiguity_result'
-    messages = engine._drain_hooks()
-    text = '\n\n'.join(messages)
+    engine.current_node_id = 'standing_privity_intro'
+    text = '\n\n'.join(engine._drain_hooks())
     assert text.index('### Standing/privity') < text.index('To sue for your debt') < text.index('Compared to original creditors')
-    assert text.index('### Failure to State a Cause of Action') < text.index('attaching proof') < text.index('The complaint states') < text.index('Debt buyers must attach') < text.index('Personalized Application', text.index('### Failure to State a Cause of Action'))
+    assert text.count('### Standing/privity') == 1
+    assert engine.current_node_id == 'standing_privity_decision'
+    engine._append_transcript('user', 'Yes, check it off.')
+    engine.current_node_id = 'failure_to_state_cause_intro'
+    text = '\n\n'.join(engine._drain_hooks())
+    assert text.index('### Failure to State a Cause of Action') < text.index('attaching proof') < text.index('The complaint states') < text.index('Debt buyers must attach') < text.index('This defense may not apply')
+    assert text.count('### Failure to State a Cause of Action') == 1
     assert 'Example Buyer' in text and 'Example Bank' in text
     assert '[PLAINTIFF]' not in text and '{defense_facts}' not in text
-    assert 'Result:' not in messages[1]  # An introduction is not an assessment.
-    assert engine.current_node_id == 'mistake'
+    assert 'Result:' not in text and 'Personalized Application' not in text
+    assert engine.current_node_id == 'failure_to_state_cause_decision'
 
 
 @pytest.mark.parametrize('statement,proof,breach,open_present,payment_present', list(product([True, False], repeat=5)))
@@ -182,13 +187,13 @@ def test_payment_intake_uses_complaint_definition_and_defers_uncertainty():
 def test_defense_help_uses_document_explanation_without_advancing(monkeypatch):
     from advocate_bot_qualtrics.core import engine as engine_module
     monkeypatch.setattr(engine_module, 'process_chat', lambda *args: ChatTurnResponse(
-        user_intent='ask_about_complaint', assistant_reply='Model paraphrase.'))
+        user_intent='ask_about_complaint', assistant_reply='Concealment means hiding important information that should have been disclosed.'))
     engine = InteractiveChatEngine.from_user_input()
     engine.session = confirmed_session()
     engine.current_node_id = 'fraud_hidden_facts'
     step = engine.submit('What does concealment mean?')
     assert step.error is None
     assert step.current_node_id == 'fraud_hidden_facts'
-    assert 'concealment means hiding important information' in step.assistant_messages[0]
+    assert 'Concealment means hiding important information' in step.assistant_messages[0]
     assert 'Model paraphrase' not in step.assistant_messages[0]
     assert 'Example Buyer or Example Bank' in step.assistant_messages[-1]

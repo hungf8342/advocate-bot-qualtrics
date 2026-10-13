@@ -66,6 +66,7 @@ class InteractiveSessionState:
     node_answers: dict[str, NodeAnswerRecord] = field(default_factory=dict)
     defense_answers: dict[str, str] = field(default_factory=dict)
     defense_results: dict[str, dict[str, str]] = field(default_factory=dict)
+    defense_selections: dict[str, str] = field(default_factory=dict)
     mitigation_checkboxes: dict[str, bool] = field(default_factory=dict)
     debug_bulk_accepted: list[str] = field(default_factory=list)
 
@@ -100,6 +101,17 @@ def apply_interactive_branch(
 ) -> None:
     """Update session flags and collected dates after a user answers a node."""
     session.defense_answers[node_id] = branch_id
+    for suffix in ("_decision", "_clarify", "_questions"):
+        if node_id.endswith(suffix):
+            from advocate_bot_qualtrics.practice_areas.consumer_debt.affirmative_defenses import DEFENSE_LABELS
+
+            defense = node_id.removesuffix(suffix)
+            selection = {"include": "include", "exclude": "exclude"}.get(branch_id)
+            if suffix == "_decision":
+                selection = {"yes": "include", "no": "exclude"}.get(branch_id)
+            if defense in DEFENSE_LABELS and selection is not None:
+                session.defense_selections[defense] = selection
+            break
     collect_preliminary_answer(session, node_id, branch_id, submitted_date, submitted_text)
     if node_id in _DATE_SUBMIT_NODES and branch_id == "submit":
         if submitted_date is not None:

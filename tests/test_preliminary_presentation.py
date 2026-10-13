@@ -54,6 +54,8 @@ def test_every_preliminary_node_has_a_heading_before_its_explanation():
     for definition in TREE.nodes:
         if definition.id == "statute_of_limitations_intro":
             break
+        if definition.kind == "condition":
+            continue
         assert definition.title
         rendered = render_node(definition.id, None, session)
         assert rendered.question.startswith(f"### {definition.title}\n\n")
@@ -83,7 +85,7 @@ def test_debug_shortcut_accepts_parsed_fields_without_inventing_personal_answers
     step = engine.submit(" I agree with all! ")
     assert step.error is None
     assert engine.current_node_id not in VERIFICATION_FIELDS
-    assert engine.current_node_id in {"sol_payment_estimate_agree", "ambiguity"}
+    assert engine.current_node_id in {"sol_payment_estimate_agree", "statute_of_limitations_decision"}
     assert engine.debug_snapshot()["debug_bulk_accepted"]
     for tag in VERIFICATION_FIELDS.values():
         assert engine.session.preliminary_fields[tag].verification == "confirmed"
@@ -110,7 +112,7 @@ def test_debug_shortcut_preserves_existing_corrections_and_personal_answers():
 
 @pytest.mark.parametrize("enabled,node,message", [
     (False, "verify_case_number", "I agree with all"),
-    (True, "ambiguity", "I agree with all"),
+    (True, "ambiguity_decision", "I agree with all"),
     (True, "verify_case_number", "I agree with all except the amount"),
 ])
 def test_debug_skip_is_explicit_and_limited_to_preliminary_questions(monkeypatch, enabled, node, message):

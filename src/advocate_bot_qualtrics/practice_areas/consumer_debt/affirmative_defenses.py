@@ -35,6 +35,10 @@ DEFENSE_LABELS = {
     "language_1632": "Violation of Civil Code Section 1632 Regarding Language",
 }
 
+# The supplied explanation document defines these nine sections. Older handlers
+# below are retained for compatibility but are not part of the active YAML flow.
+DOCUMENTED_DEFENSES = tuple(DEFENSE_LABELS)[:9]
+
 
 def calendar_cutoff(filing: date, years: int) -> date:
     """Subtract calendar years, mapping a leap-day cutoff to February 28."""
@@ -173,7 +177,7 @@ def _cause(session: InteractiveSessionState) -> tuple[bool | None, str]:
             return True, "This defense may apply since [PLAINTIFF] did not appear to attach either of the documents. Many litigants in this situation check this defense."
         breach = answer("cause_breach_contract")
         missing_dates = _any([answer("cause_open_date", "no"), answer("cause_breach_date", "no")])
-        if breach is True and missing_dates is True:
+        if attached is True and breach is True and missing_dates is True:
             return True, "This defense may apply since [PLAINTIFF] did not provide the opening date of the account with [ORIGINAL.CREDITOR] or the last payment date. Many litigants in this situation check this defense."
         if attached is True and (breach is False or (breach is True and missing_dates is False)):
             return False, proof_reason
@@ -185,7 +189,7 @@ def _referral(session: InteractiveSessionState, defense: str) -> tuple[bool | No
     recognized = session.defense_answers.get("identity_recognize" if identity else "wrong_party_recognize")
     suspected = session.defense_answers.get("identity_suspected" if identity else "wrong_party_owner")
     if recognized == "yes":
-        return False, "This defense does not apply if you recognize the account sued for as yours."
+        return False, ("This defense does not apply if you recognize the account sued for as yours." if identity else "If you recognize this account, this defense does not apply.")
     if recognized == "no" and suspected == "no":
         return False, ("You’ve indicated that you don’t think someone stole your identity to create this debt. This defense does not apply." if identity else "You’ve indicated that you opened this account. This defense does not apply.")
     if recognized == "no" and suspected == "yes":
@@ -196,12 +200,11 @@ def _referral(session: InteractiveSessionState, defense: str) -> tuple[bool | No
     help_node = "identity_help" if identity else "wrong_party_help"
     if session.defense_answers.get(help_node) == "yes":
         reason += " Please raise your hand and ask clinic staff for help."
-    return None, reason + " This defense remains unresolved for clinic review; you may continue."
+    return None, reason + " Clinic staff can help clarify this before you decide."
 
 
 def assess_defense(session: InteractiveSessionState, defense: str) -> str:
-    """Record checked, unchecked, or unresolved, then let YAML advance."""
-    label = DEFENSE_LABELS[defense]
+    """Keep the screening assessment internal and explain it before a user choice."""
     answers = session.defense_answers
     answer = lambda node, trigger="yes": _answer(session, node, trigger)
     reason = ""
@@ -214,12 +217,9 @@ def assess_defense(session: InteractiveSessionState, defense: str) -> str:
     elif defense in simple:
         value = answer(defense)
     elif defense in {"ambiguity", "mistake"}:
-        value = answer(defense)
-        condition = ("you are confused about the suit, the amount sued for, or the charges" if defense == "ambiguity"
-                     else "you reported an error or confusion about the amount sued for")
-        if value is not None:
-            reason = (f"This defense may apply since {condition}. Many litigants check off this defense, since it is a broad defense."
-                      if value else "This defense may not apply based on your answer to this question.")
+        # These sections contain only a general explanation, with no factual
+        # question or personalized application. Let the litigant choose next.
+        value = None
     elif defense == "standing_privity":
         kind = answers.get("standing_creditor_type")
         value = True if kind == "buyer" else answer("standing_claim", "no") if kind == "original" else None
@@ -245,8 +245,9 @@ def assess_defense(session: InteractiveSessionState, defense: str) -> str:
             reason = "This defense may apply since you suspect identity theft. Many litigants who check off identity theft also check off this defense."
         elif value is not None:
             parties = "[PLAINTIFF] or [ORIGINAL.CREDITOR]" if preliminary_value(session, "PLAINTIFF") == "buyer" else "[PLAINTIFF]"
+            neither_party = "[PLAINTIFF] and [ORIGINAL.CREDITOR]" if preliminary_value(session, "PLAINTIFF") == "buyer" else "[PLAINTIFF]"
             reason = (f"This defense may apply if you think {parties} hid important facts about your account from you."
-                      if value else f"This defense does not apply since you indicated that {parties} did not hide important facts about your account from you.")
+                      if value else f"This defense does not apply since {neither_party} did not hide important facts about your account from you.")
     elif defense == "failure_to_mitigate":
         # These two nested boxes have explicit, different uncertainty rules.
         no_contact = answers.get("mitigation_contact") in {"no", "unknown"}
@@ -257,8 +258,12 @@ def assess_defense(session: InteractiveSessionState, defense: str) -> str:
         }
         value = no_contact or refused_offer
         reason = (
-            f"No pre-suit contact: {'checked' if no_contact else 'unchecked'}; "
-            f"declined settlement offer: {'checked' if refused_offer else 'unchecked'}."
+            "You reported no pre-suit contact, or were unsure whether contact occurred."
+            if no_contact else "You reported that the plaintiff contacted you before suing."
+        )
+        reason += (
+            " You reported that the plaintiff declined a settlement offer before suing."
+            if refused_offer else " You did not report a confirmed declined settlement offer."
         )
     elif defense == "common_counts":
         applicable = answer("common_counts_claim")
@@ -276,21 +281,25 @@ def assess_defense(session: InteractiveSessionState, defense: str) -> str:
         )])
     else:
         raise ValueError(f"No assessment handler for {defense}")
-    status = "unresolved" if value is None else "checked" if value else "unchecked"
-    if not reason:
+    informational = defense in {"ambiguity", "mistake"}
+    status = "informational" if informational else "unresolved" if value is None else "checked" if value else "unchecked"
+    if not reason and not informational:
         reason = (
             "Confirm the unanswered or uncertain questions with clinic staff."
             if value is None else "Based on your answers to this subsection."
         )
     reason = personalize(session, reason)
     session.defense_results[defense] = {"status": status, "reason": reason}
-    return f"{label}: {status}. {reason}"
+    return reason
 
 
 def defense_summary(session: InteractiveSessionState) -> str:
-    lines = ["Defense checklist:"]
-    for defense, result in session.defense_results.items():
-        lines.append(f"- {DEFENSE_LABELS[defense]}: {result['status']} — {result['reason']}")
+    lines = ["Your defense choices:"]
+    for defense in session.defense_results:
+        selection = session.defense_selections.get(defense)
+        wording = {"include": "You chose to include this defense.",
+                   "exclude": "You chose not to include this defense."}.get(selection, "You have not chosen yet.")
+        lines.append(f"- {DEFENSE_LABELS[defense]}: {wording}")
     lines.append("\nOpen questions / clinic review:")
     unresolved = [
         f"- {DEFENSE_LABELS[key]}: {result['reason']}"

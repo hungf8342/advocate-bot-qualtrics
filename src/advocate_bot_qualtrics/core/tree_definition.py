@@ -9,11 +9,11 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from advocate_bot_qualtrics.core.schemas import (
-    CurrentNode, EnumValidation, NodeExplanation, TreeBranch,
+    CurrentNode, DiscussionMode, EnumValidation, NodeExplanation, TreeBranch,
 )
 
 
-NodeKind = Literal["choice", "input", "action", "terminal", "recommendation", "escalate", "notice"]
+NodeKind = Literal["choice", "condition", "input", "action", "terminal", "recommendation", "escalate", "notice"]
 InputType = Literal["date", "text", "number", "currency"]
 
 
@@ -48,6 +48,8 @@ class TreeNodeDefinition(BaseModel):
     kind: NodeKind
     question: str
     title: str | None = None
+    discussion_topic: str | None = None
+    discussion_mode: DiscussionMode | None = None
     branches: list[BranchDefinition] = Field(default_factory=list)
     input: InputDefinition | None = None
     action: str | None = None
@@ -60,10 +62,14 @@ class TreeNodeDefinition(BaseModel):
     @model_validator(mode="after")
     def validate_kind_configuration(self) -> TreeNodeDefinition:
         branch_ids = {branch.id for branch in self.branches}
+        if (self.discussion_topic is None) != (self.discussion_mode is None):
+            raise ValueError(f"node '{self.id}' needs both discussion topic and mode")
         if len(branch_ids) != len(self.branches):
             raise ValueError(f"node '{self.id}' has duplicate branch ids")
-        if self.kind == "choice" and not self.branches:
-            raise ValueError(f"choice node '{self.id}' needs branches")
+        if self.kind in {"choice", "condition"} and not self.branches:
+            raise ValueError(f"{self.kind} node '{self.id}' needs branches")
+        if self.kind == "condition" and (self.question or self.input or self.action):
+            raise ValueError(f"condition node '{self.id}' cannot ask a question or run an action")
         if self.kind == "input":
             if self.input is None:
                 raise ValueError(f"input node '{self.id}' needs input metadata")
@@ -94,6 +100,8 @@ class TreeNodeDefinition(BaseModel):
             node_id=self.id,
             question=self.question,
             title=self.title,
+            discussion_topic=self.discussion_topic,
+            discussion_mode=self.discussion_mode,
             branches=[
                 TreeBranch(branch_id=branch.id, label=branch.label)
                 for branch in self.branches

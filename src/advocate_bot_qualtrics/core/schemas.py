@@ -80,6 +80,9 @@ class TreeBranch(BaseModel):
     )
 
 
+DiscussionMode = Literal["screening", "decision", "clarification", "questions"]
+
+
 class CurrentNode(BaseModel):
     """The current decision-tree node shown to the user."""
 
@@ -88,6 +91,8 @@ class CurrentNode(BaseModel):
     node_id: str = Field(description="Active node id passed as context to the LLM.")
     question: str = Field(description="Question the user should answer at this node.")
     title: str | None = None
+    discussion_topic: str | None = None
+    discussion_mode: DiscussionMode | None = None
     branches: list[TreeBranch] = Field(
         default_factory=list,
         description="Valid branches for advancing to the next node.",

@@ -87,7 +87,7 @@ def test_help_uses_approved_node_text_and_stays_on_the_question(monkeypatch, nod
     assert "Unapproved reply" not in step.assistant_messages[0]
     assert ("![Example complaint" in step.assistant_messages[0]) == image_expected
     assert step.assistant_messages[0].startswith(f"### {TREE.node(node_id).title}\n\n")
-    assert step.assistant_messages[-1] == render_node(node_id, None, engine.session).question
+    assert step.assistant_messages[-1] == render_node(node_id, None, engine.session).question.removeprefix(f"### {TREE.node(node_id).title}\n\n")
 
 
 def test_demo_maps_approved_image_reference_to_served_project_file():

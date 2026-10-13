@@ -41,7 +41,9 @@ INTERACTIVE_ROUTES: dict[tuple[str, str], str] = {
     for node in INTERACTIVE_TREE_DEFINITION.nodes
     for branch in node.branches
 }
-INTERACTIVE_CONDITIONAL_ROUTE_NODES: frozenset[str] = frozenset()
+INTERACTIVE_CONDITIONAL_ROUTE_NODES: frozenset[str] = frozenset(
+    node.id for node in INTERACTIVE_TREE_DEFINITION.nodes if node.kind == "condition"
+)
 
 
 def idk_skip_branch_for_node(node_id: str) -> str | None:

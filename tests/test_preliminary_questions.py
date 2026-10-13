@@ -57,7 +57,7 @@ def test_preliminary_filing_date_drives_sol_without_being_asked_again(monkeypatc
         assert step.current_node_id == ("sol_payment_estimate_agree" if filing_known else "sol_payment_age")
         step = engine.submit("Yes" if filing_known else "I don't know")
     assert step.error is None
-    assert step.current_node_id == "ambiguity"
+    assert step.current_node_id == "statute_of_limitations_decision"
     assert engine.session.defense_results["statute_of_limitations"]["status"] == "checked"
     assert sum(role == "user" and text == "2026-09-24" for role, text in engine.transcript) == int(filing_known)
 
@@ -164,11 +164,11 @@ def test_debt_buyer_preserves_without_collecting_another_payment_date():
 
 
 @pytest.mark.parametrize("suit,breach,common", [("breach", "yes", "no"), ("common", "no", "yes"), ("both", "yes", "yes"), ("missing", "unknown", "unknown"), ("unknown", "unknown", "unknown")])
-def test_suit_type_drives_both_later_gates(suit, breach, common):
+def test_suit_type_drives_documented_breach_date_condition(suit, breach, common):
     session = init_session()
     answer(session, "prelim_suit_type", suit)
     assert reused_branch(session, "cause_breach_contract")[0] == breach
-    assert reused_branch(session, "common_counts_claim")[0] == common
+    assert "common_counts_claim" not in TREE.node_map
 
 
 def test_all_preliminary_fields_are_stored_and_reuse_is_valid():
@@ -194,26 +194,27 @@ def test_all_preliminary_fields_are_stored_and_reuse_is_valid():
     for node in REUSED_FIELDS:
         branch, _ = reused_branch(session, node)
         assert TREE.route(node, branch) is not None
-    skip_collected_date_node("mitigation_consolidation", session)
-    assert "debt consolidation company" in render_node("rescission", None, session).question
+    assert session.preliminary_fields["CONSOLIDATION"].value == "yes"
+    assert "mitigation_consolidation" not in TREE.node_map
 
 
-def test_real_engine_reuses_fields_after_hooks_and_resets_them(monkeypatch):
+def test_real_engine_reuses_fields_after_hooks_but_waits_for_litigant_choice():
     engine = InteractiveChatEngine.from_user_input()
     answer(engine.session, "prelim_creditor_type", "buyer")
     answer(engine.session, "prelim_recognize", "yes")
     answer(engine.session, "prelim_suit_type", "breach")
-    engine.current_node_id = "ambiguity_result"
+    engine.current_node_id = "standing_privity_intro"
     engine._drain_hooks()
-    # No repeated creditor question; the debt-buyer standing result is recorded too.
     assert "standing_privity" in engine.session.defense_results
-    assert engine.current_node_id == "cause_statement"
-    engine.current_node_id = "mistake_result"
+    assert engine.current_node_id == "standing_privity_decision"
+    assert engine.session.defense_selections == {}
+    engine.current_node_id = "identity_theft_intro"
     engine._drain_hooks()
-    assert engine.current_node_id == "laches"
+    assert engine.current_node_id == "identity_theft_decision"
     assert engine.session.defense_results["identity_theft"]["status"] == "unchecked"
-    assert engine.session.defense_results["wrong_party"]["status"] == "unchecked"
+    assert "wrong_party" not in engine.session.defense_results
     engine.reset()
     assert engine.current_node_id == "verify_case_number"
     assert engine.session.preliminary_fields == {}
     assert engine.session.reused_answers == {}
+    assert engine.session.defense_selections == {}

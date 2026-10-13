@@ -71,7 +71,7 @@ def test_real_engine_verifies_all_applicable_fields_before_defenses(name, determ
     visited = []
     for _ in range(len(TREE.nodes)):
         node = engine.current_node_id
-        if node in {"sol_payment_estimate_agree", "sol_payment_age", "ambiguity"}:
+        if node in {"sol_payment_estimate_agree", "sol_payment_age", "statute_of_limitations_decision"}:
             break
         visited.append(node)
         branch = "no" if node in {"prelim_oral", "prelim_consolidation"} else "yes"

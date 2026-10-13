@@ -234,17 +234,16 @@ REUSED_FIELDS = {
     "sol_creditor_type": ("PLAINTIFF", "value"),
     "standing_creditor_type": ("PLAINTIFF", "value"),
     "cause_creditor_type": ("PLAINTIFF", "value"),
+    "fraud_creditor_type": ("PLAINTIFF", "value"),
     "standing_claim": ("OWNERSHIP", "value"),
     "cause_original_owner": ("OWNERSHIP.PROOF", "value"),
     "cause_purchase_documents": ("OWNERSHIP.PROOF", "value"),
     "cause_statement": ("STATEMENT", "value"),
     "cause_breach_contract": ("SUIT-TYPE", "breach"),
-    "common_counts_claim": ("SUIT-TYPE", "common"),
     "cause_open_date": ("OPEN-DATE", "presence"),
     "cause_breach_date": ("LAST-PAYMENT-DATE", "presence"),
     "identity_recognize": ("RECOGNIZE", "value"),
     "wrong_party_recognize": ("RECOGNIZE", "value"),
-    "mitigation_consolidation": ("CONSOLIDATION", "value"),
 }
 
 
@@ -263,8 +262,12 @@ def reused_branch(session: InteractiveSessionState, node: str) -> tuple[str, str
         # Reuse suspicion, including the skipped-question case. Never ask twice.
         return session.defense_answers.get("identity_suspected", "unknown"), "identity_suspected" if "identity_suspected" in session.defense_answers else "identity_recognize"
     binding = REUSED_FIELDS.get(node)
-    if binding is None or binding[0] not in session.preliminary_fields:
+    if binding is None:
         return None
+    if binding[0] not in session.preliminary_fields:
+        # Document IF branches evaluate existing intake facts. They never turn
+        # missing facts into extra questions borrowed from a separate tree.
+        return "unknown", "preliminary_intake"
     tag, mode = binding
     entry = session.preliminary_fields[tag]
     source = entry.source_node

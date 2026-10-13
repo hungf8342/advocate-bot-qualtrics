@@ -109,6 +109,7 @@ def render_node(
         "{payment_age_context}": payment_context,
         "{fraud_parties}": "[PLAINTIFF] or [ORIGINAL.CREDITOR]" if preliminary_value(session, "PLAINTIFF") == "buyer" else "[PLAINTIFF]",
         "{identity_uncertainty}": "You’ve indicated that you’re not sure whether someone stole your identity to create this debt." if session.defense_answers.get("identity_recognize") == "no" else "You’ve indicated that you’re not sure whether you recognize this account as one you opened.",
+        "{identity_help_question}": "Do you have further questions on how to determine whether this account exists because of ID theft?" if session.defense_answers.get("identity_recognize") == "no" else "Do you have further questions on how to determine whether this account belongs to you or not?",
         "{wrong_party_uncertainty}": "You’ve indicated that you’re not sure whether someone else opened the account." if session.defense_answers.get("wrong_party_recognize") == "no" else "You’ve indicated that you’re not sure whether you recognize this account as one you opened.",
     }
     for token, value in replacements.items():
@@ -147,6 +148,34 @@ def render_node(
             question = text + "\n\n" + question
     if source.title:
         question = f"### {source.title}\n\n{question}"
+    if source.discussion_mode in {"decision", "clarification", "questions"}:
+        defense = node_id.rsplit("_", 1)[0]
+        context = [explanation.text if explanation else "", personalize(session, defense_facts(session, defense))]
+        result = session.defense_results.get(defense)
+        if result:
+            context.append(result["reason"])
+        # Give scoped Q&A the relevant answers even when earlier turns have
+        # fallen out of the model's short transcript window. No assessment
+        # statuses or unverified scraper fields are included.
+        for definition in INTERACTIVE_TREE_DEFINITION.nodes:
+            if (definition.discussion_topic != source.discussion_topic
+                    or definition.discussion_mode != "screening" or definition.kind != "choice"):
+                continue
+            answer = session.defense_answers.get(definition.id)
+            branch = next((b for b in definition.branches if b.id == answer), None)
+            if branch is not None:
+                detail = definition.question
+                for token, value in replacements.items():
+                    detail = detail.replace(token, value)
+                context.append(personalize(session, detail) + "\nRecorded answer: " + branch.label)
+        if defense == "statute_of_limitations":
+            if payment:
+                context.append(f"The complaint's listed last payment date is {payment.isoformat()}.")
+            if filing:
+                context.append(f"The confirmed complaint filing date is {filing.isoformat()}.")
+        from advocate_bot_qualtrics.core.schemas import NodeExplanation
+
+        explanation = NodeExplanation(text="\n\n".join(part for part in context if part.strip()))
     branches = [
         branch.model_copy(
             update={
@@ -246,6 +275,7 @@ def build_debug_snapshot(
         "sol_outcome": last_outcomes.get("sol", "—"),
         "fdcpa_outcome": last_outcomes.get("fdcpa", "—"),
         "defense_results": session.defense_results,
+        "defense_selections": session.defense_selections,
         "preliminary_fields": {
             tag: {key: value.isoformat() if isinstance(value, date) else value
                   for key, value in asdict(entry).items()}

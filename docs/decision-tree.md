@@ -2,9 +2,10 @@
 
 The current tree implements **Preliminary Questions (PRELIM-01)** using the
 October 11 source documents in `docs/source-material/2026-10-11/`, followed by
-the **Affirmative Defenses (AFF-01)** screening flow. The first nine defenses
-use the updated explanations and the basic tree, with newer explanations and
-explicit user decisions taking precedence where the sources differ.
+the nine defenses in **explanations-aff-defenses.docx**. The two explanation
+documents define the YAML content and routing, together with explicit user
+decisions about verification, selection, and clarification. The basic decision
+tree is retained as reference material. The active flow ends after the ninth defense.
 
 Parsed preliminary fields are supplied as a fact-only JSON object. See
 [`examples/complaints/README.md`](../examples/complaints/README.md) for the temporary
@@ -39,6 +40,11 @@ The existing schema is unchanged:
 - `start_node_id` identifies the first question.
 - A `choice` node has a `question` and `branches`; each branch has an `id`,
   `label`, and `target` node ID.
+- A `condition` node represents a document IF branch. It has branches and an
+  empty question. Practice-area bindings evaluate already collected facts
+  automatically, including unknown facts; the node is never shown to the litigant
+  or sent to the model as a question. Missing facts lead to the document's uncertainty
+  path or clinic review rather than additional screening questions.
 - A choice node may declare `validation: {type: enum, categories: ...}`. Each
   category key must match exactly one branch ID. The descriptions tell the
   model how to classify a free-text answer; the host still rejects any branch
@@ -61,7 +67,7 @@ The existing schema is unchanged:
 - `idk_skip_branch_id` routes a bare “I don't know.” Missing information in the
   complaint has a separate `missing` branch where appropriate.
 - An `action` node names host-side logic and a `next` node. Each `assess_*` action
-  records a defense outcome and continues to the next subsection. An `explain_*`
+  records an internal screening assessment and continues to the litigant's selection question. An `explain_*`
   action displays the general explanation and known facts without recording an
   assessment or requiring an extra confirmation.
 - The final `terminal` node enables open Q&A with `terminal_qa: true`.
@@ -96,7 +102,7 @@ before filing; an uncertain answer preserves the defense.
 | `RECOGNIZE` | Reused in identity theft and wrong party |
 | `LAW-FIRM` | Plaintiff's law firm |
 | `FILING-DATE` | Complaint filing date, collected during preliminary intake and used in SOL screening |
-| `SUIT-TYPE` | Breach, common counts, both, missing, or unknown; controls both later claim-type gates |
+| `SUIT-TYPE` | Breach, common counts, both, missing, or unknown; controls the additional date checks in failure to state a cause of action |
 | `ORAL` | Stored oral/written answer; the one-year SOL preservation screen does not ask about state law |
 | `AMOUNT` | Effective amount, updated if the user disagrees |
 | `LAST-PAYMENT-DATE` | Complaint payment allegation for the SOL estimate; complaint presence for failure to state a cause. Litigant one-year estimates remain separate defense answers |
@@ -110,7 +116,7 @@ before filing; an uncertain answer preserves the defense.
 The three agreement questions are also stored as `AMOUNT-AGREEMENT`,
 `LAST-PAYMENT-DATE-AGREEMENT`, and `OPEN-DATE-AGREEMENT`.
 `LANGUAGE` is in the draft's separate triage section, not PRELIM-01;
-its affirmative-defense question still collects the answer later.
+its associated defense is outside the current nine-section flow.
 
 Each field contains its effective `value`, `status`, and `source_node`, plus
 `verification` (`pending`, `confirmed`, `corrected`, or `unknown`) and the original
@@ -135,17 +141,37 @@ Before displaying a tagged defense question, the host replays the corresponding
 stored answer through that node's existing YAML branch, including stored unknowns.
 This happens after user answers and after action nodes. `session.reused_answers`
 records the source node, and the reused answer retains the source confidence.
-An unanswered field is not treated as a stored unknown: its question is still asked.
+Document IF conditions with an unanswered field take their unknown branch, without
+turning the condition into an additional user question.
 
 The full field values and provenance are available in the prototype's session debug
 panel. The sidebar shows parsed fields with their verification status. They are
 session-local; reset restores the original parsed input as awaiting verification. The existing Excel
 export remains a date/confidence export; it is not a full export of these fields.
 
-Defense logic lives in `affirmative_defenses.py`. Results use `checked`, `unchecked`,
-or `unresolved`. The first nine defenses show their document explanation before
-personalized facts, questions, and application. General explanations are also
-available as approved help on their question nodes.
+Defense logic lives in `affirmative_defenses.py`. Internal assessments use `checked`,
+`unchecked`, or `unresolved`; these are not litigant selections and are not printed
+in the conversation. The first nine defenses show their document explanation before
+personalized facts, questions, and application text, without implementation subheaders.
+Consecutive assistant messages share one bubble and each heading appears once.
+
+Each of the nine documented defenses has a `*_decision` node. Yes/No record `include`/`exclude` in
+`session.defense_selections`, independently of `session.defense_results`, then move
+to the next defense. Unknown leads to `*_clarify`, asking whether the litigant has
+clarifying questions. Having no questions returns to the selection question; it
+does not omit the defense. `*_questions` invites a question or an explicit choice.
+Both clarification nodes also accept an explicit include/exclude choice directly.
+Uncertainty never skips a defense or completes the tree.
+
+`discussion_topic` and `discussion_mode` identify the current defense and stage.
+The model receives the approved explanation, personalized reasoning, and recorded
+screening answers for that defense. It answers relevant questions directly without
+advancing or independently evaluating legal sufficiency. Off-topic questions get a
+redirect and the pending question. Non-answer intents always have a null branch.
+The final summary recaps the litigant's choices and separately retains clinic-review
+questions; internal screening assessments do not select boxes.
+
+The internal screening rules remain:
 
 - SOL is a clinic preservation screen, separate from the legal deadline. Debt
   buyers always preserve it. For original creditors, agreement with the complaint
@@ -153,7 +179,9 @@ available as approved help on their question nodes.
   “Was your last payment less than a year before filing?” maps Yes to unchecked,
   No to checked, and uncertainty to checked. State-law and contract-type questions
   are no longer part of this screen.
-- Ambiguity and mistake retain their basic-tree questions and broad-defense explanations.
+- Ambiguity and Mistake contain only general explanations in the source. Their
+  internal record is informational, with no factual quiz or generated application
+  text. Each goes directly to the litigant's selection question.
 - Standing for original creditors checks the ownership assertion, without adding
   an agreement-attachment requirement. Debt buyers preserve it.
 - Failure to state a cause uses attached ownership proof and the complaint's

@@ -7,7 +7,7 @@ import pytest
 from advocate_bot_qualtrics.core.engine import InteractiveChatEngine
 from advocate_bot_qualtrics.core.schemas import ChatTurnResponse
 from advocate_bot_qualtrics.practice_areas.consumer_debt.affirmative_defenses import (
-    DEFENSE_LABELS,
+    DEFENSE_LABELS, DOCUMENTED_DEFENSES,
     assess_defense,
     calendar_cutoff,
     defense_summary,
@@ -62,7 +62,7 @@ def test_referrals_stay_unresolved_and_continue(defense, answers):
     result = TREE.node(defense + "_result")
     assert result.kind == "action"
     assert result.next in TREE.node_map
-    assert TREE.node(result.next).id.endswith("_intro")
+    assert TREE.node(result.next).id == defense + "_decision"
 
 
 @pytest.mark.parametrize("defense,node", [("common_counts", "common_counts_reasons"), ("excuse_breach", "excuse_breach")])
@@ -71,10 +71,8 @@ def test_any_of_subsections(defense, node, branch, status):
     assert assess(defense, {node: branch, "common_counts_claim": "yes"}) == status
 
 
-def test_common_counts_only_for_common_count_claims():
-    assert TREE.route("common_counts_claim", "yes") == "common_counts_reasons"
-    assert TREE.route("common_counts_claim", "no") == "common_counts_result"
-    assert TREE.route("common_counts_claim", "unknown") == "common_counts_result"
+def test_legacy_common_counts_handler_is_not_in_active_tree():
+    assert "common_counts_claim" not in TREE.node_map
     assert assess("common_counts", {"common_counts_claim": "no"}) == "unchecked"
     assert assess("common_counts", {"common_counts_claim": "unknown"}) == "unresolved"
 
@@ -92,10 +90,10 @@ def test_mitigation_nested_box_exceptions(contact, settlement, status, boxes):
     assert tuple(session.mitigation_checkboxes.values()) == boxes
 
 
-def test_consolidation_wording_carries_to_later_subsections():
+def test_undocumented_later_subsections_are_not_in_active_tree():
     session = InteractiveSessionState(defense_answers={"mitigation_consolidation": "yes"})
     for node in ("mitigation_contact", "mitigation_settlement", "rescission", "accord_satisfaction"):
-        assert "debt consolidation company" in render_node(node, None, session).question
+        assert node not in TREE.node_map
 
 
 def test_standing_and_cause_missing_information_and_unknowns():
@@ -125,26 +123,25 @@ def test_language_requires_all_three_conditions(branches, status):
     assert assess("language_1632", dict(zip(("language_primary", "language_negotiation", "language_contract"), branches))) == status
 
 
-def test_graph_reachable_acyclic_and_every_path_finishes():
-    seen = set()
-
-    def visit(node_id, path):
-        assert node_id not in path, f"Cycle: {path} -> {node_id}"
-        if node_id in seen:
-            return
-        node = TREE.node(node_id)
-        if node.kind == "terminal":
-            assert node_id == "review_questions"
-        else:
-            targets = [b.target for b in node.branches] + ([node.next] if node.next else [])
-            assert targets
-            for target in targets:
-                visit(target, path | {node_id})
-        seen.add(node_id)
-
-    visit(TREE.start_node_id, set())
-    assert seen == set(TREE.node_map)
-    assert [n.action.removeprefix("assess_") for n in TREE.nodes if n.kind == "action" and n.action.startswith("assess_")] == list(DEFENSE_LABELS)
+def test_graph_reachable_and_every_node_can_finish_after_a_choice():
+    edges = {n.id: [b.target for b in n.branches] + ([n.next] if n.next else []) for n in TREE.nodes}
+    reached = set()
+    queue = [TREE.start_node_id]
+    while queue:
+        node = queue.pop()
+        if node not in reached:
+            reached.add(node)
+            queue.extend(edges[node])
+    assert reached == set(TREE.node_map)
+    # Clarification deliberately loops. Every node must still have a path to completion.
+    can_finish = {"review_questions"}
+    while True:
+        predecessors = {node for node, targets in edges.items() if any(t in can_finish for t in targets)}
+        if predecessors <= can_finish:
+            break
+        can_finish |= predecessors
+    assert can_finish == set(TREE.node_map)
+    assert [n.action.removeprefix("assess_") for n in TREE.nodes if n.kind == "action" and n.action.startswith("assess_")] == list(DOCUMENTED_DEFENSES)
     assert all(TREE.route(n.id, "invalid") is None for n in TREE.nodes)
 
 
@@ -163,6 +160,8 @@ def test_automatic_traversal_finishes_with_checklist_and_open_questions(monkeypa
             branch = "original" if default == "yes" else "buyer"
         if node.node_id == "prelim_suit_type" and default != "unknown":
             branch = "both"
+        if definition.discussion_mode == "decision":
+            branch = "no" if default == "unknown" else default
         assert branch in ids
         return ChatTurnResponse(user_intent="answer_node", assistant_reply="Recorded.", next_node_id=branch, answer_confidence_pct=100)
 
@@ -183,7 +182,7 @@ def test_automatic_traversal_finishes_with_checklist_and_open_questions(monkeypa
         if definition.input and definition.input.type == "date":
             message = "2026-09-24" if node_id == "get_filing_date" else "2020-09-23"
         if default == "unknown":
-            message = "I don't know"
+            message = "no" if definition.discussion_mode == "decision" else "I don't know"
         step = engine.submit(message)
         assert step.error is None
         assert step.branch_id in {b.id for b in TREE.node(node_id).branches}
@@ -192,7 +191,7 @@ def test_automatic_traversal_finishes_with_checklist_and_open_questions(monkeypa
     assert engine.export_done
     assert engine.last_export_path == str(tmp_path / "fields.xlsx")
     assert (tmp_path / "fields.xlsx").is_file()
-    assert list(engine.session.defense_results) == list(DEFENSE_LABELS)
+    assert list(engine.session.defense_results) == list(DOCUMENTED_DEFENSES)
     if default == "yes":
         assert "verify_last_payment" in visited
         assert "get_last_payment_complaint" not in visited
@@ -200,10 +199,12 @@ def test_automatic_traversal_finishes_with_checklist_and_open_questions(monkeypa
         assert engine.session.last_payment_complaint == date(2020, 9, 23)
         assert engine.session.defense_results["statute_of_limitations"]["status"] == "checked"
     summary = defense_summary(engine.session)
-    assert "Defense checklist:" in summary
+    assert "Your defense choices:" in summary
+    assert list(engine.session.defense_selections) == list(DOCUMENTED_DEFENSES)
+    assert ": checked" not in summary and ": unchecked" not in summary
     assert "Open questions / clinic review:" in summary
     assert summary in engine.transcript[-1][1]
     assert "{defense_summary}" not in engine.transcript[-1][1]
     if default == "unknown":
         assert engine.session.defense_results["identity_theft"]["status"] == "unresolved"
-        assert engine.session.defense_results["failure_to_mitigate"]["status"] == "checked"
+        assert "failure_to_mitigate" not in engine.session.defense_results
