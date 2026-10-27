@@ -31,6 +31,14 @@ def test_last_payment_conditional_paragraph_precedes_general_instructions(kind, 
     assert prompt.index(phrase) < prompt.index("The complaint may list it")
 
 
+def test_last_payment_intake_does_not_show_an_unverified_month_calculation():
+    session = init_session(values("original-creditor"))
+    prompt = render_node("verify_last_payment", None, session).question
+    assert "2021-03-15" in prompt
+    assert "unknown months" not in prompt
+    assert "months before it was filed" not in prompt
+
+
 @pytest.mark.parametrize("kind,phrase", [
     ("buyer", "When the original creditor or other company sold the debt"),
     ("original", "An original creditor must state"),
@@ -85,7 +93,7 @@ def test_debug_shortcut_accepts_parsed_fields_without_inventing_personal_answers
     step = engine.submit(" I agree with all! ")
     assert step.error is None
     assert engine.current_node_id not in VERIFICATION_FIELDS
-    assert engine.current_node_id in {"sol_payment_estimate_agree", "statute_of_limitations_decision"}
+    assert engine.current_node_id in {"sol_payment_estimate_agree", "sol_checkboxes_first_third"}
     assert engine.debug_snapshot()["debug_bulk_accepted"]
     for tag in VERIFICATION_FIELDS.values():
         assert engine.session.preliminary_fields[tag].verification == "confirmed"

@@ -24,12 +24,16 @@ _DATE_SUBMIT_NODES: dict[str, str] = {
     "prelim_last_payment": "last_payment_complaint",
     "prelim_correct_payment": "last_payment_complaint",
     "prelim_open_date": "open_date",
+    "prelim_breach_date": "breach_date",
     "prelim_correct_open_date": "open_date",
 }
 
 _TEXT_SUBMIT_NODES: dict[str, str] = {
     "get_plaintiff_name": "plaintiff_name",
     "get_amount_sued": "amount_sued",
+    "language_primary": "primary_language",
+    "mitigation_contact_uncertain": "mitigation_contact_reason",
+    "mitigation_settlement_uncertain": "mitigation_settlement_reason",
 }
 
 _YES_WITH_DATE_NODES: dict[str, str] = {
@@ -51,7 +55,11 @@ class InteractiveSessionState:
     plaintiff_name: str | None = None
     amount_sued: str | None = None
     law_firm: str | None = None
+    primary_language: str | None = None
+    mitigation_contact_reason: str | None = None
+    mitigation_settlement_reason: str | None = None
     open_date: date | None = None
+    breach_date: date | None = None
     preliminary_fields: dict[str, PreliminaryField] = field(default_factory=dict)
     reused_answers: dict[str, str] = field(default_factory=dict)
     filing_date: date | None = None
@@ -67,6 +75,11 @@ class InteractiveSessionState:
     defense_answers: dict[str, str] = field(default_factory=dict)
     defense_results: dict[str, dict[str, str]] = field(default_factory=dict)
     defense_selections: dict[str, str] = field(default_factory=dict)
+    checkbox_selections: dict[str, dict[str, str]] = field(default_factory=dict)
+    script_facts: dict[str, str] = field(default_factory=dict)
+    script_fact_sources: dict[str, str] = field(default_factory=dict)
+    defense_open_questions: dict[str, dict[str, str]] = field(default_factory=dict)
+    script_visited: list[str] = field(default_factory=list)
     mitigation_checkboxes: dict[str, bool] = field(default_factory=dict)
     debug_bulk_accepted: list[str] = field(default_factory=list)
 
@@ -101,17 +114,35 @@ def apply_interactive_branch(
 ) -> None:
     """Update session flags and collected dates after a user answers a node."""
     session.defense_answers[node_id] = branch_id
-    for suffix in ("_decision", "_clarify", "_questions"):
-        if node_id.endswith(suffix):
+    from advocate_bot_qualtrics.practice_areas.consumer_debt.tree import INTERACTIVE_TREE_DEFINITION
+
+    definition = INTERACTIVE_TREE_DEFINITION.node_map.get(node_id)
+    if definition is not None:
+        if definition.fact_key and branch_id != "unknown":
+            session.script_facts[definition.fact_key] = branch_id
+            session.script_fact_sources[definition.fact_key] = node_id
+            if definition.fact_key.startswith("answer:"):
+                original = definition.fact_key.removeprefix("answer:")
+                session.defense_answers[original] = branch_id
+                session.reused_answers[original] = node_id
+        if definition.fact_key and branch_id == "unknown" and definition.discussion_topic:
             from advocate_bot_qualtrics.practice_areas.consumer_debt.affirmative_defenses import DEFENSE_LABELS
 
-            defense = node_id.removesuffix(suffix)
-            selection = {"include": "include", "exclude": "exclude"}.get(branch_id)
-            if suffix == "_decision":
-                selection = {"yes": "include", "no": "exclude"}.get(branch_id)
-            if defense in DEFENSE_LABELS and selection is not None:
-                session.defense_selections[defense] = selection
-            break
+            defense = next(key for key in DEFENSE_LABELS
+                           if INTERACTIVE_TREE_DEFINITION.node(key + "_intro").discussion_topic == definition.discussion_topic)
+            session.defense_open_questions[node_id] = {
+                "defense": defense, "reason": definition.question, "retry_node": node_id,
+            }
+        for checkbox in definition.selection_checkboxes if branch_id in {"yes", "no"} else []:
+            selection = "include" if branch_id == "yes" else "exclude"
+            session.checkbox_selections.setdefault(checkbox.defense_id, {})[checkbox.checkbox_id] = selection
+            if checkbox.checkbox_id == "main":
+                session.defense_selections[checkbox.defense_id] = selection
+        if branch_id != "unknown":
+            # A return-to-question answer does not resolve the underlying issue.
+            for key, issue in list(session.defense_open_questions.items()):
+                if issue.get("retry_node") == node_id and branch_id not in {"retry", "continue"}:
+                    del session.defense_open_questions[key]
     collect_preliminary_answer(session, node_id, branch_id, submitted_date, submitted_text)
     if node_id in _DATE_SUBMIT_NODES and branch_id == "submit":
         if submitted_date is not None:

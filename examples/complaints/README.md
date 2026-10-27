@@ -20,7 +20,7 @@ answer "No" to an agreement question and provide your preferred value.
 | `PLAINTIFF.TYPE` | `"original"` or `"buyer"` |
 | `SUIT.TYPE` | `"breach"`, `"common"`, or `"both"` |
 | `AMOUNT` | Positive currency string, such as `"$4,250.00"` |
-| `LAST.PAYMENT.DATE`, `OPEN.DATE`, `COMPLAINT.DATE` | ISO date strings (`YYYY-MM-DD`) |
+| `LAST.PAYMENT.DATE`, `BREACH.DATE`, `OPEN.DATE`, `COMPLAINT.DATE` | ISO date strings (`YYYY-MM-DD`) |
 | `OWNERSHIP`, `STATEMENT`, `OWNERSHIP.PROOF`, `VERIFIED` | JSON `true` or `false` |
 
 Any field may be `null`, meaning the scraper found that it was absent from the
@@ -59,3 +59,8 @@ screening compatible with the existing session fields. The selected clinic SOL
 workflow preserves the defense for every debt buyer without asking for another
 payment date. For original creditors, the litigant confirms the complaint's timing
 estimate or answers a separate one-year question; this leaves the scraped date intact.
+
+`BREACH.DATE` maps to `BREACH-DATE` and `session.breach_date`. It is a separate
+verification after the filing date. A correction reports what the complaint
+states and updates its recorded breach date, while retaining `parsed_value`.
+An omitted breach date remains unknown; it is never assumed to be absent.

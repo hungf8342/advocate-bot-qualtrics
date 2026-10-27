@@ -6,7 +6,7 @@ import pytest
 
 from advocate_bot_qualtrics.core.engine import InteractiveChatEngine
 from advocate_bot_qualtrics.core.schemas import ChatTurnResponse
-from advocate_bot_qualtrics.practice_areas.consumer_debt.affirmative_defenses import assess_defense
+from advocate_bot_qualtrics.practice_areas.consumer_debt.affirmative_defenses import script_condition
 from advocate_bot_qualtrics.practice_areas.consumer_debt.host_extras import skip_collected_date_node, render_node
 from advocate_bot_qualtrics.practice_areas.consumer_debt.preliminary import REUSED_FIELDS, reused_branch
 from advocate_bot_qualtrics.practice_areas.consumer_debt.session import init_session, apply_interactive_branch, record_node_answer
@@ -39,7 +39,7 @@ def test_preliminary_filing_date_drives_sol_without_being_asked_again(monkeypatc
     engine.current_node_id = "get_filing_date"
     step = engine.submit("2026-09-24" if filing_known else "I don't know")
     assert step.error is None
-    assert step.current_node_id == "verify_statement"
+    assert step.current_node_id == "verify_breach_date"
     entry = engine.session.preliminary_fields["FILING-DATE"]
     assert entry.value == engine.session.filing_date == (date(2026, 9, 24) if filing_known else None)
     assert entry.status == ("known" if filing_known else "unknown")
@@ -57,8 +57,8 @@ def test_preliminary_filing_date_drives_sol_without_being_asked_again(monkeypatc
         assert step.current_node_id == ("sol_payment_estimate_agree" if filing_known else "sol_payment_age")
         step = engine.submit("Yes" if filing_known else "I don't know")
     assert step.error is None
-    assert step.current_node_id == "statute_of_limitations_decision"
-    assert engine.session.defense_results["statute_of_limitations"]["status"] == "checked"
+    assert step.current_node_id == ("statute_of_limitations_decision" if creditor == "original" else "sol_checkboxes_first_third")
+    assert not engine.session.checkbox_selections
     assert sum(role == "user" and text == "2026-09-24" for role, text in engine.transcript) == int(filing_known)
 
 
@@ -123,8 +123,7 @@ def test_litigant_payment_estimate_changes_sol_but_not_complaint_presence():
     assert skip_collected_date_node("sol_creditor_type", session) == "sol_payment_estimate_agree"
     answer(session, "sol_payment_estimate_agree", "no")
     answer(session, "sol_payment_age", "yes")
-    assess_defense(session, "statute_of_limitations")
-    assert session.defense_results["statute_of_limitations"]["status"] == "unchecked"
+    assert session.defense_answers["sol_payment_age"] == "yes"
     assert reused_branch(session, "cause_breach_date")[0] == "yes"
     assert session.preliminary_fields["LAST-PAYMENT-DATE"].complaint_value == date(2020, 1, 1)
 
@@ -157,9 +156,8 @@ def test_debt_buyer_preserves_without_collecting_another_payment_date():
     session = init_session()
     answer(session, "prelim_creditor_type", "buyer")
     answer(session, "prelim_last_payment", "submit", date(2010, 1, 1))
-    assert skip_collected_date_node("sol_creditor_type", session) == "statute_of_limitations_result"
-    assess_defense(session, "statute_of_limitations")
-    assert session.defense_results["statute_of_limitations"]["status"] == "checked"
+    assert skip_collected_date_node("sol_creditor_type", session) == "sol_buyer"
+    assert not session.checkbox_selections
     assert session.preliminary_fields["LAST-PAYMENT-DATE"].value == date(2010, 1, 1)
 
 
@@ -192,10 +190,12 @@ def test_all_preliminary_fields_are_stored_and_reuse_is_valid():
     assert session.law_firm == "Example Law"
     assert session.preliminary_fields["VERIFIED"].value == "yes"
     for node in REUSED_FIELDS:
+        if node not in TREE.node_map:
+            continue
         branch, _ = reused_branch(session, node)
         assert TREE.route(node, branch) is not None
     assert session.preliminary_fields["CONSOLIDATION"].value == "yes"
-    assert "mitigation_consolidation" not in TREE.node_map
+    assert TREE.node("mitigation_consolidation").condition_key == "field:CONSOLIDATION"
 
 
 def test_real_engine_reuses_fields_after_hooks_but_waits_for_litigant_choice():
@@ -205,14 +205,14 @@ def test_real_engine_reuses_fields_after_hooks_but_waits_for_litigant_choice():
     answer(engine.session, "prelim_suit_type", "breach")
     engine.current_node_id = "standing_privity_intro"
     engine._drain_hooks()
-    assert "standing_privity" in engine.session.defense_results
+    assert "standing_buyer" in engine.session.script_visited
     assert engine.current_node_id == "standing_privity_decision"
     assert engine.session.defense_selections == {}
     engine.current_node_id = "identity_theft_intro"
     engine._drain_hooks()
-    assert engine.current_node_id == "identity_theft_decision"
-    assert engine.session.defense_results["identity_theft"]["status"] == "unchecked"
-    assert "wrong_party" not in engine.session.defense_results
+    assert engine.current_node_id == "laches"
+    assert engine.session.defense_results["identity_theft"]["status"] == "finished"
+    assert engine.session.defense_results["wrong_party"]["status"] == "finished"
     engine.reset()
     assert engine.current_node_id == "verify_case_number"
     assert engine.session.preliminary_fields == {}

@@ -42,5 +42,5 @@ def test_last_payment_estimate_uses_complaint_dates():
     apply_interactive_branch(session, "prelim_last_payment", "submit", submitted_date=date(2025, 9, 24))
     question = render_node("sol_payment_estimate_agree", None, session).question
     assert "12.0 months" in question
-    assert "Do you agree with this estimate?" in question
+    assert "Do you agree with the last payment date in the complaint?" in question
     assert resolve_interactive_next_node("sol_payment_estimate_agree", "no") == "sol_payment_age"

@@ -34,6 +34,7 @@ INPUT_FIELDS = {
     "get_amount_sued": ("AMOUNT", "amount_sued"),
     "prelim_last_payment": ("LAST-PAYMENT-DATE", "last_payment_complaint"),
     "prelim_open_date": ("OPEN-DATE", "open_date"),
+    "prelim_breach_date": ("BREACH-DATE", "breach_date"),
 }
 CHOICE_FIELDS = {
     "prelim_creditor_type": "PLAINTIFF",
@@ -71,13 +72,14 @@ PARSED_FIELDS = {
     "LAST.PAYMENT.DATE": ("LAST-PAYMENT-DATE", "verify_last_payment"),
     "OPEN.DATE": ("OPEN-DATE", "verify_open_date"),
     "COMPLAINT.DATE": ("FILING-DATE", "verify_filing_date"),
+    "BREACH.DATE": ("BREACH-DATE", "verify_breach_date"),
     "STATEMENT": ("STATEMENT", "verify_statement"),
     "OWNERSHIP.PROOF": ("OWNERSHIP.PROOF", "verify_ownership_proof"),
     "VERIFIED": ("VERIFIED", "verify_verified"),
 }
 VERIFICATION_FIELDS = {node: tag for tag, node in PARSED_FIELDS.values()}
 FIELD_ATTRIBUTES = {tag: attr for tag, attr in INPUT_FIELDS.values()}
-DATE_TAGS = {"LAST-PAYMENT-DATE", "OPEN-DATE", "FILING-DATE"}
+DATE_TAGS = {"LAST-PAYMENT-DATE", "OPEN-DATE", "FILING-DATE", "BREACH-DATE"}
 
 
 def load_complaint_fields(session: InteractiveSessionState, values: dict) -> None:
@@ -189,6 +191,13 @@ def collect_preliminary_answer(
                 entry.complaint_status = "present" if value is not None else status
                 entry.complaint_source = node
             fields[tag] = entry
+        if tag == "BREACH-DATE":
+            # This question corrects the complaint's contents, not the user's
+            # preferred date of an actual breach. Keep the parsed value as provenance.
+            entry.complaint_value = value
+            entry.complaint_status = "present" if value is not None else status
+            entry.complaint_source = node
+            entry.verification = "corrected"
         setattr(session, attribute, value)
         if node == "prelim_correct_payment":
             session.last_payment_date_changed = True
@@ -236,10 +245,12 @@ REUSED_FIELDS = {
     "cause_creditor_type": ("PLAINTIFF", "value"),
     "fraud_creditor_type": ("PLAINTIFF", "value"),
     "standing_claim": ("OWNERSHIP", "value"),
-    "cause_original_owner": ("OWNERSHIP.PROOF", "value"),
+    "standing_proof": ("OWNERSHIP.PROOF", "value"),
+    "cause_original_owner": ("OWNERSHIP", "value"),
     "cause_purchase_documents": ("OWNERSHIP.PROOF", "value"),
     "cause_statement": ("STATEMENT", "value"),
     "cause_breach_contract": ("SUIT-TYPE", "breach"),
+    "cause_original_claim_type": ("SUIT-TYPE", "breach"),
     "cause_open_date": ("OPEN-DATE", "presence"),
     "cause_breach_date": ("LAST-PAYMENT-DATE", "presence"),
     "identity_recognize": ("RECOGNIZE", "value"),

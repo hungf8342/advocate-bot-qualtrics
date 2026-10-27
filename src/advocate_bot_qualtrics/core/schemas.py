@@ -73,14 +73,14 @@ class TreeBranch(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
     branch_id: str = Field(
-        description="Target node id when this branch is chosen.",
+        description="Allowed answer branch id; the host resolves it to a target node.",
     )
     label: str = Field(
         description="Human-readable option / matching hint.",
     )
 
 
-DiscussionMode = Literal["screening", "decision", "clarification", "questions"]
+DiscussionMode = Literal["screening", "decision", "clarification", "questions", "confirmation", "referral"]
 
 
 class CurrentNode(BaseModel):

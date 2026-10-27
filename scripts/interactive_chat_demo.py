@@ -28,6 +28,7 @@ FIELD_LABELS = {
     "ORAL": "Oral agreement only?",
     "LAST-PAYMENT-DATE": "Last payment date",
     "OPEN-DATE": "Account opening date",
+    "BREACH-DATE": "Complaint breach date",
     "STATEMENT": "Statement attached?",
     "OWNERSHIP": "Ownership / right to collect stated?",
     "OWNERSHIP.PROOF": "Ownership documents attached?",
@@ -121,11 +122,17 @@ def _format_debug(snapshot: dict) -> str:
 - Last payment (OG creditor): {snapshot.get("last_payment_og_creditor")}
 - Last payment (debt collector): {snapshot.get("last_payment_debt_collector")}
 
-**Internal screening assessments**
+**Defense workflow progress**
 {chr(10).join(f'- `{defense}`: {result["status"]}' for defense, result in (snapshot.get("defense_results") or {}).items()) or '- (none yet)'}
 
 **Litigant selections**
 {chr(10).join(f'- `{defense}`: {selection}' for defense, selection in (snapshot.get("defense_selections") or {}).items()) or '- (none yet)'}
+
+**Individual checkbox choices**
+{chr(10).join(f'- `{defense}.{box}`: {choice}' for defense, choices in (snapshot.get("checkbox_selections") or {}).items() for box, choice in choices.items()) or '- (none yet)'}
+
+**Unresolved clinic issues**
+{chr(10).join(f'- `{key}`: {issue["reason"]}' for key, issue in (snapshot.get("defense_open_questions") or {}).items()) or '- (none)'}
 
 **Preliminary fields**
 {_format_preliminary_fields(snapshot.get("preliminary_fields") or {})}

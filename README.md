@@ -1,6 +1,6 @@
 # Advocate Bot Qualtrics
 
-This is a confidential consumer-debt decision-tree chatbot. It accepts fact-only preliminary fields from a separate complaint scraper, asks litigants to verify them, and then presents the nine affirmative defenses covered by the explanation documents. Parsed values and litigant corrections are kept in the active session. Complaint scraping itself is handled outside this application.
+This is a confidential consumer-debt decision-tree chatbot. It accepts fact-only preliminary fields from a separate complaint scraper, asks litigants to verify them, and then presents the 21 affirmative defenses in the October 25 conversation scripts. Parsed values and litigant corrections are kept in the active session. Complaint scraping itself is handled outside this application.
 
 ## Setup
 
@@ -40,14 +40,13 @@ The demo has no file-upload control. Do not use its public-share option with rea
 
 The declarative consumer-debt tree is in [`interactive_tree.yaml`](src/advocate_bot_qualtrics/practice_areas/consumer_debt/interactive_tree.yaml). Preliminary Questions display approved explanations and ask whether the litigant agrees with each parsed field. A "No" asks for their preferred value; there is one agreement question per field. Account recognition, oral agreement, and debt consolidation remain direct questions. The sidebar shows all parsed fields before verification and labels their verification status. Ownership assertions and attached ownership evidence are separate fields.
 
-The host (the Python conversation engine) reuses verified answers and preferred values, follows the YAML branches, and computes internal screening assessments. Original parsed values remain available for reference and complaint-presence checks. The complaint filing date is verified after the account-opening date and used without asking again. Original-creditor SOL screening asks the litigant to confirm the complaint's payment-to-filing estimate, or answer whether payment was less than a year before filing. The clinic screen explains preservation for a year or more, uncertainty, or a debt-buyer plaintiff. This one-year screen is separate from the legal filing deadline. The litigant decides whether to include the defense.
+The host (the Python conversation engine) reuses verified answers and preferred values, follows the YAML branches, and evaluates the scripts’ factual conditions. Original parsed values remain available for reference and complaint-presence checks. The complaint filing date is verified after the account-opening date and used without asking again. Original-creditor SOL screening asks the litigant to confirm the complaint's last-payment date, or answer whether payment was a year or more before filing. This one-year screen is separate from the legal filing deadline. The litigant decides whether to include the defense.
 
-The LLM classifies answers and generates help and final Q&A responses. The host validates routing against the current node's declared branch IDs and displays approved node explanations. The first nine defenses integrate the updated October explanations: statute of limitations, ambiguity, standing/privity, failure to state a cause of action, mistake, identity theft, wrong party, laches, and fraud/misrepresentation/concealment. Each subsection shows a heading, general explanation, known facts, applicable questions, and personalized explanation. Every defense then asks whether the litigant wants to check it off. An uncertain answer offers clarification and stays on that defense until the litigant chooses. Relevant questions receive focused answers grounded in the approved text and recorded facts; unrelated questions are redirected. The final review recaps the litigant's own choices and clinic referrals, without announcing computed checkbox statuses.
+The LLM classifies answers and answers questions using the active defense's approved text and recorded facts. The host validates every advancing branch. All 21 defenses follow the October 25 scripts. Each begins with its general explanation and follows the applicable fact questions and guidance. A “Finish this defense” instruction advances directly without offering a checkbox.
 
-The two explanation documents are the sources for the YAML content and routing.
-Document IF branches evaluate intake facts silently. Ambiguity and Mistake contain
-only general explanations, so each leads directly to the litigant's selection.
-The flow ends after the ninth defense; the basic decision tree is retained as a reference document.
+Offered checkboxes receive an explicit Yes/No choice. Indented boxes mentioned together in the script, such as the first and third SOL boxes, share one question and one answer for both. Facts never select boxes automatically. Each selection section ends with a checklist and a readiness confirmation. An uncertain choice stays local until the user chooses. Unresolved factual questions block advancement until answered; referrals require explicit confirmation that clinic staff addressed the issue. The final review recaps individual checkbox choices and any open clinic issues.
+
+The October 11 preliminary explanations and October 25 defense scripts govern the YAML. Intake additionally verifies `BREACH.DATE`, separately from the last-payment date, so the fourth Breach of Contract checkbox is offered only when both dates are absent. The source scripts and migration decisions are documented in [the October 25 source guide](docs/source-material/2026-10-25/README.md).
 
 Preliminary questions have headings, and conditional explanation paragraphs retain
 their original document positions. The [affirmative-defense integration review](docs/affirmative-defense-integration-review.md)
@@ -63,7 +62,7 @@ for the implemented rules and subsequent user decisions.
 - `scripts/`: local demo and its UI assets.
 - `tests/`: automated routing, intake, screening, Q&A, presentation, and export checks.
 
-The former `advocate_bot_qualtrics.decision_tree` compatibility package has been removed; use the canonical modules above. The package-level `process_chat` import remains available. The current source documents are in `docs/source-material/2026-10-11/`.
+The former `advocate_bot_qualtrics.decision_tree` compatibility package has been removed; use the canonical modules above. The package-level `process_chat` import remains available. The current source documents are in `docs/source-material/2026-10-11/` (preliminary intake) and `docs/source-material/2026-10-25/` (affirmative defenses).
 
 See [decision-tree structure and field reuse](docs/decision-tree.md) for editing guidance. Restart the demo after changing YAML or Python, then refresh the browser to start a new session.
 

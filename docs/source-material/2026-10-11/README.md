@@ -3,10 +3,10 @@
 - `2026.10.11 basic-decision-tree.docx`: historical reference; not a source for the active YAML.
 - `2026.10.11 explanations-prelim-questions.docx`: approved preliminary explanations,
   including creditor-specific wording. These are incorporated in the live YAML.
-- `2026.10.11 explanations-aff-defenses.docx`: general explanations, personalized
-  facts, and application wording for the first nine defenses, incorporated in the live flow.
+- `2026.10.11 explanations-aff-defenses.docx`: historical defense source, superseded
+  by the October 25 conversation scripts.
 
-The chatbot implements preliminary field verification and the first nine defenses
-from the two explanation documents only. The flow ends after the ninth defense
-until further explanations are provided. Triage and fee waivers are outside this implementation. The external scraper
+The chatbot implements preliminary field verification and 21 defenses using the
+October 11 preliminary source and October 25 conversation scripts. Triage and
+fee waivers are outside this implementation. The external scraper
 supplies facts only; it does not decide which defenses apply.

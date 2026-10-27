@@ -208,7 +208,7 @@ class InteractiveChatEngine:
                     user_message=user_message,
                     confidence_pct=0,
                     skipped=True,
-                    prefix_messages=[] if definition.discussion_mode in {"decision", "clarification", "questions"} else [_IDK_SKIP_MESSAGE],
+                    prefix_messages=[] if definition.discussion_topic else [_IDK_SKIP_MESSAGE],
                 )
 
         payload = build_user_payload(self.transcript, user_message)

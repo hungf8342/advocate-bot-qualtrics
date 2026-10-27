@@ -10,7 +10,6 @@ from advocate_bot_qualtrics.config import (
     load_confidence_scoring_calibration,
 )
 from advocate_bot_qualtrics.core.bundle import PracticeAreaBundle, register_bundle
-from advocate_bot_qualtrics.practice_areas.consumer_debt.affirmative_defenses import assess_defense
 from advocate_bot_qualtrics.practice_areas.consumer_debt.computations import (
     run_fdcpa_computation,
     run_sol_computation,
@@ -47,11 +46,10 @@ TERMINAL_NODE_ID = "review_questions"
 
 
 def _run_hook(session: object, action: str) -> str:
-    if action.startswith("explain_"):
-        # The rendered node supplies the document explanation and known facts.
-        return ""
-    if action.startswith("assess_"):
-        return assess_defense(session, action.removeprefix("assess_"))
+    if action.startswith("script_"):
+        from advocate_bot_qualtrics.practice_areas.consumer_debt.affirmative_defenses import run_script_action
+
+        return run_script_action(session, action)
     if action in {"sol_computation", "calculate_statute_of_limitations"}:
         return run_sol_computation(session)
     if action == "fdcpa_computation":

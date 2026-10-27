@@ -57,64 +57,14 @@ def _fmt_date(value: date | None) -> str:
     return value.isoformat() if value else "unknown"
 
 
-def render_node(
-    node_id: str,
-    facts: object | None,
-    session: InteractiveSessionState,
-) -> CurrentNode:
+def render_node(node_id: str, facts: object | None, session: InteractiveSessionState) -> CurrentNode:
+    """Render approved wording with confirmed case facts and the pending question."""
+    if INTERACTIVE_TREE_DEFINITION.node(node_id).discussion_topic:
+        return _render_script_node(node_id, session)
+    from advocate_bot_qualtrics.practice_areas.consumer_debt.affirmative_defenses import defense_summary, personalize
+
     source = INTERACTIVE_TREE[node_id]
-    del facts
-    filing = session.filing_date
-    last_payment = session.last_payment_complaint
-
-    question = source.question.replace(_FILING_TOKEN, _fmt_date(filing))
-    question = question.replace(_LAST_PAYMENT_TOKEN, _fmt_date(last_payment))
-    from advocate_bot_qualtrics.practice_areas.consumer_debt.affirmative_defenses import (
-        complaint_payment, defense_facts, defense_summary, personalize, preliminary_value,
-    )
-
-    payment = complaint_payment(session)
-    elapsed = (f"{(filing - payment).days / 30.4375:.1f}" if filing and payment else "unknown")
-    entry = session.preliminary_fields.get("LAST-PAYMENT-DATE")
-    if entry and entry.complaint_status == "present" and isinstance(entry.complaint_value, date):
-        payment_restatement = f"The complaint lists the last payment date as {entry.complaint_value.isoformat()}."
-    elif entry and entry.complaint_status == "missing":
-        payment_restatement = "The complaint does not appear to list the last payment date."
-    else:
-        payment_restatement = ""
-    if session.defense_answers.get("sol_payment_estimate_agree") == "no":
-        payment_context = "You have indicated you disagree with how much time passed between your last payment and [PLAINTIFF] filing a complaint."
-    elif session.defense_answers.get("sol_payment_available") == "missing":
-        payment_context = "The complaint did not appear to include the last payment date."
-    else:
-        payment_context = "The time between your last payment and filing has not been confirmed."
-    payment_context += " If the complaint does not give the correct last payment date, your bank records, payment confirmations, or account history may help you estimate when you last paid. Whether the last payment was less than a year before [PLAINTIFF] filed the complaint would be useful enough."
-
-    consolidation = session.defense_answers.get("mitigation_consolidation")
-    negotiation_party = (
-        "you or your debt consolidation company" if consolidation == "yes"
-        else "you" if consolidation == "no"
-        else "you or a debt consolidation company acting for you, if any"
-    )
-    replacements = {
-        "{payment_recipient}": "the debt buyer" if session.defense_answers.get("sol_creditor_type") == "buyer" else "the original creditor",
-        "{negotiation_party}": negotiation_party,
-        "{agreement_party}": negotiation_party,
-        "{defense_summary}": defense_summary(session),
-        "{amount_sued}": session.amount_sued or "unknown",
-        "{open_date}": _fmt_date(session.open_date),
-        "{defense_facts}": defense_facts(session, node_id.removesuffix("_intro")),
-        "{payment_elapsed_months}": elapsed,
-        "{complaint_payment_restatement}": payment_restatement,
-        "{payment_age_context}": payment_context,
-        "{fraud_parties}": "[PLAINTIFF] or [ORIGINAL.CREDITOR]" if preliminary_value(session, "PLAINTIFF") == "buyer" else "[PLAINTIFF]",
-        "{identity_uncertainty}": "You’ve indicated that you’re not sure whether someone stole your identity to create this debt." if session.defense_answers.get("identity_recognize") == "no" else "You’ve indicated that you’re not sure whether you recognize this account as one you opened.",
-        "{identity_help_question}": "Do you have further questions on how to determine whether this account exists because of ID theft?" if session.defense_answers.get("identity_recognize") == "no" else "Do you have further questions on how to determine whether this account belongs to you or not?",
-        "{wrong_party_uncertainty}": "You’ve indicated that you’re not sure whether someone else opened the account." if session.defense_answers.get("wrong_party_recognize") == "no" else "You’ve indicated that you’re not sure whether you recognize this account as one you opened.",
-    }
-    for token, value in replacements.items():
-        question = question.replace(token, value)
-    question = personalize(session, question)
+    question = source.question.replace("{defense_summary}", defense_summary(session))
     if node_id in VERIFICATION_FIELDS:
         entry = session.preliminary_fields.get(VERIFICATION_FIELDS[node_id])
         value = entry.complaint_value if entry else None
@@ -135,62 +85,61 @@ def render_node(
                 label = "a debt buyer" if block.creditor_type == "buyer" else "an original creditor"
                 paragraphs.append(f"For {label}: {block.text}")
         text = "\n\n".join(paragraphs) if explanation.blocks else explanation.text
-        for token, value in replacements.items():
-            text = text.replace(token, value)
-        for token, tag, fallback in (
-            ("[PLAINTIFF]", "PLAINTIFF-NAME", "the plaintiff"),
-            ("[ORIGINAL.CREDITOR]", "ORIGINAL.CREDITOR", "the original creditor"),
-        ):
-            entry = session.preliminary_fields.get(tag)
-            text = text.replace(token, str(entry.value) if entry and entry.value else fallback)
+        text = personalize(session, text)
         explanation = explanation.model_copy(update={"text": text, "blocks": []})
         if explanation.show_with_question:
             question = text + "\n\n" + question
     if source.title:
         question = f"### {source.title}\n\n{question}"
-    if source.discussion_mode in {"decision", "clarification", "questions"}:
-        defense = node_id.rsplit("_", 1)[0]
-        context = [explanation.text if explanation else "", personalize(session, defense_facts(session, defense))]
-        result = session.defense_results.get(defense)
-        if result:
-            context.append(result["reason"])
-        # Give scoped Q&A the relevant answers even when earlier turns have
-        # fallen out of the model's short transcript window. No assessment
-        # statuses or unverified scraper fields are included.
-        for definition in INTERACTIVE_TREE_DEFINITION.nodes:
-            if (definition.discussion_topic != source.discussion_topic
-                    or definition.discussion_mode != "screening" or definition.kind != "choice"):
-                continue
-            answer = session.defense_answers.get(definition.id)
-            branch = next((b for b in definition.branches if b.id == answer), None)
-            if branch is not None:
-                detail = definition.question
-                for token, value in replacements.items():
-                    detail = detail.replace(token, value)
-                context.append(personalize(session, detail) + "\nRecorded answer: " + branch.label)
-        if defense == "statute_of_limitations":
-            if payment:
-                context.append(f"The complaint's listed last payment date is {payment.isoformat()}.")
-            if filing:
-                context.append(f"The confirmed complaint filing date is {filing.isoformat()}.")
-        from advocate_bot_qualtrics.core.schemas import NodeExplanation
-
-        explanation = NodeExplanation(text="\n\n".join(part for part in context if part.strip()))
-    branches = [
-        branch.model_copy(
-            update={
-                "label": branch.label.replace(_FILING_TOKEN, _fmt_date(filing)).replace(
-                    _LAST_PAYMENT_TOKEN, _fmt_date(last_payment)
-                )
-            }
-        )
-        for branch in source.branches
-    ]
-    return source.model_copy(update={"question": question, "branches": branches, "explanation": explanation})
+    return source.model_copy(update={"question": personalize(session, question), "explanation": explanation})
 
 
 def skip_collected_date_node(next_node_id: str, session: InteractiveSessionState) -> str:
     """Reuse collected PRELIM-01 fields, following only declared branch targets."""
+    definition = INTERACTIVE_TREE_DEFINITION.node(next_node_id)
+    if definition.selection_checkboxes:
+        boxes = definition.selection_checkboxes
+        choices = session.checkbox_selections.get(boxes[0].defense_id, {})
+        previous_values = {choices.get(box.checkbox_id) for box in boxes}
+        previous = next(iter(previous_values)) if len(previous_values) == 1 else None
+        if previous is not None:
+            source = next((n.id for n in INTERACTIVE_TREE_DEFINITION.nodes
+                           if n.id != next_node_id and n.selection_checkboxes == boxes
+                           and session.defense_answers.get(n.id) in {"yes", "no"}), None)
+            if source is not None:
+                branch = "yes" if previous == "include" else "no"
+                target = INTERACTIVE_ROUTES[(next_node_id, branch)]
+                apply_interactive_branch(session, next_node_id, branch)
+                session.reused_answers[next_node_id] = source
+                record = session.node_answers.get(source)
+                record_node_answer(session, next_node_id, branch, record.confidence_pct if record else 0)
+                return skip_collected_date_node(target, session)
+    if definition.condition_key is not None:
+        from advocate_bot_qualtrics.practice_areas.consumer_debt.affirmative_defenses import script_condition
+
+        branch = script_condition(session, definition.condition_key)
+        target = INTERACTIVE_ROUTES.get((next_node_id, branch))
+        if target is None:
+            raise ValueError(f"Condition {next_node_id!r} has no {branch!r} route")
+        apply_interactive_branch(session, next_node_id, branch)
+        return skip_collected_date_node(target, session)
+
+    for node_id, source in {
+        "excuse_uncredited": "common_counts_uncredited",
+        "excuse_insurance": "common_counts_insurance",
+    }.items():
+        if next_node_id == node_id and source in session.defense_answers:
+            branch = session.defense_answers[source]
+            source = session.script_fact_sources.get("answer:" + source, source)
+            target = INTERACTIVE_ROUTES.get((node_id, branch))
+            if target is None:
+                raise ValueError(f"Reused answer {branch!r} has no route from {node_id!r}")
+            apply_interactive_branch(session, node_id, branch)
+            session.reused_answers[node_id] = source
+            record = session.node_answers.get(source)
+            record_node_answer(session, node_id, branch, record.confidence_pct if record else 0)
+            return skip_collected_date_node(target, session)
+
     while (reused := reused_branch(session, next_node_id)) is not None:
         branch, source = reused
         definition = INTERACTIVE_TREE_DEFINITION.node(next_node_id)
@@ -276,6 +225,14 @@ def build_debug_snapshot(
         "fdcpa_outcome": last_outcomes.get("fdcpa", "—"),
         "defense_results": session.defense_results,
         "defense_selections": session.defense_selections,
+        "checkbox_selections": session.checkbox_selections,
+        "defense_open_questions": session.defense_open_questions,
+        "script_facts": session.script_facts,
+        "script_fact_sources": session.script_fact_sources,
+        "breach_date": _fmt_date(session.breach_date),
+        "primary_language": session.primary_language,
+        "mitigation_contact_reason": session.mitigation_contact_reason,
+        "mitigation_settlement_reason": session.mitigation_settlement_reason,
         "preliminary_fields": {
             tag: {key: value.isoformat() if isinstance(value, date) else value
                   for key, value in asdict(entry).items()}
@@ -294,3 +251,66 @@ def build_debug_snapshot(
         },
         "session_fields_xlsx": last_export_path or "",
     }
+
+
+def _script_text(text: str, session: InteractiveSessionState) -> str:
+    """Substitute facts in approved script wording without evaluating defenses."""
+    from advocate_bot_qualtrics.practice_areas.consumer_debt.affirmative_defenses import (
+        complaint_payment, personalize,
+    )
+
+    for token, tag in (("[OPEN.DATE]", "OPEN-DATE"), ("[LAST.PAYMENT.DATE]", "LAST-PAYMENT-DATE")):
+        entry = session.preliminary_fields.get(tag)
+        value = entry.complaint_value if entry else None
+        text = text.replace(token, value.isoformat() if isinstance(value, date) else "unknown")
+    text = text.replace("[LANGUAGE]", session.primary_language or "your primary language")
+    payment = complaint_payment(session)
+    filing = session.filing_date
+    months = f"{(filing - payment).days / 30.4375:.1f}" if filing and payment else "unknown"
+    text = text.replace("[months between that payment and filing]", months)
+    restatement = f"The complaint lists your last payment as {payment.isoformat()}, about {months} months before it was filed." if payment else "The last-payment date in the complaint has not been established."
+    text = text.replace("{complaint_payment_restatement}", restatement)
+    return personalize(session, text)
+
+
+def _render_script_node(node_id: str, session: InteractiveSessionState) -> CurrentNode:
+    from advocate_bot_qualtrics.core.schemas import NodeExplanation
+    from advocate_bot_qualtrics.practice_areas.consumer_debt.affirmative_defenses import (
+        DEFENSE_LABELS, checkbox_summary, script_condition,
+    )
+
+    definition = INTERACTIVE_TREE_DEFINITION.node(node_id)
+    source = INTERACTIVE_TREE[node_id]
+    defense = next(key for key, label in DEFENSE_LABELS.items()
+                   if INTERACTIVE_TREE_DEFINITION.node(key + "_intro").discussion_topic == definition.discussion_topic)
+
+    def wording(node):
+        text = next((v.text for v in node.question_variants
+                     if script_condition(session, v.fact_key) == v.equals), node.question)
+        facts = [v.text for v in node.fact_restatements
+                 if script_condition(session, v.fact_key) == v.equals]
+        return _script_text("\n\n".join(part for part in [*facts, text] if part), session)
+
+    question = wording(definition).replace("{checkbox_summary}", checkbox_summary(session, defense))
+    intro = INTERACTIVE_TREE_DEFINITION.node(defense + "_intro")
+    approved = _script_text(intro.explanation.text, session)
+    if definition.explanation and definition.explanation.show_with_question:
+        question = approved + ("\n\n" + question if question else "")
+    context = [approved]
+    for visited in dict.fromkeys(session.script_visited):
+        node = INTERACTIVE_TREE_DEFINITION.node(visited)
+        if node.discussion_topic == definition.discussion_topic:
+            context.append(wording(node))
+    for node in INTERACTIVE_TREE_DEFINITION.nodes:
+        if node.discussion_topic != definition.discussion_topic:
+            continue
+        answer = session.defense_answers.get(node.id)
+        if answer is not None and node.kind in {"choice", "input"}:
+            branch = next((b for b in node.branches if b.id == answer), None)
+            if branch:
+                context.append(wording(node) + "\nRecorded answer: " + branch.label)
+    context.append(question)
+    if definition.title:
+        question = f"### {definition.title}\n\n{question}"
+    return source.model_copy(update={"question": question,
+        "explanation": NodeExplanation(text="\n\n".join(dict.fromkeys(part for part in context if part)))})

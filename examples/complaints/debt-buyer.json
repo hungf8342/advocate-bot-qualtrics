@@ -12,5 +12,6 @@
   "COMPLAINT.DATE": "2026-10-01",
   "STATEMENT": false,
   "OWNERSHIP.PROOF": false,
-  "VERIFIED": true
+  "VERIFIED": true,
+  "BREACH.DATE": null
 }

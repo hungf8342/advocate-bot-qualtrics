@@ -71,7 +71,7 @@ def test_real_engine_verifies_all_applicable_fields_before_defenses(name, determ
     visited = []
     for _ in range(len(TREE.nodes)):
         node = engine.current_node_id
-        if node in {"sol_payment_estimate_agree", "sol_payment_age", "statute_of_limitations_decision"}:
+        if node in {"sol_payment_estimate_agree", "sol_payment_age", "statute_of_limitations_decision", "sol_checkboxes_first_third"}:
             break
         visited.append(node)
         branch = "no" if node in {"prelim_oral", "prelim_consolidation"} else "yes"
@@ -115,7 +115,7 @@ def test_preferred_filing_date_replaces_effective_date_and_keeps_export_provenan
     engine = InteractiveChatEngine.from_user_input(complaint_fields=complaint())
     engine.current_node_id = "verify_filing_date"
     assert engine.submit("no").current_node_id == "get_filing_date"
-    assert engine.submit("2026-09-25").current_node_id == "verify_statement"
+    assert engine.submit("2026-09-25").current_node_id == "verify_breach_date"
     entry = engine.session.preliminary_fields["FILING-DATE"]
     assert engine.session.filing_date == date(2026, 9, 25)
     assert entry.complaint_value == date(2026, 9, 30)
@@ -177,3 +177,25 @@ def test_omitted_and_explicitly_missing_fields_are_distinct():
     session = init_session({"OPEN.DATE": None})
     assert session.preliminary_fields["OPEN-DATE"].complaint_status == "missing"
     assert session.preliminary_fields["FILING-DATE"].complaint_status == "unknown"
+
+
+@pytest.mark.parametrize('value,branch,status', [('2024-03-01','submit','present'),(None,'missing','missing'),(None,'unknown','unknown')])
+def test_breach_date_correction_updates_complaint_contents_and_preserves_parsed_value(value,branch,status):
+    from advocate_bot_qualtrics.practice_areas.consumer_debt.affirmative_defenses import script_condition
+    session=init_session({'BREACH.DATE':'2023-01-01'})
+    apply_interactive_branch(session,'verify_breach_date','no')
+    apply_interactive_branch(session,'prelim_breach_date',branch,
+        submitted_date=date.fromisoformat(value) if value else None)
+    entry=session.preliminary_fields['BREACH-DATE']
+    assert entry.parsed_value==date(2023,1,1)
+    assert entry.complaint_value==session.breach_date==(date.fromisoformat(value) if value else None)
+    assert entry.complaint_status==status
+    assert script_condition(session,'complaint:BREACH-DATE')=={'present':'yes','missing':'no','unknown':'unknown'}[status]
+
+
+def test_omitted_breach_date_is_not_assumed_missing():
+    from advocate_bot_qualtrics.practice_areas.consumer_debt.affirmative_defenses import script_condition
+    session=init_session({})
+    apply_interactive_branch(session,'verify_breach_date','yes')
+    assert session.preliminary_fields['BREACH-DATE'].complaint_status=='unknown'
+    assert script_condition(session,'complaint:BREACH-DATE')=='unknown'
