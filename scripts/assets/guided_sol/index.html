@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0d686d">
+  <title>Debt case guide · Guided review</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='12' fill='%230d686d'/%3E%3Cpath d='M11 21l6 6 13-15' fill='none' stroke='white' stroke-width='4'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/assets/style.css">
+  <script src="/assets/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar"><a class="brand" href="/" aria-label="Debt case guide home"><span class="brand-symbol" aria-hidden="true">✦</span>Debt case guide</a><div class="top-actions"><span class="prototype-badge">GUIDED PROTOTYPE</span><button class="text-button" id="restart">Start over</button></div></header>
+  <div class="section-bar"><span>ONE SECTION AT A TIME</span><span><span id="section-name">Preliminary fields</span> <b id="section-count">01 / 03</b></span></div>
+  <nav class="progress" aria-label="Review progress"><ol>
+    <li data-stage="0"><span class="step-number">1</span><span>Preliminary fields</span></li>
+    <li data-stage="1"><span class="step-number">2</span><span>Statute of Limitations</span></li>
+    <li data-stage="2"><span class="step-number">3</span><span>Ambiguity</span></li>
+  </ol></nav>
+  <div class="layout">
+    <main id="main-content" aria-busy="true">
+      <button class="back-button" id="back" disabled><span aria-hidden="true">←</span> Back</button>
+      <div class="eyebrow" id="eyebrow">STATUTE OF LIMITATIONS</div>
+      <h1 id="question" tabindex="-1">Preparing your review…</h1>
+      <div id="body" class="body-copy"></div>
+      <div id="revision-notice" class="revision-notice" role="status" hidden></div>
+      <div id="visual"></div>
+      <form id="answer-form" novalidate>
+        <div id="answer-control"></div>
+        <p id="form-error" class="error" role="alert" hidden></p>
+        <div class="form-footer"><button id="next" class="primary-button" type="submit" disabled><span id="next-label">Next</span><span aria-hidden="true">→</span></button><span id="step-note" class="quiet"></span></div>
+      </form>
+      <div class="source-note">Based on the October 30 clinic script · Statute of Limitations &amp; Ambiguity prototype</div>
+    </main>
+    <aside class="sidebar" aria-label="Help with this page">
+      <section><div class="aside-icon" id="aside-icon" aria-hidden="true">i</div><h2 id="aside-title">Why we ask</h2><p id="why">You’re in control of the choices you make.</p></section>
+      <section class="help-section"><h2>Need help?</h2><p>You can ask about this question before answering.</p><button class="outline-button" id="ask"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5a8 8 0 0 1-8 7.5H8l-5 3 1.5-5A7 7 0 0 1 4 6a8.5 8.5 0 0 1 16 5.5Z"/></svg>Ask a question</button><button class="text-button details-link" id="view-details">View case details</button></section>
+      <div class="reassurance"><span aria-hidden="true">↶</span><p>Your answers can be changed before you finish.</p></div>
+    </aside>
+  </div>
+  <dialog id="case-dialog" aria-labelledby="case-title"><div class="dialog-head"><h2 id="case-title">Your case details</h2><button class="icon-button" id="close-details" aria-label="Close case details">×</button></div><p class="quiet">Details confirmed in this guided review.</p><div id="case-fields"></div><p class="small-note">Example fields are prefilled. Each becomes part of the review only after you confirm it with Next.</p></dialog>
+  <dialog id="restart-dialog" aria-labelledby="restart-title"><h2 id="restart-title">Start a new review?</h2><p>This clears the answers and checkbox choices in this tab.</p><div class="dialog-actions"><button class="outline-button" id="cancel-restart">Keep reviewing</button><button class="primary-button" id="confirm-restart">Start over</button></div></dialog>
+  <section class="chat-panel" id="chat-panel" role="dialog" aria-labelledby="chat-title" hidden>
+    <div class="chat-header"><div><span class="eyebrow">HELP WITH THIS PAGE</span><h2 id="chat-title">Ask a question</h2></div><button class="icon-button" id="close-chat" aria-label="Close clarification chat">×</button></div>
+    <div class="chat-context" id="chat-context"></div>
+    <div class="chat-messages" id="chat-messages" role="log" aria-live="polite" aria-label="Clarification conversation"></div>
+    <details class="approved-help"><summary>Read the page explanation</summary><div id="approved-text"></div></details>
+    <form id="chat-form"><label class="sr-only" for="chat-input">Your clarifying question</label><textarea id="chat-input" rows="2" maxlength="1500" placeholder="What would you like to clarify?"></textarea><button id="chat-send" type="submit" aria-label="Send clarifying question">↑</button></form>
+    <p class="chat-footnote">This chat explains the page. Record your choices using the form.</p>
+  </section>
+  <noscript>This guided prototype needs JavaScript enabled.</noscript>
+</body>
+</html>

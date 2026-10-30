@@ -8,6 +8,9 @@ verification added to support the new scripts.
 Implementation decisions confirmed by the user:
 
 - “Finish this defense” advances without offering its checkbox.
+- The user corrected an omission in the debt-buyer SOL arm: always ask about
+  the main SOL defense before the first/third indented boxes. Yes and No remain
+  explicit litigant choices; debt-buyer status never selects the main box.
 - Indented checkboxes mentioned together in the source receive one combined
   choice. For SOL, one Yes/No answer applies to both the first and third boxes;
   the oral-contract second box remains a separate choice. Main and parent boxes

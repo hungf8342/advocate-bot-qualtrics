@@ -1,0 +1,27 @@
+# October 30 wording for the two-defense click-through prototype.
+# Routing continues to use the canonical tree; other chatbot defenses are unchanged.
+source: docs/source-material/2026-10-30/2026.10.30-affirmative-defenses.docx
+nodes:
+  statute_of_limitations_intro:
+    explanation: >-
+      Statute of limitations is a rule that says if [PLAINTIFF] waits too long, they cannot sue you.
+      The maximum length of time they can wait varies from 2 to 6 years, depending on which state’s law applies.
+      Statute of limitations is a strong defense if it applies. Consider raising this defense in an answer
+      if [PLAINTIFF] filed their complaint one year or more after your last payment.
+  sol_buyer:
+    question: >-
+      Debt buyers often sue on older accounts or don't have records of a last payment you made to the original creditor.
+      Litigants often check off the statute of limitations defense to preserve it.
+  ambiguity_intro:
+    explanation: >-
+      Ambiguity may be applicable if you are at all confused about the suit, the amount sued for, or what the charges are.
+      For example, the documents filed with the court may not contain your entire account history or contract,
+      meaning you may need to ask for more information from [PLAINTIFF] later.
+      Many litigants check off ambiguity, since it is a broad defense.
+confirmation:
+  selected: >-
+    Based on your answers to this defense section, here are the checkboxes you’ve indicated you’d like to check off.
+    Raise your hand and notify clinic staff if you have further questions about this defense.
+  empty: >-
+    Based on your answers to this defense section, you don’t want to check off the defense.
+    Raise your hand and notify clinic staff if you have further questions about this defense.

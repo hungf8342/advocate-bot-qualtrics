@@ -152,7 +152,10 @@ their existing provenance.
 
 ## Reuse and results
 
-The October 25 scripts govern all 21 defenses. General explanations and applicable
+The October 25 scripts and the documented user corrections govern all 21 defenses.
+The debt-buyer SOL arm now asks for an explicit main-defense choice before the
+combined first/third choice; declining the main defense does not select or decline
+any indented boxes. General explanations and applicable
 responses stay in YAML. `affirmative_defenses.py` evaluates factual conditions and
 records workflow progress, without choosing boxes. A “Finish this defense” path
 advances directly. General-only defenses lead directly to a choice.

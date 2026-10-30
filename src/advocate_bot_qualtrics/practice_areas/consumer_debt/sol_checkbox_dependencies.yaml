@@ -1,0 +1,59 @@
+# October 30 SOL dependency table. Describes offers, never automatic selections.
+# The script now explicitly includes the debt-buyer main-defense question.
+version: '1'
+personalization_only:
+  - guided_plaintiff
+  - guided_original_creditor
+facts:
+  plaintiff_type:
+    fields: [guided_creditor_type]
+    questions: [sol_creditor_type_resolve]
+  payment_timing:
+    fields: [guided_payment_date, guided_filing_date]
+    questions: [sol_payment_estimate_agree, sol_payment_age]
+    # Show the evidence actually used, rather than every possible timing input.
+    # Personal estimates do not use a missing/disputed complaint payment date.
+    review_evidence:
+      - answer: sol_payment_age
+        values: ['yes', 'no', unknown]
+        fields: [guided_filing_date]
+        questions: [sol_payment_age]
+      - answer: sol_payment_estimate_agree
+        values: ['yes']
+        fields: [guided_payment_date, guided_filing_date]
+        questions: [sol_payment_estimate_agree]
+      - answer: sol_payment_estimate_agree
+        values: [reuse_comparison]
+        fields: [guided_payment_date, guided_filing_date]
+        questions: []
+  oral_agreement:
+    fields: [guided_oral]
+    questions: [sol_oral_gate_resolve]
+rules:
+  eligible_path:
+    any:
+      - fact: plaintiff_type
+        equals: buyer
+      - all:
+          - fact: plaintiff_type
+            equals: original
+          - fact: payment_timing
+            one_of: [qualifying, uncertain]
+  oral_path:
+    all:
+      - rule: eligible_path
+      - fact: oral_agreement
+        equals: 'yes'
+checkboxes:
+  main:
+    rule: eligible_path
+    question: statute_of_limitations_decision
+  first:
+    rule: eligible_path
+    question: sol_checkboxes_first_third
+  third:
+    rule: eligible_path
+    question: sol_checkboxes_first_third
+  second:
+    rule: oral_path
+    question: sol_checkbox_second

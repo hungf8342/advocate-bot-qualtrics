@@ -57,7 +57,7 @@ def test_preliminary_filing_date_drives_sol_without_being_asked_again(monkeypatc
         assert step.current_node_id == ("sol_payment_estimate_agree" if filing_known else "sol_payment_age")
         step = engine.submit("Yes" if filing_known else "I don't know")
     assert step.error is None
-    assert step.current_node_id == ("statute_of_limitations_decision" if creditor == "original" else "sol_checkboxes_first_third")
+    assert step.current_node_id == "statute_of_limitations_decision"
     assert not engine.session.checkbox_selections
     assert sum(role == "user" and text == "2026-09-24" for role, text in engine.transcript) == int(filing_known)
 

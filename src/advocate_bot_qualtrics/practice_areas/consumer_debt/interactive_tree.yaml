@@ -941,7 +941,7 @@ nodes:
     discussion_topic: Statute of Limitations
     discussion_mode: screening
     action: script_say:statute_of_limitations:sol_buyer
-    next: sol_guidance
+    next: statute_of_limitations_decision
   - id: sol_payment_available
     kind: condition
     question: ''

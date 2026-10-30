@@ -93,7 +93,7 @@ def test_debug_shortcut_accepts_parsed_fields_without_inventing_personal_answers
     step = engine.submit(" I agree with all! ")
     assert step.error is None
     assert engine.current_node_id not in VERIFICATION_FIELDS
-    assert engine.current_node_id in {"sol_payment_estimate_agree", "sol_checkboxes_first_third"}
+    assert engine.current_node_id in {"sol_payment_estimate_agree", "statute_of_limitations_decision"}
     assert engine.debug_snapshot()["debug_bulk_accepted"]
     for tag in VERIFICATION_FIELDS.values():
         assert engine.session.preliminary_fields[tag].verification == "confirmed"
