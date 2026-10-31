@@ -36,11 +36,12 @@ Synthetic confirmations are marked in the developer snapshot.
 
 The demo has no file-upload control. Do not use its public-share option with real client information.
 
-## Guided click-through prototype (SOL and Ambiguity)
+## Guided click-through prototype
 
 A separate interface presents one question per page with Back and Next controls,
 a payment timeline, a clarification chat window, and a summary for each defense.
-It follows the October 30 script for Statute of Limitations and Ambiguity. Editing
+It follows the October 30 script for Statute of Limitations, Ambiguity, Identity
+Theft, and Laches (defenses 1, 2, 6, and 8). Editing
 a field preserves independent answers and revisits only questions that could
 affect the checkbox choices:
 
@@ -55,7 +56,7 @@ additional questions; unresolved fields return to the preliminary section.
 Open <http://localhost:7861/>. The original-creditor example is prefilled for review.
 Use `--complaint-fields examples/complaints/debt-buyer.json` for the debt-buyer path,
 or `--blank` to start with blank fields. This prototype runs independently of the
-chatbot on port 7860 and stops after Ambiguity, with a final review of both defenses.
+chatbot on port 7860 and stops after Laches, with a final review of all four defenses.
 
 The mini chat uses the existing `.env` model configuration and only explains the
 current page. It never records answers or advances the review. See the

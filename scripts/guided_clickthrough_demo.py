@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the SOL and Ambiguity prototype: .venv/bin/python scripts/guided_clickthrough_demo.py."""
+"""Run the guided defense prototype: .venv/bin/python scripts/guided_clickthrough_demo.py."""
 from __future__ import annotations
 
 import argparse
@@ -38,7 +38,7 @@ class HelpRequest(GuidedRequest):
 def create_app(complaint_fields: dict | None = None) -> FastAPI:
     defaults = dict(complaint_fields or {})
     GuidedSolReview(defaults)  # Fail early on an invalid example input.
-    app = FastAPI(title="Debt case guide · SOL and Ambiguity prototype", docs_url=None, redoc_url=None)
+    app = FastAPI(title="Debt case guide · Guided defense prototype", docs_url=None, redoc_url=None)
     app.mount("/assets", StaticFiles(directory=ASSETS), name="assets")
 
     def review(request: GuidedRequest) -> GuidedSolReview:

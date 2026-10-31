@@ -1,4 +1,4 @@
-# Guided Statute of Limitations and Ambiguity prototype
+# Guided affirmative-defense prototype
 
 Run with the same development/demo environment as the chatbot:
 
@@ -16,12 +16,19 @@ original-creditor complaint by default. To use another example:
 
 ## Experience
 
+The opening overview displays the user-provided Attachment 4 instructions in two
+paragraphs, before preliminary intake. A sidebar note identifies the current
+prototype's scope: preliminary fields, SOL, Ambiguity, Identity Theft, and Laches.
+The overview uses the user's updated instructions about the Attachment 4 form.
+
 The visual direction follows the provided “review payment timing” and “review
 selections” screengrabs: a question panel, help sidebar, payment timeline, and a
 separate checklist summary. Layouts adapt to narrow screens and keyboard use.
 
-The guide has three separate sections: Preliminary fields, Statute of Limitations,
-and Ambiguity. Each page asks at most one question. Text fields use short answers;
+The guide has five separate sections: Preliminary fields, Statute of Limitations,
+Ambiguity, Identity Theft, and Laches. The four implemented defenses retain their
+Attachment 4 order (1, 2, 6, and 8), skipping the unimplemented defenses.
+Each page asks at most one question. Text fields use short answers;
 amount uses a positive currency input; dates use a date field with explicit
 missing/unknown alternatives; other answers use radio choices.
 Next requires an answer. Example values become effective facts only after the
@@ -65,9 +72,30 @@ about missing account history or a contract, and offers its main checkbox to
 everyone. Its answer is independent of creditor type, timing, and SOL selections.
 An undecided answer stays unresolved until the user returns and chooses Yes or No.
 Each defense has its own selection summary, using the script's separate wording
-for selected boxes and for no selected boxes. The final page shows both defenses.
+for selected boxes and for no selected boxes. The final page shows all four defenses.
 A recent original-creditor payment displays a SOL result page without offering
 boxes or recording selection confirmation, then continues to Ambiguity.
+
+Identity Theft starts with its general explanation, reuses preliminary account
+recognition, and asks about suspected theft only when the account is not
+recognized. Unknown recognition returns to that preliminary field. A suspected
+theft referral blocks advancement until the user explicitly confirms clinic staff
+addressed the issue; it never offers or automatically selects a checkbox. Recognized
+accounts and a No to suspected theft finish with an explanatory result page.
+
+Laches starts with its general explanation and asks the three script questions
+about access to account information. Any Yes offers a separate checkbox choice,
+even if another answer remains unknown. All No finishes without an offer. If no
+answer is Yes, the guide clarifies only the outstanding unknowns. Its review shows
+the first affirmative fact supporting an offer, or all three negative facts
+explaining an unavailable offer. Identity Theft's review shows account recognition
+and, where needed, suspected theft. Other fields remain in the case-details view.
+
+Editing recognition can add or remove the Identity Theft follow-up while retaining
+unrelated choices. A changed recognition/suspicion answer invalidates cached staff
+resolution; unrelated edits can retain resolution of the same issue. Changing a
+Laches fact retains its checkbox choice only while still eligible. A choice removed
+from a completed path needs a new explicit answer if offered by a later edit.
 
 Back preserves previous answers. Editing a recorded answer reconciles the rest of
 the saved review against the new script path. Independent preliminary fields are
@@ -124,9 +152,9 @@ new page. Related questions use approved script wording and confirmed facts only
 - `practice_areas/consumer_debt/sol_dependency_map.py`: backward dependency
   traversal, conditional fact requirements, and affected-checkbox discovery.
 - `practice_areas/consumer_debt/guided_sol.py`: formatted answers, validated replay,
-  and a two-defense page adapter over the existing YAML and deterministic rules.
-- `practice_areas/consumer_debt/guided_defense_content.yaml`: October 30 SOL and
-  Ambiguity wording and shared selected/empty confirmation copy. These copy
+  and a four-defense page adapter over the existing YAML and deterministic rules.
+- `practice_areas/consumer_debt/guided_defense_content.yaml`: the approved overview,
+  October 30 wording, and shared selected/empty confirmation copy. These copy
   overrides apply only to the click-through, including its clarification context.
 - `practice_areas/consumer_debt/guided_preliminary_fields.yaml`: all 18 preliminary
   fields in source order, their formats, shared session bindings, and the approved
@@ -139,13 +167,13 @@ new page. Related questions use approved script wording and confirmed facts only
   and non-advancing chat.
 
 The guided prototype remains separate from the chatbot UI. Both use the corrected
-shared SOL route that offers debt buyers the main-defense question. The page adapter stops before Standing and Privity, the next
-defense and performs no filing, document generation, Excel export, or account
+shared SOL route that offers debt buyers the main-defense question. The page adapter
+includes only defenses 1, 2, 6, and 8 and performs no filing, document generation, Excel export, or account
 storage. Progress lives in this browser tab's session storage and is cleared by
 Start over or closing the tab. The mini chat requires the configured model service;
 the form itself uses deterministic routing and works without model calls.
-The October 30 prototype uses a new session-storage key; earlier SOL-only progress
-is not loaded into this version.
+The four-defense prototype uses a new session-storage key; earlier two-defense
+progress is not loaded into this version.
 
 The governing sources are the October 30 preliminary-fields and defense scripts
 in `docs/source-material/2026-10-30/`. Other chatbot defenses retain their existing

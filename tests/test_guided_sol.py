@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 
 from advocate_bot_qualtrics.core.schemas import ChatTurnResponse
 from advocate_bot_qualtrics.practice_areas.consumer_debt.guided_sol import (
-    AMBIGUITY_SUMMARY, BOX_LABELS, COMPLETE, PRELIMINARY_FIELDS, PRELIMINARY_SUMMARY, SOL_INTRO, SUMMARY, GuidedAnswer, GuidedSolReview,
+    AMBIGUITY_SUMMARY, IDENTITY_INTRO, IDENTITY_SUMMARY, LACHES_INTRO, LACHES_SUMMARY, BOX_LABELS, COMPLETE, PRELIMINARY_FIELDS, PRELIMINARY_SUMMARY, SOL_INTRO, SUMMARY, GuidedAnswer, GuidedSolReview,
 )
 from advocate_bot_qualtrics.practice_areas.consumer_debt.tree import INTERACTIVE_TREE_DEFINITION as TREE
 
@@ -37,6 +37,22 @@ def intake(creditor='original', payment='2024-03-15', filing='2026-09-20', oral=
 
 def review(history):
     return GuidedSolReview().replay(history)
+
+
+def test_opening_overview_has_requested_text_and_continues_to_preliminary_fields():
+    current = GuidedSolReview()
+    page = current.page()
+    assert page['title'] == 'Overview'
+    assert page['body'] == [
+        'To finish your answer, you will check off what defenses apply to your lawsuit, using a form called Attachment 4. '
+        'This clickthrough tool will help you decide whether to check off each defense or not.',
+        'First, the tool will ask you to verify some details about your case. Then, it will ask additional questions and guide you through '
+        'the 21 defenses on Attachment 4 in order. Fill out each defense in Attachment 4 as recorded in the clickthrough tool.',
+    ]
+    assert 'This prototype currently includes' in page['why']
+    assert page['input_type'] == 'continue'
+    assert not current.session.preliminary_fields
+    assert review(answers(('guided_welcome', 'continue'))).current == 'guided_case_number'
 
 
 def test_prefilled_examples_are_not_effective_facts_until_confirmed():
@@ -199,7 +215,7 @@ def test_ambiguity_review_has_no_preliminary_dependencies_and_final_review_is_fi
     assert current.page()['review_answers'] == []
     assert len(current.page()['case_details']) == 18
     complete = review(both_defenses_history(completed_history('buyer')))
-    assert review_nodes(complete) == ['guided_creditor_type', 'guided_oral']
+    assert review_nodes(complete) == ['guided_creditor_type', 'guided_oral', 'guided_recognize', 'laches', 'laches_statements', 'laches_lost_info']
 
 
 def test_retained_comparison_review_does_not_claim_agreement_with_the_edited_date():
@@ -565,7 +581,22 @@ def test_edit_api_round_trips_retained_answers_and_summary_changes(api):
 def both_defenses_history(sol_history=None, ambiguity='yes', complete=True):
     history = (completed_history() if sol_history is None else sol_history) + answers((SUMMARY, 'continue'), ('ambiguity_decision', ambiguity))
     assert review(history).current == AMBIGUITY_SUMMARY
-    return history + answers((AMBIGUITY_SUMMARY, 'continue')) if complete else history
+    return remaining_defenses(history) if complete else history
+
+
+def remaining_defenses(history):
+    return history + answers((AMBIGUITY_SUMMARY, 'continue'), (IDENTITY_INTRO, 'continue'),
+        (IDENTITY_SUMMARY, 'continue'), (LACHES_INTRO, 'continue'), ('laches', 'no'),
+        ('laches_statements', 'no'), ('laches_lost_info', 'no'), (LACHES_SUMMARY, 'continue'))
+
+
+def finish_retained_sections(current):
+    for _ in range(8):
+        if current.current == COMPLETE:
+            return current
+        assert current.current in {IDENTITY_SUMMARY, LACHES_SUMMARY}
+        current = advance_updated(current, 'continue')
+    raise AssertionError('Retained sections did not finish')
 
 
 @pytest.mark.parametrize('creditor', ['buyer', 'original'])
@@ -587,7 +618,7 @@ def test_two_defenses_have_independent_choices_and_per_defense_summaries(credito
     page = current.page()
     assert page['section'] == 'Ambiguity' and page['section_number'] == 3
     assert any('entire account history or contract' in text for text in page['body'])
-    assert len(page['visual']['boxes']) == 1 and page['visual']['boxes'][0]['label'] == 'Ambiguity'
+    assert 'visual' not in page
     assert current.session.defense_results[DEFENSE_KEY]['status'] == 'confirmed'
     history += answers(('ambiguity_decision', ambiguity))
     current = review(history)
@@ -599,13 +630,15 @@ def test_two_defenses_have_independent_choices_and_per_defense_summaries(credito
     # "main" identifies different boxes in the two defenses; Change must point
     # to each defense's own question.
     assert history[page['rows'][0]['edit_index']].node_id == 'ambiguity_decision'
-    current = review(history + answers((AMBIGUITY_SUMMARY, 'continue')))
+    assert review(history + answers((AMBIGUITY_SUMMARY, 'continue'))).current == IDENTITY_INTRO
+    current = review(remaining_defenses(history))
     assert current.current == COMPLETE
     final = current.page()
-    assert [g['section'] for g in final['groups']] == ['Statute of Limitations', 'Ambiguity']
-    assert len(final['rows']) == 5
+    assert [g['section'] for g in final['groups']] == ['Statute of Limitations', 'Ambiguity', 'Identity Theft', 'Laches']
+    assert len(final['rows']) == 7
+    assert all(row['detail'] == 'Main checkbox' for row in final['rows'] if row['id'] == 'main')
     assert current.session.defense_results['ambiguity']['status'] == 'confirmed'
-    assert all(TREE.node(n).discussion_topic in {'Statute of Limitations', 'Ambiguity'} for n in current.session.script_visited)
+    assert all(TREE.node(n).discussion_topic in {'Statute of Limitations', 'Ambiguity', 'Identity Theft', 'Laches'} for n in current.session.script_visited)
 
 
 def test_recent_sol_finish_still_offers_ambiguity_without_inventing_sol_confirmation():
@@ -642,7 +675,7 @@ def test_editing_ambiguity_preserves_sol_and_reports_only_the_ambiguity_change()
     assert current.current == AMBIGUITY_SUMMARY
     assert current.page()['changes'] == [{'label': 'Ambiguity', 'before': 'Selected', 'after': 'Not selected'}]
     assert current.session.checkbox_selections[DEFENSE_KEY] == review(history).session.checkbox_selections[DEFENSE_KEY]
-    current = advance_updated(current, 'continue')
+    current = finish_retained_sections(advance_updated(current, 'continue'))
     assert current.current == COMPLETE
     assert current.page()['groups'][1]['rows'][0]['previous_status'] == 'Selected'
 
@@ -657,7 +690,7 @@ def test_sol_edit_retains_later_ambiguity_choice_without_reasking_it():
     assert current.current == AMBIGUITY_SUMMARY
     assert current.session.checkbox_selections == {'ambiguity': {'main': 'include'}}
     assert current.page()['changes'] == []
-    current = advance_updated(current, 'continue')
+    current = finish_retained_sections(advance_updated(current, 'continue'))
     assert current.current == COMPLETE
 
 
@@ -763,3 +796,248 @@ def test_switching_back_to_original_reuses_still_valid_timing_facts():
     assert current.revision.plan.required_questions == []
     assert current.page()['changes'] == []
     assert current.session.checkbox_selections[DEFENSE_KEY] == {'main': 'include', 'first': 'include', 'third': 'include'}
+
+
+def identity_history(recognize='yes'):
+    history = both_defenses_history(complete=False)
+    history = [a.model_copy(update={'value': recognize}) if a.node_id == 'guided_recognize' else a for a in history]
+    history += answers((AMBIGUITY_SUMMARY, 'continue'))
+    assert review(history).current == IDENTITY_INTRO
+    return history
+
+
+def laches_history():
+    history = identity_history() + answers((IDENTITY_INTRO, 'continue'), (IDENTITY_SUMMARY, 'continue'))
+    assert review(history).current == LACHES_INTRO
+    return history + answers((LACHES_INTRO, 'continue'))
+
+
+def continue_retained_to(current, node):
+    for _ in range(8):
+        if current.current == node:
+            return current
+        assert current.current in {SUMMARY, AMBIGUITY_SUMMARY, IDENTITY_SUMMARY, LACHES_SUMMARY}
+        current = advance_updated(current, 'continue')
+    raise AssertionError(f'Did not reach {node}')
+
+
+def test_recognized_account_finishes_identity_without_a_checkbox_offer_or_repeating_intake():
+    history = identity_history()
+    page = review(history).page()
+    assert page['section'] == 'Identity Theft' and page['section_number'] == 4
+    assert 'without your permission' in page['body'][0]
+    current = review(history + answers((IDENTITY_INTRO, 'continue')))
+    assert current.current == IDENTITY_SUMMARY
+    assert 'recognize the account' in current.page()['body'][0]
+    assert current.page()['rows'][0]['status'] == 'Not offered on this path'
+    assert current.page()['rows'][0]['detail'] == 'Main checkbox'
+    assert review_nodes(current) == ['guided_recognize']
+    assert 'identity_suspected' not in current.session.defense_answers
+    assert 'identity_theft' not in current.session.checkbox_selections
+    assert not current.session.defense_open_questions
+
+
+def test_unknown_recognition_returns_to_preliminary_section_then_resumes_identity():
+    history = identity_history('unknown') + answers((IDENTITY_INTRO, 'continue'))
+    current = review(history)
+    assert current.current == 'guided_recognize'
+    assert current.page()['section'] == 'Preliminary fields'
+    current = advance_updated(current, 'unknown')
+    assert current.current == 'guided_recognize'
+    current = advance_updated(current, 'no')
+    assert current.current == 'identity_suspected'
+    assert current.page()['section'] == 'Identity Theft'
+    assert current.session.preliminary_fields['RECOGNIZE'].value == 'no'
+
+
+def test_unsuspected_identity_theft_finishes_without_offering_a_checkbox():
+    history = identity_history('no') + answers((IDENTITY_INTRO, 'continue'), ('identity_suspected', 'no'))
+    current = review(history)
+    assert current.current == IDENTITY_SUMMARY
+    assert 'does not apply' in current.page()['body'][0]
+    assert review_nodes(current) == ['guided_recognize', 'identity_suspected']
+    assert current.session.defense_results['identity_theft']['status'] == 'finished'
+    assert 'identity_theft' not in current.session.checkbox_selections
+
+
+def test_identity_referral_requires_staff_resolution_and_never_selects_a_checkbox():
+    history = identity_history('no') + answers((IDENTITY_INTRO, 'continue'), ('identity_suspected', 'yes'))
+    current = review(history)
+    assert current.current == 'identity_referral_help'
+    assert current.session.defense_open_questions
+    assert 'file a report' in ' '.join(current.page()['body'])
+    with pytest.raises(ValueError, match='Choose one'):
+        review(history + answers(('identity_referral_help', 'continue')))
+    with pytest.raises(ValueError, match='no longer match'):
+        review(history + answers((IDENTITY_SUMMARY, 'continue')))
+    history += answers(('identity_referral_help', 'unknown'))
+    assert review(history).current == 'identity_referral_help'
+    history += answers(('identity_referral_help', 'resolved'))
+    current = review(history)
+    assert current.current == IDENTITY_SUMMARY
+    assert current.session.defense_results['identity_theft']['status'] == 'referred'
+    assert not current.session.defense_open_questions
+    assert 'identity_theft' not in current.session.checkbox_selections
+    assert 'has not selected' in current.page()['body'][0]
+    assert not current.page()['rows'][0]['checked']
+
+
+def test_identity_uncertainty_does_not_mean_no_and_cannot_finish_until_resolved():
+    history = identity_history('no') + answers((IDENTITY_INTRO, 'continue'), ('identity_suspected', 'unknown'))
+    current = review(history)
+    assert current.current == 'identity_uncertain_help'
+    assert current.session.defense_open_questions
+    history += answers(('identity_uncertain_help', 'retry'), ('identity_suspected', 'no'))
+    current = review(history)
+    assert current.current == IDENTITY_SUMMARY
+    assert not current.session.defense_open_questions
+
+
+@pytest.mark.parametrize('values', __import__('itertools').product(['yes', 'no', 'unknown'], repeat=3))
+def test_laches_any_yes_all_no_and_uncertainty_paths(values):
+    history = laches_history()
+    assert 'lost or become unavailable' in review(history).page()['help_text']
+    for node, value in zip(['laches', 'laches_statements', 'laches_lost_info'], values):
+        assert review(history).current == node
+        history += answers((node, value))
+    current = review(history)
+    if 'yes' in values:
+        assert current.current == 'laches_decision'
+        assert not current.session.defense_open_questions
+        assert 'visual' not in current.page()
+        for choice in ['yes', 'no']:
+            decided = review(history + answers(('laches_decision', choice)))
+            assert decided.current == LACHES_SUMMARY
+            assert decided.page()['rows'][0]['checked'] == (choice == 'yes')
+            assert len(decided.page()['review_answers']) == 1
+            assert decided.page()['review_answers'][0]['value'] == 'Yes'
+    elif 'unknown' in values:
+        pending = ['laches_unresolved_help', 'laches_statements_unresolved_help', 'laches_lost_info_unresolved_help'][values.index('unknown')]
+        assert current.current == pending
+        assert current.session.defense_open_questions
+        assert 'laches' not in current.session.checkbox_selections
+    else:
+        assert current.current == LACHES_SUMMARY
+        assert current.session.defense_results['laches']['status'] == 'finished'
+        assert all(row['value'] == 'No' for row in current.page()['review_answers'])
+        assert len(current.page()['review_answers']) == 3
+        assert 'laches' not in current.session.checkbox_selections
+
+
+def test_laches_clarifies_only_the_unresolved_fact_and_then_requires_a_choice():
+    history = laches_history() + answers(('laches', 'no'), ('laches_statements', 'unknown'), ('laches_lost_info', 'no'))
+    assert review(history).current == 'laches_statements_unresolved_help'
+    history += answers(('laches_statements_unresolved_help', 'retry'))
+    assert review(history).current == 'laches_statements_resolve'
+    history += answers(('laches_statements_resolve', 'yes'))
+    assert review(history).current == 'laches_decision'
+    history += answers(('laches_decision', 'unknown'))
+    assert review(history).current == 'laches_decision_unresolved_help'
+    history += answers(('laches_decision_unresolved_help', 'retry'), ('laches_decision', 'no'))
+    current = review(history)
+    assert current.current == LACHES_SUMMARY
+    assert not current.session.defense_open_questions
+    assert review_nodes(current) == ['laches_statements_resolve']
+
+
+def test_laches_choice_edit_changes_only_laches_and_keeps_other_defenses():
+    history = laches_history() + answers(('laches', 'yes'), ('laches_statements', 'no'), ('laches_lost_info', 'no'),
+                                        ('laches_decision', 'yes'), (LACHES_SUMMARY, 'continue'))
+    current = change(history, 'laches_decision', 'no')
+    assert current.current == LACHES_SUMMARY
+    assert current.page()['changes'] == [{'label': 'Laches', 'before': 'Selected', 'after': 'Not selected'}]
+    assert current.session.checkbox_selections[DEFENSE_KEY] == review(history).session.checkbox_selections[DEFENSE_KEY]
+    assert advance_updated(current, 'continue').current == COMPLETE
+
+
+def test_laches_removed_choice_is_not_restored_after_another_completed_edit():
+    history = laches_history() + answers(('laches', 'yes'), ('laches_statements', 'no'), ('laches_lost_info', 'no'),
+                                        ('laches_decision', 'yes'), (LACHES_SUMMARY, 'continue'))
+    current = change(history, 'laches', 'no')
+    assert current.current == LACHES_SUMMARY
+    assert 'laches' not in current.session.checkbox_selections
+    current = advance_updated(current, 'continue')
+    current = change(current.history, 'laches', 'yes', current.revision)
+    assert current.current == 'laches_decision'
+    assert 'laches' not in current.session.checkbox_selections
+
+
+def test_new_identity_followup_preserves_laches_and_requires_staff_before_advancing():
+    history = laches_history() + answers(('laches', 'no'), ('laches_statements', 'yes'), ('laches_lost_info', 'no'),
+                                        ('laches_decision', 'yes'), (LACHES_SUMMARY, 'continue'))
+    current = change(history, 'guided_recognize', 'no')
+    current = continue_retained_to(current, 'identity_suspected')
+    current = advance_updated(current, 'yes')
+    assert current.current == 'identity_referral_help'
+    current = advance_updated(current, 'resolved')
+    assert current.current == IDENTITY_SUMMARY
+    current = advance_updated(current, 'continue')
+    assert current.current == LACHES_SUMMARY
+    assert current.session.checkbox_selections['laches']['main'] == 'include'
+    assert 'identity_theft' not in current.session.checkbox_selections
+
+
+def test_unrelated_edit_reuses_staff_resolution_but_changed_recognition_invalidates_it():
+    history = identity_history('no') + answers((IDENTITY_INTRO, 'continue'), ('identity_suspected', 'yes'),
+        ('identity_referral_help', 'resolved'), (IDENTITY_SUMMARY, 'continue'), (LACHES_INTRO, 'continue'),
+        ('laches', 'no'), ('laches_statements', 'no'), ('laches_lost_info', 'no'), (LACHES_SUMMARY, 'continue'))
+    current = change(history, 'guided_plaintiff', 'Corrected Name')
+    current = continue_retained_to(current, IDENTITY_SUMMARY)
+    assert not current.session.defense_open_questions
+    assert any(a.node_id == 'identity_referral_help' and a.automatic for a in current.history)
+    current = change(history, 'guided_recognize', 'yes')
+    current = finish_retained_sections(continue_retained_to(current, IDENTITY_SUMMARY))
+    current = change(current.history, 'guided_recognize', 'no', current.revision)
+    current = continue_retained_to(current, 'identity_referral_help')
+    assert current.session.defense_open_questions
+
+
+def test_two_preliminary_edits_preserve_future_laches_choice():
+    history = laches_history() + answers(('laches', 'yes'), ('laches_statements', 'no'), ('laches_lost_info', 'no'),
+                                        ('laches_decision', 'yes'), (LACHES_SUMMARY, 'continue'))
+    current = change(history, 'guided_plaintiff', 'First Name')
+    current = change(current.history, 'guided_amount', '900.00', current.revision)
+    current = finish_retained_sections(continue_retained_to(current, IDENTITY_SUMMARY))
+    assert current.current == COMPLETE
+    assert current.session.checkbox_selections['laches']['main'] == 'include'
+
+
+@pytest.mark.parametrize('topic,node,history', [
+    ('Identity Theft', 'identity_suspected', identity_history('no') + answers((IDENTITY_INTRO, 'continue'))),
+    ('Laches', 'laches', laches_history()),
+])
+def test_new_defense_chat_uses_approved_context_and_cannot_advance(api, topic, node, history):
+    module, client = api
+    captured = []
+    def model(**kwargs):
+        captured.append(kwargs)
+        return ChatTurnResponse(user_intent='answer_node', assistant_reply='Check it', next_node_id='yes')
+    module['create_app'].__globals__['submit_chat_turn'] = model
+    response = client.post('/api/help', json={'history': [a.model_dump(mode='json') for a in history], 'question': 'Please explain'})
+    assert response.status_code == 200 and response.json()['next_node_id'] is None
+    assert response.json()['user_intent'] != 'answer_node'
+    assert captured[0]['payload']['current_node']['discussion_topic'] == topic
+    assert client.post('/api/state', json={'history': [a.model_dump(mode='json') for a in history]}).json()['node_id'] == node
+
+
+def test_unrelated_edit_retains_irrelevant_laches_unknowns_without_reasking():
+    history = laches_history() + answers(('laches', 'unknown'), ('laches_statements', 'yes'), ('laches_lost_info', 'unknown'),
+                                        ('laches_decision', 'yes'), (LACHES_SUMMARY, 'continue'))
+    current = change(history, 'guided_plaintiff', 'Changed Name')
+    current = finish_retained_sections(continue_retained_to(current, IDENTITY_SUMMARY))
+    assert current.current == COMPLETE
+    assert current.session.checkbox_selections['laches']['main'] == 'include'
+    assert current.session.defense_answers['laches'] == 'unknown'
+    assert not current.session.defense_open_questions
+
+
+def test_laches_clarification_is_reused_after_an_unrelated_edit():
+    history = laches_history() + answers(('laches', 'no'), ('laches_statements', 'unknown'), ('laches_lost_info', 'no'),
+        ('laches_statements_unresolved_help', 'retry'), ('laches_statements_resolve', 'yes'),
+        ('laches_decision', 'yes'), (LACHES_SUMMARY, 'continue'))
+    current = change(history, 'guided_plaintiff', 'Corrected Name')
+    current = finish_retained_sections(continue_retained_to(current, IDENTITY_SUMMARY))
+    assert current.current == COMPLETE
+    assert current.session.defense_answers['laches_statements'] == 'yes'
+    assert current.session.checkbox_selections['laches']['main'] == 'include'
+    assert not current.session.defense_open_questions

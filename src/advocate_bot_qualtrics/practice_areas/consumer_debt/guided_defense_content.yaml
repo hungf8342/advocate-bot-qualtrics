@@ -1,6 +1,14 @@
-# October 30 wording for the two-defense click-through prototype.
+# October 30 wording for the guided defense prototype.
 # Routing continues to use the canonical tree; other chatbot defenses are unchanged.
 source: docs/source-material/2026-10-30/2026.10.30-affirmative-defenses.docx
+# User-provided overview for the intended 21-defense guide.
+overview:
+  - >-
+    To finish your answer, you will check off what defenses apply to your lawsuit, using a form called Attachment 4.
+    This clickthrough tool will help you decide whether to check off each defense or not.
+  - >-
+    First, the tool will ask you to verify some details about your case. Then, it will ask additional questions
+    and guide you through the 21 defenses on Attachment 4 in order. Fill out each defense in Attachment 4 as recorded in the clickthrough tool.
 nodes:
   statute_of_limitations_intro:
     explanation: >-
@@ -18,6 +26,16 @@ nodes:
       For example, the documents filed with the court may not contain your entire account history or contract,
       meaning you may need to ask for more information from [PLAINTIFF] later.
       Many litigants check off ambiguity, since it is a broad defense.
+  identity_theft_intro:
+    explanation: >-
+      Identity theft happens when someone uses your name or personal information without your permission to open an account or create debt.
+      This defense may apply if [PLAINTIFF] is trying to collect debt created by that person.
+      For example, someone may have used your information to open a credit card that you never applied for.
+  laches_intro:
+    explanation: >-
+      Laches may apply if [PLAINTIFF] waited an unreasonably long time to sue and that delay made it harder for you to defend yourself.
+      For example, account records may have been lost or become unavailable while [PLAINTIFF] waited.
+      The following questions help identify whether the delay made it harder to obtain information about your account.
 confirmation:
   selected: >-
     Based on your answers to this defense section, here are the checkboxes you’ve indicated you’d like to check off.

@@ -1,6 +1,6 @@
 'use strict';
 const $ = (id) => document.getElementById(id);
-const storageKey = 'debt-case-guide:guided-defenses:2026-10-30:v2';
+const storageKey = 'debt-case-guide:guided-defenses:2026-10-31:v1';
 let history = [], cursor = 0, page = null, revision = null, editMode = false, busy = false, chatBusy = false, chatKey = '', chatController = null;
 const drafts = new Map(), conversations = new Map();
 let generation = 0;
@@ -97,7 +97,7 @@ function inputControls() {
   } else if (page.input_type==='summary' || page.input_type==='complete') {
     if(page.input_type==='complete') {
       $('visual').append(element('div','complete-icon','✓'));
-      control.append(element('p','completion-note','You’ve finished both defenses in this prototype. You can go back or use Change to review your selections.'));
+      control.append(element('p','completion-note','You’ve finished the four defenses in this prototype. You can go back or use Change to review your selections.'));
     }
     for (const group of page.groups || [{section:page.section,rows:page.rows}]) control.append(summaryTable(group));
     control.append(answerReview());
@@ -113,13 +113,9 @@ function renderVisual() {
     for(const [label,date] of [['Last payment',visual.payment],['Complaint filed',visual.filing]]) { const end=element('div','',label);end.append(element('strong','',dateLabel(date)));labels.append(end); }
     const track=element('div','timeline-track'); track.append(element('span','timeline-line'),element('span','timeline-chip',`About ${visual.months} months apart`),element('span','timeline-line'));
     timeline.append(labels,track); container.append(timeline);
-  } else if(visual.type==='boxes') {
-    const boxes=element('div','boxes-visual'); boxes.setAttribute('aria-label','Checkboxes included in this question');
-    for(const box of visual.boxes) { const row=element('div','box-preview'), shape=element('span','box-outline'), text=element('div');shape.setAttribute('aria-hidden','true');text.append(element('strong','',box.label),element('small','',box.detail));row.append(shape,text);boxes.append(row); }
-    container.append(boxes);
   } else if(visual.type==='overview') {
     const overview=element('div','overview-visual');
-    [['Preliminary fields','Review your complaint and account details once.'],['Statute of Limitations','Review timing and make your checkbox choices.'],['Ambiguity','Review the explanation and your selection.']].forEach(([title,body],i)=>{ const card=element('div','overview-step');card.append(element('span','',String(i+1)),element('strong','',title),element('p','',body));overview.append(card); });
+    [['Verify case details','Review your complaint and account details once.'],['Review the defenses','This prototype covers SOL, Ambiguity, Identity Theft, and Laches.'],['Complete Attachment 4','Fill out the form using the choices recorded here.']].forEach(([title,body],i)=>{ const card=element('div','overview-step');card.append(element('span','',String(i+1)),element('strong','',title),element('p','',body));overview.append(card); });
     container.append(overview);
   }
 }
@@ -153,13 +149,14 @@ function render(focus=true) {
   $('question').textContent=page.title;
   $('eyebrow').textContent=page.section.toUpperCase();
   $('section-name').textContent=page.section;
-  $('section-count').textContent=`0${page.section_number} / 03`;
+  $('section-count').textContent=`0${page.section_number} / 0${page.section_count}`;
   $('body').replaceChildren(...page.body.filter(Boolean).map(text=>element('p','',friendly(text))));
   $('revision-notice').textContent=page.revision_notice||'';
   $('revision-notice').hidden=!page.revision_notice;
   $('why').textContent=page.why;$('aside-title').textContent=page.stage===2?'Your choices, in one place':'Why we ask';
   $('back').disabled=backIndex()<0;
   for(const li of document.querySelectorAll('[data-stage]')) { const stage=Number(li.dataset.stage);li.classList.toggle('active',stage===page.progress_stage);li.classList.toggle('done',stage<page.progress_stage);if(stage===page.progress_stage)li.setAttribute('aria-current','step');else li.removeAttribute('aria-current');li.querySelector('.step-number').textContent=stage<page.progress_stage?'✓':String(stage+1); }
+  document.querySelector('.progress li.active')?.scrollIntoView({block:'nearest',inline:'center'});
   renderVisual();inputControls();$('case-fields').replaceChildren(detailsRows());
   $('next-label').textContent=page.next_label;$('next').hidden=page.input_type==='complete';
   $('step-note').textContent=['choice','date','text','currency'].includes(page.input_type)?'One question at a time':'';
