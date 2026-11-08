@@ -1,208 +1,305 @@
 # Guided affirmative-defense prototype
 
-Run with the same development/demo environment as the chatbot:
+Run with the development/demo environment:
 
 ```bash
 .venv/bin/python scripts/guided_clickthrough_demo.py
 ```
 
-Open <http://localhost:7861/>. The server binds to localhost and uses the imaginary
-original-creditor complaint by default. To use another example:
+Open <http://localhost:7861/>. The server binds to localhost and defaults to the
+imaginary original-creditor complaint. Use `--complaint-fields PATH` for another
+fact-only example or `--blank` to start without prefilled examples.
+
+## Source and scope
+
+The governing defense source is [the November 7 script](source-material/2026-11-07/2026.11.07%20Affirmative-Defense-Scripts.docx).
+The prototype covers 17 defenses in Attachment 4 order: 1, 2, 5, 8, and 9–21.
+Standing and Privity (3), Failure to State a Cause of Action (4), Identity Theft
+(6), and Wrong Party (7) are omitted, including Identity Theft from the previous
+prototype. The overview identifies those omissions and directs users to clinic staff.
+The preliminary section retains all 18 October 30 fields and its separate review.
+
+Each defense starts under its own name and displays its November 7 explanation.
+Defenses without screening branches put their checkbox question on that same page;
+defenses with screening branches show the explanation separately before the questions. Selecting an answer immediately shows its approved response below the answer
+controls, with the question and selection still visible. Changing the selection
+replaces that response. Next records the answer and advances; previewing does not
+write facts, choices, timestamps, or research events. Conditional response text is
+removed from the following page, while independent checkbox guidance stays with
+its question. In the SOL-only presentation demo, acknowledgments of payment-date or timing
+answers appear inline immediately after radio selection. Checkbox-specific guidance
+stays with each checkbox question: the main-defense eligibility explanation, combined
+first/third guidance, and oral-contract second-box guidance. In SOL, second-checkbox information belongs to the following step, and “Confirm
+selections” belongs to the review screen; neither appears as feedback to the
+first/third checkbox choice. Ambiguity also keeps its explanation and checkbox question together, followed by
+confirmation on a separate review screen. Mistake and Laches also confirm selections
+on the following review. Other defenses retain the inline response behavior. Outcomes requiring several facts appear beside the last needed
+question. Summaries retain the checklist and review evidence.
+
+Choice responses are supplied with the page for immediate display. Text/date
+questions that need a dynamic response use the read-only `/api/preview` endpoint;
+stale requests are discarded. Next waits for a dynamic response, with a retry
+control if it cannot load. Returning with Back or Change restores the response for
+the displayed answer. Clarification chat can explain a draft response, which is
+explicitly distinguished from confirmed case facts. Known preliminary facts are reused; unresolved fields return to their own
+intake page when required. Users explicitly choose each offered checkbox. Unknown
+answers stay separate from No, with clarification or clinic staff guidance when
+the script supplies no other outcome. Staff referrals require explicit resolution.
+
+Common Counts offers its first nested checkbox without an uncredited-payments
+screen. Excuse offers its second and fifth nested checkboxes without additional
+factual screening. Mitigation, Common Counts, and Excuse derive their main checkbox
+from the user's nested choices. Their parent has no separate choice question.
+Common Counts' fifth checkbox depends on the user's explicit Fraud selection;
+its fourth checkbox is not offered because the Identity Theft defense is excluded.
+Lack of Consideration can clarify suspected theft within its own screening when
+recognition does not establish the required fact; this does not include or select
+the excluded Identity Theft defense.
+
+The language section asks whether the creditor **gave** the translated agreement;
+a No can lead to an offer, while Yes finishes without one. A missing primary
+language is collected before language-specific questions. No answer selects a
+checkbox without an explicit choice, except the three parent boxes derived from
+explicit nested selections as directed by the script.
+
+Each section ends in its own summary or no-offer result page. The final review
+shows all 17 defenses, nested options, selections, and unresolved questions. Case
+details remain accessible throughout. Short answers and date/amount formats follow
+the preliminary script. Browser progress is tab-local; the November 7 version uses
+a new storage key to start a fresh review instead of importing an obsolete path.
+
+## Script wording and formatting
+
+The November 7 Word document governs both wording and user-facing paragraph/list
+structure. `guided_script_formatting.yaml` records source paragraphs, Word list
+levels, and the source document's SHA-256 fingerprint. Regenerate and verify it with:
 
 ```bash
-.venv/bin/python scripts/guided_clickthrough_demo.py --complaint-fields examples/complaints/debt-buyer.json
-.venv/bin/python scripts/guided_clickthrough_demo.py --blank
+.venv/bin/python scripts/extract_guided_script_formatting.py
+.venv/bin/python scripts/extract_guided_script_formatting.py --check
 ```
 
-## Experience
+The renderer uses structured paragraphs and semantic HTML lists for explanations,
+checkbox guidance, inline responses, and approved clarification text. Source
+paragraph breaks receive visible paragraph spacing; lists remain lists. Source
+paragraph boundaries are also restored where an earlier copy folded them together.
+Reviewer-outline bullets around an entire quoted reply are not presented as
+user-facing list items. The source's actual lists inside quoted explanations are
+preserved, including their separate groups. Text is inserted safely as text.
 
-The opening overview displays the user-provided Attachment 4 instructions in two
-paragraphs, before preliminary intake. A sidebar note identifies the current
-prototype's scope: preliminary fields, SOL, Ambiguity, Identity Theft, and Laches.
-The overview uses the user's updated instructions about the Attachment 4 form.
+This formatting layer does not change the previously reviewed SOL/Ambiguity screen
+boundaries, answers, or routing. Tests compare the generated metadata and all 17
+defense introductions with the November 7 document.
 
-The visual direction follows the provided “review payment timing” and “review
-selections” screengrabs: a question panel, help sidebar, payment timeline, and a
-separate checklist summary. Layouts adapt to narrow screens and keyboard use.
+## SOL screen placement
 
-The guide has five separate sections: Preliminary fields, Statute of Limitations,
-Ambiguity, Identity Theft, and Laches. The four implemented defenses retain their
-Attachment 4 order (1, 2, 6, and 8), skipping the unimplemented defenses.
-Each page asks at most one question. Text fields use short answers;
-amount uses a positive currency input; dates use a date field with explicit
-missing/unknown alternatives; other answers use radio choices.
-Next requires an answer. Example values become effective facts only after the
-user confirms them. The preliminary section covers all 18 fields in the October 30
-preliminary-fields script, with its approved explanations and a separate review
-page. For original creditors, original-creditor name is derived from plaintiff
-name. SOL then starts with a dedicated page showing its full general explanation.
+Preserve formatting when reading the Word source. Bold **Ask** instructions mark
+questions; **If Yes/No/Not sure** instructions control the response to that
+question; **Continue to** instructions move to a named step. Do not merge those
+steps merely because deterministic routing can calculate their text immediately.
 
-Defense sections reuse the recorded preliminary fields. SOL does not collect the
-names, creditor type, dates, or oral-agreement status again when they are known.
-Agreement with the complaint's payment date and a personal timing estimate are
-distinct defense questions and remain on the relevant SOL paths. An unresolved
-creditor type or oral status returns to that preliminary field, labeled as part
-of the preliminary section, then resumes the pending defense route. Unknown oral
-status does not block an ineligible SOL path. Ambiguity asks only its checkbox
-question. Fields collected for future defenses are retained without adding those
-defenses to this prototype.
+| Screen | Text before the choice | Inline after answering | Following step |
+| --- | --- | --- | --- |
+| Complaint payment date | Complaint date and timing comparison | Agreement or uncertainty acknowledgment | Personal timing question if needed; otherwise original-creditor result |
+| Personal payment timing | Timing question | Matching Yes/No/Not sure acknowledgment | Original-creditor result |
+| Main SOL checkbox | Debt-buyer explanation, or guidance beginning “Consider raising…” | Clarification only if undecided | First/third checkbox guidance |
+| First/third checkbox decision | First/third checkbox explanation | Clarification only if undecided | Second-checkbox step; no second-box information or confirmation inline |
+| Second-checkbox step, oral agreement | Oral-contract explanation and second checkbox question | Clarification only if undecided | Confirm selections |
+| Second-checkbox step, written agreement | Explanation that the second checkbox does not apply | No checkbox offered | Confirm selections on the same review page |
+| Confirm selections | Confirmation wording and checkbox checklist | No new checkbox decision | Next defense |
 
-“Review the answers used in this section” shows only active dependencies and the
-evidence actually used to establish them. It excludes names and unrelated fields.
-Debt buyers see plaintiff type and oral status, without payment dates. An original
-creditor's agreed-date comparison includes the payment and filing dates and the
-agreement answer. A personal timing estimate includes the filing date and estimate,
-without the discarded or missing complaint payment date. Oral status is omitted
-when timing makes every SOL box unavailable. Retained comparisons do not invent
-agreement with an edited exact date. Ambiguity has no preliminary dependencies;
-its explicit checkbox choice is already shown in its checklist. The final review
-uses the relevant fields for the completed defenses. All 18 preliminary fields
-remain available through “View case details” and in the preliminary summary.
+A recent original-creditor payment finishes without checkbox offers or selection
+confirmation; its no-offer review remains available. Unresolved facts follow their
+clarification routes. This map applies to the SOL presentation demo only.
 
-The main SOL question is always offered to debt buyers, followed by the combined
-first/third question and the second-box question when the agreement was oral.
-Declining the main box does not decline any indented boxes. Original creditors
-receive these offers only on the qualifying or uncertain timing path. Both selected and unchecked
-boxes appear in the summary; boxes not offered on the chosen path are labeled.
-“Change” returns to the original question, including the shared question for the
-first and third boxes. Users can inspect and edit case details from any page.
+## Ambiguity screen placement
 
-After SOL, Ambiguity displays the October 30 explanation, including the example
-about missing account history or a contract, and offers its main checkbox to
-everyone. Its answer is independent of creditor type, timing, and SOL selections.
-An undecided answer stays unresolved until the user returns and chooses Yes or No.
-Each defense has its own selection summary, using the script's separate wording
-for selected boxes and for no selected boxes. The final page shows all four defenses.
-A recent original-creditor payment displays a SOL result page without offering
-boxes or recording selection confirmation, then continues to Ambiguity.
+The November 7 source groups the explanation with **Ask about this checkbox**,
+then explicitly directs **Continue to “Confirm selections.”** Preserve these as
+separate steps:
 
-Identity Theft starts with its general explanation, reuses preliminary account
-recognition, and asks about suspected theft only when the account is not
-recognized. Unknown recognition returns to that preliminary field. A suspected
-theft referral blocks advancement until the user explicitly confirms clinic staff
-addressed the issue; it never offers or automatically selects a checkbox. Recognized
-accounts and a No to suspected theft finish with an explanatory result page.
+| Screen | Content | After answering |
+| --- | --- | --- |
+| Ambiguity checkbox | Full approved explanation and “Do you want to check off Ambiguity?” | Yes/No records the choice and advances; selection confirmation is not inline |
+| Confirm selections | Selected/empty confirmation wording and Ambiguity checklist with Change | Continue to the next defense |
 
-Laches starts with its general explanation and asks the three script questions
-about access to account information. Any Yes offers a separate checkbox choice,
-even if another answer remains unknown. All No finishes without an offer. If no
-answer is Yes, the guide clarifies only the outstanding unknowns. Its review shows
-the first affirmative fact supporting an offer, or all three negative facts
-explaining an unavailable offer. Identity Theft's review shows account recognition
-and, where needed, suspected theft. Other fields remain in the case-details view.
+An undecided answer remains unresolved. Returning from clarification restores the
+full explanation with the same checkbox question. Previews do not record a choice.
 
-Editing recognition can add or remove the Identity Theft follow-up while retaining
-unrelated choices. A changed recognition/suspicion answer invalidates cached staff
-resolution; unrelated edits can retain resolution of the same issue. Changing a
-Laches fact retains its checkbox choice only while still eligible. A choice removed
-from a completed path needs a new explicit answer if offered by a later edit.
+## Initial defense screens
 
-Back preserves previous answers. Editing a recorded answer reconciles the rest of
-the saved review against the new script path. Independent preliminary fields are
-retained, as are explicit choices for boxes still offered. Only newly relevant
-questions and answers whose meaning depends on a changed fact need review. The planner starts
-from the checkbox goals in `sol_checkbox_dependencies.yaml` and traces backward
-to the facts needed for each offer. The forward script then presents required
-questions in order and replays valid saved answers.
+Every defense starts with the defense name as its heading. For defenses without
+screening branches (Ambiguity, Mistake, and Unconscionable Contract), the full
+November 7 explanation and checkbox question appear in the body on that screen.
+Word bullet lists and paragraph spacing are preserved.
 
-Examples:
+Laches has a separate general-explanation screen, headed “Laches,” followed by
+its screening questions. The explanation is not repeated on the checkbox screen.
+Its selection confirmation remains on the following review.
 
-- Plaintiff and original-creditor names are personalization only, including a
-  replacement name. Changing either returns to the summary with existing choices.
-- Moving an agreed payment date within the same one-year screening category
-  retains the choices and returns to the summary. This reuses the screening
-  result; it does not record agreement that the new exact date is correct.
-- Changing a payment date across the threshold asks for the relevant date/timing
-  confirmation. Changing the filing date recalculates the screen using an
-  unchanged, previously agreed payment date, or asks again if the previous answer
-  was only a personal timing estimate tied to the old filing date.
-- Changing written to oral retains the other choices and asks about the newly
-  offered second checkbox. Changing oral to written removes that option.
-- Changing creditor type reuses eligible choices and asks only for newly needed
-  timing or checkbox decisions. An uncollected original-creditor name stays
-  unknown because that name does not control SOL checkbox eligibility. Still-valid factual answers
-  remain reusable if the review later returns to a path that needs them.
+Saved introduction records for combined screens remain replayable and are skipped
+by Back. Saved Laches paths from the briefly combined layout also remain usable.
 
-The summary marks changed statuses and displays a confirmation when selections
-are unchanged. Choices removed from a completed path are not automatically
-restored if a later edit offers those boxes again. Back skips answers restored
-automatically during an edit; Change links still let users inspect each retained
-answer directly. Finishing requires a fresh summary confirmation after an edit.
-Editing SOL retains a previously recorded Ambiguity choice. After reviewing the
-updated SOL result/summary, the retained Ambiguity answer leads directly to its
-summary without asking the checkbox question again. Editing Ambiguity preserves
-all SOL answers. The two main boxes have separate Change links and identities.
+The shared script note applies only to defenses without screening branches:
+**Show the general explanation and checkbox question together on one screen,
+with the defense name as the heading.** Defenses with screening branches retain
+their separate explanation screens before the follow-up questions.
 
-## Clarification chat
+## Editing and clarification
 
-“Ask a question” opens a small chat window about the current page, without losing
-its pending answer. It uses the same configured model provider as the chatbot and
-the dedicated `prompts/guided_sol_clarification_system.md` instructions. Approved
-page explanations remain readable in the window if the provider is unavailable.
+Back preserves answers. Change replays the updated path, retaining applicable
+facts and explicit choices. Newly relevant questions require an answer. A removed
+checkbox choice is discarded when its section reaches review and is not restored
+if another edit later makes that checkbox available. Changing an earlier defense
+also reconciles dependent offers in later defenses. Finishing after an edit requires
+a fresh summary confirmation.
 
-The backend always returns `next_node_id: null` and a non-answer intent. It cannot
-record a fact or checkbox choice from the chat, even if a model returns a branch.
-Page changes cancel pending chat requests and scope subsequent questions to the
-new page. Related questions use approved script wording and confirmed facts only.
+SOL retains its dependency planner, conditional timing evidence, and grouped first
+and third choice. Names are used for personalization. Qualifying timing comparisons
+can be reused without inventing agreement with an edited exact date. Irrelevant
+unknown Laches facts do not block an offer supported by another Yes.
+
+“Ask a question” uses the current approved page context and confirmed facts. Its
+response always has `next_node_id: null`; chat does not answer form questions or
+advance the guide. Approved explanations stay available if the model is unavailable.
 
 ## Implementation
 
-- `practice_areas/consumer_debt/sol_checkbox_dependencies.yaml`: the approved
-  checkbox-to-rule-to-fact map, including personalization-only fields.
-- `practice_areas/consumer_debt/sol_dependency_map.py`: backward dependency
-  traversal, conditional fact requirements, and affected-checkbox discovery.
-- `practice_areas/consumer_debt/guided_sol.py`: formatted answers, validated replay,
-  and a four-defense page adapter over the existing YAML and deterministic rules.
-- `practice_areas/consumer_debt/guided_defense_content.yaml`: the approved overview,
-  October 30 wording, and shared selected/empty confirmation copy. These copy
-  overrides apply only to the click-through, including its clarification context.
-- `practice_areas/consumer_debt/guided_preliminary_fields.yaml`: all 18 preliminary
-  fields in source order, their formats, shared session bindings, and the approved
-  field explanations, including conditional creditor-specific help.
-- `scripts/guided_clickthrough_demo.py`: separate FastAPI server with static
-  assets, stateless page/edit/advance endpoints, and a clarification endpoint.
-- `scripts/assets/guided_sol/`: buildless HTML, CSS, and JavaScript.
-- `tests/test_guided_sol.py`: branch correctness, date validation, changed paths,
-  grouped choices, dependency-aware edits, summary comparisons, session isolation,
-  and non-advancing chat.
+`guided_defense_content.yaml` contains November 7 copy and route overrides.
+`guided_sol.py` validates those overrides into a prototype-specific tree, renders
+pages and clarification context from that tree, and replays validated histories.
+The chatbot's canonical `interactive_tree.yaml` and its wording remain unchanged.
+`guided_preliminary_fields.yaml` retains the October 30 intake. SOL's dependency
+map remains in `sol_checkbox_dependencies.yaml` and `sol_dependency_map.py`.
 
-The guided prototype remains separate from the chatbot UI. Both use the corrected
-shared SOL route that offers debt buyers the main-defense question. The page adapter
-includes only defenses 1, 2, 6, and 8 and performs no filing, document generation, Excel export, or account
-storage. Progress lives in this browser tab's session storage and is cleared by
-Start over or closing the tab. The mini chat requires the configured model service;
-the form itself uses deterministic routing and works without model calls.
-The four-defense prototype uses a new session-storage key; earlier two-defense
-progress is not loaded into this version.
+`scripts/guided_clickthrough_demo.py` serves the form and clarification endpoints;
+`scripts/assets/guided_sol/` contains the buildless browser assets. The progress
+bar includes all sections and scrolls horizontally. The history limit accommodates
+all 17 sections and clarification returns. `guided_collection.py` collects the
+research datasets below. Tests cover source wording, allowed branches, full
+traversal, no-offer outcomes, uncertainty, nested selections, editing, final review,
+CSV collection, and non-advancing clarification.
 
-The governing sources are the October 30 preliminary-fields and defense scripts
-in `docs/source-material/2026-10-30/`. Other chatbot defenses retain their existing
-source. Previously approved editing behavior remains in effect. This interface always shows a final
-review page, including a path that finishes without offering any checkbox.
+The prototype performs no filing, document generation, Excel export, or account
+storage. The deterministic form works without model calls; clarification chat uses
+the configured model provider. Research records persist locally on the server.
 
-## SOL dependency map
+## Debug section navigation
 
-| Offer | Rule | Facts needed |
-| --- | --- | --- |
-| Main defense | Debt buyer, or original creditor on qualifying/uncertain timing path | Plaintiff type; timing only for original creditors |
-| First and third together | Same eligible path | Same facts as main; independent choice |
-| Second | Eligible path plus an oral agreement | Eligible-path facts; oral-agreement answer |
+```bash
+.venv/bin/python scripts/guided_clickthrough_demo.py --debug
+```
 
-A recent original-creditor payment ends without offering any boxes. An explicit
-uncertain timing estimate follows the preservation path. Unknown plaintiff type
-or oral-agreement status requires the relevant clarification. The evaluator does
-not request payment timing for debt buyers, or oral details on an ineligible path.
+Debug mode displays a banner and makes the scrollable section header clickable,
+including Preliminary fields and all 17 defenses. Both the numbered circle and
+section name activate the link; controls briefly disable while a page loads.
+Versioned asset URLs ensure a refresh loads updated navigation code. A header jump fills unanswered
+intake fields and starts that section directly, without answering or completing
+skipped defenses. Click Preliminary fields to inspect or change the case details.
+An already visited section in the current path can be revisited with its answers;
+a new jump starts the selected section fresh using the current confirmed intake.
 
-Each revision includes its computed `plan` in the API response: potentially
-`affected_boxes`, current `availability`, and `required_questions`. The plan is
-recomputed from current facts and saved explicit choices, rather than trusting
-an earlier browser-provided plan. The plan does not select any checkbox.
+On the first debug visit, confirmed intake from the normal tab progress is copied
+into separate debug storage. Existing answers and a valid current intake draft
+are preserved. Missing values use the loaded example complaint where available;
+remaining fallbacks are in `guided_debug.py`: an original creditor, both claim
+types, $4,250, payment on March 15, 2021, filing on September 30, 2026, a recognized
+account, a written agreement, and no debt-consolidation company. Both claim types
+are used only when that field has not already been answered.
 
-The plan also reports `used_facts`, tracing only the conditional dependencies
-evaluated on the active path. The map's `review_evidence` entries distinguish
-agreed-date comparisons, personal estimates, and retained comparisons. These
-govern which answers appear in the section review, independently of the full case
-details. A useful companion instruction for the source dependency tables is:
-“Show only dependencies and supporting answers used on the current path. Omit
-inactive alternatives and fields used only for display.” The tables govern offers;
-the litigant's explicit decisions still determine which boxes are checked.
+Advance, Back, Change, clarification, and reload work from the selected section.
+The debug anchor is validated on every request. Header progress does not mark
+skipped sections complete. Normal mode rejects debug jump requests and anchors.
+
+Research collection is completely disabled in debug mode, including session start,
+answer events, edits, and exit beacons. The debug server does not open or create
+the research database or CSVs, even if a request includes collection metadata.
+Normal browser progress and research files remain separate. Restart without
+`--debug` to return to normal intake and collection.
+
+## Research CSVs
+
+Running the prototype without `--debug` automatically writes three UTF-8 CSVs to
+`output/clickthrough/`. Use `--collection-dir PATH` to choose another directory.
+All three use the requested variable names and share a random UUID `SESSION.ID`.
+The defense names in column headers match the 17 IDs in `guided_sol.DEFENSES`.
+The excluded defenses have no columns in new datasets. When an existing collection
+directory contains records from an older prototype, exports preserve its historical
+defense columns and rows alongside the new columns.
+
+- `sessions.csv`: one row per session, including sessions abandoned in intake.
+  Start time is the first successful page request. Completion becomes Yes only
+  after Finish review reaches the final page; editing an answer requires fresh
+  completion. Merely navigating Back does not undo completion. The tree version
+  contains the source date and a content fingerprint of the scripts and rules.
+- `defenses.csv`: one row per session, with three columns per defense. CHECKED is
+  Yes if any box for that defense is selected. TREE.PROJECTION is Yes if at least
+  one checkbox is offered on the current reconciled path, regardless of the user's
+  choice. Both stay blank while unresolved. Projection becomes Yes when the tree
+  reaches an offered checkbox, or No when the defense finishes without an offer.
+  CHECKED becomes Yes on any explicit inclusion; it becomes No after all offered
+  choices are explicitly declined, or the defense finishes without an offer.
+  CHANGED is 1
+  once a User change event edits a field belonging to that defense.
+  Shared preliminary edits count for the defenses that use those fields: creditor
+  type for SOL, Fraud, and Waiver; claim type for Common Counts and Excuse;
+  consolidation for Mitigation, Rescission, and Accord; recognition for Lack of
+  Consideration; and opening date for Capacity. Independent preliminary fields and
+  personalization-only names do not set a defense's CHANGED flag.
+- `responses.csv`: an append-only event dataset. Preliminary item IDs use the
+  field identifiers from `guided_preliminary_fields.yaml`, such as `CASE.NUMBER`,
+  `PLAINTIFF`, and `COMPLAINT.DATE` (the filing date). Defense questions and deterministic conditions
+  use their tree node IDs. Derived original-creditor values and calculated
+  `DEFENSE.<name>.CHECKED` / `TREE.PROJECTION` values are also recorded. Answers
+  use their stored values (for example `yes`, `no`, `unknown`, or an ISO date).
+  Each calculated field first appears only when its own result is determined.
+  TREE.PROJECTION is recorded when the tree reaches a checkbox offer or completes
+  a no-offer path. CHECKED is recorded after an explicit inclusion, after all
+  offered choices are declined, or on completion of a no-offer path. A first No
+  on the main SOL checkbox does not determine CHECKED while indented choices
+  remain unanswered. Starting a defense, incomplete screening, and uncertain
+  checkbox answers do not create negative results. The defense CSV retains its
+  one-row-per-session shape, with blank unresolved values.
+
+The response columns, in order, are `SESSION.ID`, `RESPONSE.ITEM.ID`,
+`RESPONSE.ITEM.VALUE`, `RESPONSE.EVENT.TYPE`, `RESPONSE.REVISION.NUMBER`,
+`RESPONSE.START.TIME`, `RESPONSE.CHECK.TIME`, and `RESPONSE.END.TIME`.
+The four event types are First submission, User change, Program calculation,
+and Program invalidation. `RESPONSE.CALC.OR.INPUT` is no longer exported;
+the event type identifies who produced the value.
+
+Each item's first recorded value has revision 0; every subsequent change or
+invalidation increments that item's revision independently. A Program invalidation
+has an empty value. A new explicit answer after invalidation is a User change
+event. Valid retained answers do not
+produce duplicate submissions. Pending replay of a later defense is not treated
+as invalidation. Back, opening Change, submitting an unchanged answer, navigation
+screens, and clarification-chat messages do not create answer events.
+If an edit makes a previously known defense result unresolved, the response log
+records a Program invalidation and the defense CSV clears that field until a
+new result is determined. Previously collected rows retain their original
+values and timestamps; the new collection version starts a fresh browser review.
+
+User response start time comes from when the browser renders that question.
+Check time is the most recent answer selection or valid text/date/amount entry
+on that page; end time comes from the click submitting it. Check time is NA if
+the user accepts a prefilled value without interacting with the answer control.
+These timestamps use the browser clock, normalized to UTC. Check time, when
+present, must fall between start and end. Program calculations and invalidations
+use the server clock and equal start/end times because they have no user display
+interval; their check time is always NA. Session timestamps also use the server
+clock. Unsubmitted drafts are not collected.
+
+Start over ends the current session and creates a new UUID without deleting its
+records. Closing or leaving the page sends a browser `pagehide` beacon to record
+the end time. Reloading/restoring that tab keeps its UUID and clears the end time
+while the session is active again. Browser shutdown, crashes, or a disconnected
+server can prevent the exit beacon arriving; in that case SESSION.END.TIME stays
+empty. Completion remains independently recorded even if exit reporting fails.
+
+`collection.sqlite3` in the same directory is the authoritative local store.
+Each accepted operation commits there before atomically replacing each CSV;
+server startup rebuilds the CSVs from the database. Repeated delivery of the
+same collection event ID is ignored. Use one prototype server per collection
+directory. The `output/` directory is gitignored; Start over clears browser
+progress but does not erase the collected CSVs or database.

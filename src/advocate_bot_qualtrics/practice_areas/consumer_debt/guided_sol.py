@@ -2,10 +2,11 @@
 
 Each request replays a valid answer path into a fresh session. Edits reconcile
 previous answers against the new path, retaining only applicable choices.
-This adapter never submits chat messages as answers or traverses later defenses.
+This adapter never submits chat messages as answers or enters excluded defenses.
 """
 from __future__ import annotations
 
+from copy import deepcopy
 from datetime import date
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
@@ -15,29 +16,40 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field
 
 from advocate_bot_qualtrics.core.schemas import CurrentNode, NodeExplanation
+from .guided_script_formatting import ScriptFormatter
+from advocate_bot_qualtrics.core.tree_definition import TreeDefinition
 from advocate_bot_qualtrics.practice_areas.consumer_debt.affirmative_defenses import calendar_cutoff, run_script_action, script_condition, script_fact
-from advocate_bot_qualtrics.practice_areas.consumer_debt.host_extras import render_node as render_chat_node, _script_text
+from advocate_bot_qualtrics.practice_areas.consumer_debt.host_extras import _script_text
 from advocate_bot_qualtrics.practice_areas.consumer_debt.session import apply_interactive_branch, init_session
-from advocate_bot_qualtrics.practice_areas.consumer_debt.tree import INTERACTIVE_TREE_DEFINITION as TREE
+from advocate_bot_qualtrics.practice_areas.consumer_debt.tree import INTERACTIVE_TREE_DEFINITION as CHAT_TREE
 from advocate_bot_qualtrics.practice_areas.consumer_debt.sol_dependency_map import SolDependencyPlan, load_dependency_map, plan_checkbox_review
 
 DEFENSE = "statute_of_limitations"
 SUMMARY = "guided_sol_summary"
 AMBIGUITY_SUMMARY = "guided_ambiguity_summary"
-IDENTITY_SUMMARY = "guided_identity_theft_summary"
 LACHES_SUMMARY = "guided_laches_summary"
 COMPLETE = "guided_sol_complete"
-SUMMARIES = {SUMMARY, AMBIGUITY_SUMMARY, IDENTITY_SUMMARY, LACHES_SUMMARY}
 PRELIMINARY_SUMMARY = "guided_preliminary_summary"
 SOL_INTRO = "guided_sol_intro"
-IDENTITY_INTRO = "guided_identity_theft_intro"
 LACHES_INTRO = "guided_laches_intro"
 DEFENSES = {
     DEFENSE: {"label": "Statute of Limitations", "number": 1, "summary": SUMMARY, "intro": SOL_INTRO},
     "ambiguity": {"label": "Ambiguity", "number": 2, "summary": AMBIGUITY_SUMMARY},
-    "identity_theft": {"label": "Identity Theft", "number": 6, "summary": IDENTITY_SUMMARY, "intro": IDENTITY_INTRO},
-    "laches": {"label": "Laches", "number": 8, "summary": LACHES_SUMMARY, "intro": LACHES_INTRO},
 }
+for _number, _key, _label in [
+    (5, "mistake", "Mistake"), (8, "laches", "Laches"),
+    (9, "fraud", "Fraud Misrepresentation and Concealment"),
+    (10, "failure_to_mitigate", "Failure to Mitigate"), (11, "common_counts", "Common Counts Only"),
+    (12, "unconscionable_contract", "Unconscionable Contract"), (13, "rescission", "Rescission"),
+    (14, "lack_of_consideration", "Lack of Consideration"), (15, "accord_satisfaction", "Accord and Satisfaction"),
+    (16, "excuse_breach", "Excuse or Breach of Contract"), (17, "capacity", "Capacity"),
+    (18, "waiver", "Waiver"), (19, "oral_modification", "Oral Modification"),
+    (20, "tender_payment", "Tender of Payment"),
+    (21, "language_1632", "Violation of Civil Code Section 1632 Regarding Language"),
+]:
+    DEFENSES[_key] = {"label": _label, "number": _number, "summary": "guided_" + _key + "_summary",
+                      "intro": "guided_" + _key + "_intro"}
+SUMMARIES = {spec["summary"] for spec in DEFENSES.values()}
 INTRO_DEFENSES = {spec["intro"]: key for key, spec in DEFENSES.items() if "intro" in spec}
 SUMMARY_DEFENSES = {spec["summary"]: key for key, spec in DEFENSES.items()}
 CONTINUE_PAGES = {*SUMMARIES, PRELIMINARY_SUMMARY, *INTRO_DEFENSES, "guided_welcome"}
@@ -60,25 +72,92 @@ BOX_LABELS = {
 AMBIGUITY_BOX_LABELS = {"main": ("Ambiguity", "Main checkbox")}
 
 
+def _prototype_tree() -> TreeDefinition:
+    """Validate source-specific patches while leaving the chatbot tree intact."""
+    data = CHAT_TREE.model_dump()
+    data["version"] = "2026.11.07"
+    for node in data["nodes"]:
+        patch = CONTENT["nodes"].get(node["id"], {})
+        for field, value in patch.items():
+            if field == "explanation":
+                node["explanation"]["text"] = value
+            elif field == "routes":
+                for branch in node["branches"]:
+                    branch["target"] = value.get(branch["id"], branch["target"])
+            else:
+                node[field] = value
+    return TreeDefinition.model_validate(data)
+
+
+TREE = _prototype_tree()
+PRESENTATION = CONTENT["presentation"]
+FEEDBACK_BOX_LABELS = {key: {"main": spec["label"]} for key, spec in DEFENSES.items()}
+for _node in TREE.nodes:
+    for _box in _node.selection_checkboxes:
+        if _box.defense_id in FEEDBACK_BOX_LABELS:
+            FEEDBACK_BOX_LABELS[_box.defense_id].setdefault(_box.checkbox_id, _box.label)
+PARENT_FROM_NESTED = {"failure_to_mitigate", "common_counts", "excuse_breach"}
+
+
+def _condition(session, key):
+    if key.startswith("selection:"):
+        choices = session.checkbox_selections.get(key.split(":", 1)[1], {})
+        return "yes" if any(v == "include" for v in choices.values()) else "no"
+    return script_condition(session, key)
+
+
 def render_node(node_id, facts, session):
-    """Use October 30 copy in the prototype without changing the chatbot tree."""
-    rendered = render_chat_node(node_id, facts, session)
-    question, explanation = rendered.question, rendered.explanation.text
-    for key, replacements in CONTENT["nodes"].items():
-        definition = TREE.node(key)
-        for field, replacement in replacements.items():
-            original = definition.explanation.text if field == "explanation" else definition.question
-            before, after = _script_text(original, session), _script_text(replacement, session)
-            question = question.replace(before, after)
-            explanation = explanation.replace(before, after)
-    if node_id in {key + "_confirm" for key in DEFENSES}:
-        defense = node_id.removesuffix("_confirm")
-        selected = any(value == "include" for value in session.checkbox_selections.get(defense, {}).values())
-        original = TREE.node(node_id).question.split("\n\n", 1)[0]
-        replacement = CONTENT["confirmation"]["selected" if selected else "empty"]
-        question = question.replace(original, replacement)
-        explanation = explanation.replace(original, replacement)
-    return rendered.model_copy(update={"question": question, "explanation": NodeExplanation(text=explanation)})
+    """Render November 7 wording for pages and clarification context alike."""
+    definition = TREE.node(node_id)
+    defense = next(key for key, spec in DEFENSES.items() if spec["label"] == definition.discussion_topic)
+
+    def wording(node):
+        text = next((v.text for v in node.question_variants
+                     if _condition(session, v.fact_key) == v.equals), node.question)
+        restatements = [v.text for v in node.fact_restatements
+                        if _condition(session, v.fact_key) == v.equals]
+        return _script_text("\n\n".join(part for part in [*restatements, text] if part), session)
+
+    intro = TREE.node(defense + "_intro")
+    approved = _script_text(intro.explanation.text, session)
+    question = wording(definition)
+    if node_id == defense + "_confirm":
+        selected = any(v == "include" for v in session.checkbox_selections.get(defense, {}).values())
+        question = CONTENT["confirmation"]["selected" if selected else "empty"]
+    if definition.explanation and definition.explanation.show_with_question:
+        question = approved + ("\n\n" + question if question else "")
+    context = [approved]
+    for visited in dict.fromkeys(session.script_visited):
+        node = TREE.node(visited)
+        if node.discussion_topic == definition.discussion_topic:
+            context.append(wording(node))
+    for node in TREE.nodes:
+        if node.discussion_topic != definition.discussion_topic:
+            continue
+        answer = session.defense_answers.get(node.id)
+        branch = next((b for b in node.branches if b.id == answer), None)
+        if branch and node.kind in {"choice", "input"}:
+            context.append(wording(node) + "\nRecorded answer: " + branch.label)
+    context.append(question)
+    return definition.to_current_node().model_copy(update={
+        "question": f"### {definition.title}\n\n{question}",
+        "explanation": NodeExplanation(text="\n\n".join(dict.fromkeys(part for part in context if part)))})
+
+
+def _node_wording(node_id: str, session) -> str:
+    node = TREE.node(node_id)
+    text = next((v.text for v in node.question_variants
+                 if _condition(session, v.fact_key) == v.equals), node.question)
+    return _script_text(text, session)
+
+
+def _response_prefix(node_id: str, session) -> tuple[str, str]:
+    text = _node_wording(node_id, session)
+    separator = PRESENTATION["prefix_separators"].get(node_id)
+    if separator and separator in text:
+        before, after = text.split(separator, 1)
+        return before + ".", separator[2:] + after
+    return "", text
 
 
 class TimingBasis(BaseModel):
@@ -105,20 +184,21 @@ class SavedAnswer(BaseModel):
 
 class GuidedRevision(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    previous_history: list[GuidedAnswer] = Field(max_length=80)
-    saved_answers: list[SavedAnswer] = Field(default_factory=list, max_length=80)
+    previous_history: list[GuidedAnswer] = Field(max_length=400)
+    saved_answers: list[SavedAnswer] = Field(default_factory=list, max_length=400)
     changed_field: str | None = None
     plan: SolDependencyPlan | None = None
 
 
 class GuidedRequest(BaseModel):
+    debug_section: str | None = Field(default=None, min_length=1, max_length=100)
     model_config = ConfigDict(extra="forbid")
-    history: list[GuidedAnswer] = Field(default_factory=list, max_length=80)
+    history: list[GuidedAnswer] = Field(default_factory=list, max_length=400)
     revision: GuidedRevision | None = None
 
 
 class GuidedEditRequest(GuidedRequest):
-    edit_index: int = Field(ge=0, lt=80)
+    edit_index: int = Field(ge=0, lt=400)
     value: str = Field(min_length=1, max_length=300)
 
 
@@ -127,7 +207,10 @@ class GuidedAdvanceRequest(GuidedRequest):
 
 
 class GuidedSolReview:
-    def __init__(self, defaults: dict[str, Any] | None = None):
+    def __init__(self, defaults: dict[str, Any] | None = None, *, debug_section: str | None = None):
+        if debug_section is not None and debug_section not in {*DEFENSES, "preliminary"}:
+            raise ValueError("Choose an implemented defense or preliminary fields.")
+        self.debug_section = debug_section
         # Validate imported facts using the same fact-only contract as chat.
         init_session(defaults or {})
         self.defaults = defaults or {}
@@ -135,20 +218,54 @@ class GuidedSolReview:
         self.current = "guided_welcome"
         self.history: list[GuidedAnswer] = []
         self.notices: list[str] = []
-        self.summary_reason = ""
+        self.answer_response: list[str] = []
+        self.response_origin: str | None = None
+        self.moved_preamble: str | None = None
+        self.checkbox_context: dict[str, list[str]] = {}
         self.finish_reasons: dict[str, str] = {}
         self.revision: GuidedRevision | None = None
         self.pending_preliminary_route: str | None = None
+        self.calculations: dict[str, str] = {}
 
     def replay(self, history: list[GuidedAnswer]) -> GuidedSolReview:
         for answer in history:
-            if answer.node_id != self.current:
+            self._restore_separate_intro(answer)
+            if answer.node_id != self.current and not self._legacy_intro(answer):
                 raise ValueError("These answers no longer match the current path. Return to the previous page.")
             self._apply_answer(answer)
             self.history.append(answer)
         return self
 
+    def _restore_separate_intro(self, answer: GuidedAnswer) -> None:
+        # A previous presentation briefly omitted the Laches introduction.
+        # Replay those answers without changing their saved edit indices.
+        if self.current == LACHES_INTRO and answer.node_id == TREE.node("laches_intro").next:
+            self._apply_answer(GuidedAnswer(node_id=LACHES_INTRO, value="continue", automatic=True))
+
+    def _legacy_intro(self, answer: GuidedAnswer) -> bool:
+        defense = INTRO_DEFENSES.get(answer.node_id)
+        return (defense in PRESENTATION["explanation_on_question"] and answer.value == "continue"
+                and self.current == TREE.node(defense + "_intro").next)
+
+    def _start_defense(self, defense: str) -> None:
+        if defense in PRESENTATION["explanation_on_question"] or "intro" not in DEFENSES[defense]:
+            self._drain(defense + "_intro")
+        else:
+            self.current = DEFENSES[defense]["intro"]
+
     def _apply_answer(self, answer: GuidedAnswer) -> None:
+        if self._legacy_intro(answer):
+            # Older saved paths included an extra introduction page. Its Continue
+            # remains a harmless navigation record, not a new checkbox answer.
+            return
+        self.response_origin = self.current if self.current not in {*CONTINUE_PAGES, COMPLETE} else None
+        self.answer_response = []
+        self.moved_preamble = None
+        self._apply_answer_value(answer)
+        if self.response_origin is not None or self._checkbox_context_demo():
+            self._finish_answer_response(answer.value)
+
+    def _apply_answer_value(self, answer: GuidedAnswer) -> None:
         if answer.timing_basis is None:
             if answer.value in {"reuse_comparison", "reuse_estimate"}:
                 raise ValueError("A retained timing result needs its original context.")
@@ -173,6 +290,60 @@ class GuidedSolReview:
         self.notices = ["The updated dates give the same one-year screening result. Your previous checkbox choices can be retained."]
         self._drain("sol_original_preserve" if after else "sol_finish")
 
+    def _checkbox_context_demo(self) -> bool:
+        definition = TREE.node_map.get(self.current)
+        return bool(definition and any(box.defense_id in PRESENTATION["checkbox_context_defenses"]
+                                       for box in definition.selection_checkboxes))
+
+    def _finish_answer_response(self, value: str) -> None:
+        if self._checkbox_context_demo():
+            # Keep checkbox guidance here; acknowledgments of the preceding
+            # answer remain inline on the screening question that produced them.
+            context = list(dict.fromkeys(self.notices))
+            if context:
+                self.checkbox_context[self.current] = context
+            self.notices = list(self.checkbox_context.get(self.current, []))
+            return
+        rule = PRESENTATION["answer_rules"].get(self.response_origin, {}).get(value)
+        if rule:
+            node_id, part = rule["node"], rule["part"]
+            text = _node_wording(node_id, self.session)
+            if part == "preamble":
+                text = text.rsplit("\n\n", 1)[0]
+            elif part == "prefix":
+                text = _response_prefix(node_id, self.session)[0]
+            self.answer_response.insert(0, text)
+        definition = TREE.node_map.get(self.current)
+        if definition:
+            oral_answer = self.current == "sol_checkbox_second" and self.response_origin == "guided_oral"
+            if (definition.selection_checkboxes and (oral_answer or self.current not in
+                    {*PRESENTATION["context_preambles"], *PRESENTATION["response_only_preambles"]})):
+                text = _node_wording(self.current, self.session)
+                if "\n\n" in text:
+                    self.answer_response.append(text.rsplit("\n\n", 1)[0])
+                    self.moved_preamble = self.current
+            prefix, _ = _response_prefix(self.current, self.session)
+            if prefix and self.current not in {"mitigation_contact_uncertain", "mitigation_settlement_uncertain"}:
+                self.answer_response.append(prefix)
+                self.moved_preamble = self.current
+            if self.current == "language_negotiation":
+                self.answer_response.extend(_script_text(v.text, self.session) for v in definition.fact_restatements
+                                            if _condition(self.session, v.fact_key) == v.equals)
+                self.moved_preamble = self.current
+        self.answer_response = list(dict.fromkeys(text for text in self.answer_response if text.strip()))
+
+    def preview_response(self, value: str) -> list[str]:
+        """Evaluate one draft answer on a disposable copy; never collect or advance it."""
+        preview = deepcopy(self)
+        preview._apply_answer(GuidedAnswer(node_id=preview.current, value=value))
+        return preview.answer_response
+
+    def preview_formatted_response(self, value: str) -> dict:
+        preview = deepcopy(self)
+        preview._apply_answer(GuidedAnswer(node_id=preview.current, value=value))
+        return {"response": preview.answer_response,
+                "response_blocks": ScriptFormatter(preview.session).blocks(preview.answer_response)}
+
     def _answer(self, value: str) -> None:
         node = self.current
         if node == COMPLETE:
@@ -191,12 +362,10 @@ class GuidedSolReview:
                     self.current = COMPLETE
                 else:
                     following = order[index]
-                    if "intro" in DEFENSES[following]:
-                        self.current = DEFENSES[following]["intro"]
-                    else:
-                        self._drain(following + "_intro")
+                    self._start_defense(following)
             elif node == PRELIMINARY_SUMMARY:
-                self.current = SOL_INTRO
+                target = self.debug_section if self.debug_section in DEFENSES else DEFENSE
+                self._start_defense(target)
             elif node in INTRO_DEFENSES:
                 self._drain(INTRO_DEFENSES[node] + "_intro")
             else:
@@ -206,11 +375,21 @@ class GuidedSolReview:
             self._intake(node, value)
             return
         definition = TREE.node(node)
-        if value not in {b.id for b in definition.branches}:
-            raise ValueError("Choose one of the answers shown on this page.")
-        apply_interactive_branch(self.session, node, value)
+        if definition.kind == "input":
+            if value == "unknown":
+                branch = "unknown"
+                submitted = None
+            else:
+                branch = "submit"
+                submitted = value
+            apply_interactive_branch(self.session, node, branch, submitted_text=submitted)
+        else:
+            if value not in {b.id for b in definition.branches}:
+                raise ValueError("Choose one of the answers shown on this page.")
+            branch = value
+            apply_interactive_branch(self.session, node, value)
         self.notices = []
-        self._drain(TREE.route(node, value))
+        self._drain(TREE.route(node, branch))
 
     def _intake(self, node: str, value: str, *, advance: bool = True) -> None:
         spec = PRELIMINARY_FIELDS.get(node)
@@ -270,23 +449,36 @@ class GuidedSolReview:
         for _ in range(60):
             unresolved_fields = {"sol_creditor_type_resolve": ("guided_creditor_type", "sol_creditor_type"),
                                  "sol_oral_gate_resolve": ("guided_oral", "sol_oral_gate"),
-                                 "identity_recognize_resolve": ("guided_recognize", "identity_recognize")}
+                                 "fraud_creditor_type_resolve": ("guided_creditor_type", "fraud_creditor_type"),
+                                 "mitigation_consolidation_resolve": ("guided_consolidation", "mitigation_consolidation"),
+                                 "rescission_consolidation_resolve": ("guided_consolidation", "rescission_consolidation"),
+                                 "accord_consolidation_resolve": ("guided_consolidation", "accord_consolidation"),
+                                 "common_counts_suit_resolve": ("guided_suit_type", "common_counts_suit"),
+                                 "excuse_suit_type_resolve": ("guided_suit_type", "excuse_suit_type")}
             if node_id in unresolved_fields:
                 self.current, self.pending_preliminary_route = unresolved_fields[node_id]
                 return
             if node_id in {key + "_confirm" for key in DEFENSES}:
-                self.current = DEFENSES[node_id.removesuffix("_confirm")]["summary"]
+                defense = node_id.removesuffix("_confirm")
+                if defense in PARENT_FROM_NESTED:
+                    choices = self.session.checkbox_selections.setdefault(defense, {})
+                    choices["main"] = "include" if any(v == "include" for k, v in choices.items() if k != "main") else "exclude"
+                    self.session.defense_selections[defense] = choices["main"]
+                    target = self.answer_response if self.response_origin else self.notices
+                    target.append(_script_text(CONTENT["parent_outcomes"][defense][
+                        "selected" if choices["main"] == "include" else "empty"], self.session))
+                if self.response_origin and defense not in PRESENTATION["confirmation_on_review_defenses"]:
+                    choices = self.session.checkbox_selections.get(defense, {})
+                    selected = "include" in choices.values()
+                    self.answer_response.append(CONTENT["confirmation"]["selected" if selected else "empty"])
+                    # Replay visits earlier summaries on every request. Feedback
+                    # needs only the choices, not a full review with edit links.
+                    self.answer_response.append("\n".join(
+                        label + (": Check this box" if choices[box] == "include" else ": Leave unchecked")
+                        for box, label in FEEDBACK_BOX_LABELS[defense].items() if box in choices))
+                self.current = DEFENSES[defense]["summary"]
                 return
-            if node_id == "ambiguity_intro" and self.summary_reason and self.current != SUMMARY:
-                # A finish path gets a result page, without asking to confirm
-                # checkbox selections that were never offered.
-                self.current = SUMMARY
-                return
-            if node_id in {"wrong_party_intro", "fraud_intro"}:
-                self.current = IDENTITY_SUMMARY if node_id == "wrong_party_intro" else LACHES_SUMMARY
-                return
-            # October 30 requires uncertainty to be resolved only when no Yes
-            # establishes Laches. Do not force irrelevant unknowns to No.
+            # Resolve uncertainty only when no Yes establishes Laches.
             if node_id in {"laches_pending", "laches_statements_pending", "laches_lost_info_pending"}:
                 node_id = "laches_outcome"
             if node_id == "laches_unresolved":
@@ -298,21 +490,29 @@ class GuidedSolReview:
             if definition.discussion_topic not in {spec["label"] for spec in DEFENSES.values()}:
                 raise ValueError("This defense is not included in the guided prototype.")
             if definition.kind == "condition":
-                branch = script_condition(self.session, definition.condition_key)
+                branch = _condition(self.session, definition.condition_key)
+                self.calculations[node_id] = branch
                 apply_interactive_branch(self.session, node_id, branch)
                 node_id = TREE.route(node_id, branch)
             elif definition.kind == "action":
                 run_script_action(self.session, definition.action)
                 text = render_node(node_id, None, self.session).question.split("\n\n", 1)[-1]
                 if text.strip() and node_id not in {key + "_intro" for key, spec in DEFENSES.items() if "intro" in spec}:
-                    self.notices.append(text)
+                    if node_id not in PRESENTATION["response_only_nodes"]:
+                        target = (self.answer_response if self.response_origin and node_id not in
+                                  PRESENTATION["context_actions"] else self.notices)
+                        target.append(text)
                 operation, defense, *_ = definition.action.split(":")
                 if operation == "script_finish":
                     self.finish_reasons[defense] = text
-                if node_id == "identity_referral_resolved":
-                    self.finish_reasons["identity_theft"] = "Clinic staff have addressed this issue. Follow their guidance when completing Attachment 4. This tool has not selected the Identity Theft checkbox."
-                if node_id == "sol_finish":
-                    self.summary_reason = text
+                    self.current = DEFENSES[defense]["summary"]
+                    return
+                if operation == "script_resolve":
+                    self.finish_reasons[defense] = "Clinic staff have addressed this issue. Follow their guidance when completing Attachment 4. This tool has not selected this defense’s checkbox."
+                    if self.response_origin:
+                        self.answer_response.append(self.finish_reasons[defense])
+                    self.current = DEFENSES[defense]["summary"]
+                    return
                 node_id = definition.next
             else:
                 self.current = node_id
@@ -352,6 +552,11 @@ class GuidedSolReview:
         choices = self.session.checkbox_selections.get(defense, {})
         rows = []
         labels = BOX_LABELS if defense == DEFENSE else {"main": (DEFENSES[defense]["label"], "Main checkbox")}
+        if defense != DEFENSE:
+            for node in TREE.nodes:
+                for box in node.selection_checkboxes:
+                    if box.defense_id == defense:
+                        labels.setdefault(box.checkbox_id, (box.label, box.checkbox_id.capitalize() + " indented checkbox"))
         for box, (label, detail) in labels.items():
             index = next((i for i, answer in enumerate(self.history)
                           if answer.node_id in TREE.node_map and any(
@@ -359,7 +564,7 @@ class GuidedSolReview:
             selection = choices.get(box)
             rows.append({"id": box, "defense_id": defense, "label": label, "detail": detail,
                          "checked": selection == "include", "status": "Selected" if selection == "include" else "Not selected" if selection == "exclude" else "Not offered on this path",
-                         "edit_index": index})
+                         "edit_index": index, "derived": box == "main" and defense in PARENT_FROM_NESTED})
         return rows
 
     def case_details(self) -> list[dict]:
@@ -385,18 +590,25 @@ class GuidedSolReview:
         Explicit checkbox decisions already appear in the checklist. Ambiguity
         has no factual prerequisites; its result is the litigant's own choice.
         """
+        if defense not in {DEFENSE, "ambiguity", "laches"}:
+            result = []
+            dependencies = {"fraud": ["guided_creditor_type"],
+                "failure_to_mitigate": ["guided_consolidation"], "common_counts": ["guided_suit_type"],
+                "rescission": ["guided_consolidation"], "lack_of_consideration": ["guided_recognize"],
+                "accord_satisfaction": ["guided_consolidation"], "excuse_breach": ["guided_suit_type"],
+                "capacity": ["guided_open_date"], "waiver": ["guided_creditor_type"]}
+            details = {row["node_id"]: row for row in self.case_details()}
+            result.extend(details[key] for key in dependencies.get(defense, []))
+            for index, answer in enumerate(self.history):
+                node = TREE.node_map.get(answer.node_id)
+                if node and node.discussion_topic == DEFENSES[defense]["label"] and node.discussion_mode != "questions" and not node.selection_checkboxes:
+                    result.append({"node_id": node.id, "label": _script_text(node.question, self.session),
+                                   "value": {"yes": "Yes", "no": "No", "unknown": "Not sure"}.get(answer.value, answer.value), "edit_index": index})
+            return result
         if defense == "ambiguity":
             return []
-        if defense in {"identity_theft", "laches"}:
+        if defense == "laches":
             records = {answer.node_id: (index, answer) for index, answer in enumerate(self.history)}
-            if defense == "identity_theft":
-                row = next(item for item in self.case_details() if item["node_id"] == "guided_recognize")
-                result = [row]
-                if script_fact(self.session, "field:RECOGNIZE") == "no" and "identity_suspected" in records:
-                    index, answer = records["identity_suspected"]
-                    result.append({"node_id": "identity_suspected", "label": "Suspected identity theft",
-                                   "value": {"yes": "Yes", "no": "No", "unknown": "Not sure"}[answer.value], "edit_index": index})
-                return result
             facts = [("laches", "Locked out of online portal"), ("laches_statements", "Relying only on provided statements"),
                      ("laches_lost_info", "Information harder to find because of delay")]
             # One affirmative fact establishes the offer. Otherwise, all three
@@ -459,7 +671,7 @@ class GuidedSolReview:
         if self.current in PRELIMINARY_FIELDS:
             page = self._intake_page()
         elif self.current == "guided_welcome":
-            prototype_scope = "This prototype currently includes preliminary fields and four defenses: Statute of Limitations (1), Ambiguity (2), Identity Theft (6), and Laches (8)."
+            prototype_scope = "This prototype currently includes preliminary fields and 17 defenses. Standing and Privity (3), Failure to State a Cause of Action (4), Identity Theft (6), and Wrong Party (7) are omitted. Ask clinic staff about those defenses."
             page = {"title": "Overview", "body": CONTENT["overview"], "input_type": "continue", "stage": 0,
                     "why": prototype_scope, "help_text": "\n\n".join([*CONTENT["overview"], prototype_scope]),
                     "visual": {"type": "overview"}, "next_label": "Start review"}
@@ -470,7 +682,8 @@ class GuidedSolReview:
                     "help_text": "Review the recorded preliminary fields before continuing. Recording a complaint field does not mean you agree with the plaintiff’s claim."}
         elif self.current in INTRO_DEFENSES:
             explanation = _script_text(CONTENT["nodes"][defense + "_intro"]["explanation"], self.session)
-            page = {"title": section, "body": [explanation], "input_type": "continue", "stage": 1,
+            restatements = [_script_text(v.text, self.session) for v in TREE.node(defense + "_intro").fact_restatements if _condition(self.session, v.fact_key) == v.equals]
+            page = {"title": section, "body": [explanation, *restatements], "input_type": "continue", "stage": 1,
                     "next_label": "Review this defense", "why": "We’ll reuse your preliminary fields and ask only the additional questions needed for this defense.",
                     "help_text": explanation}
         elif self.current in {*SUMMARIES, COMPLETE}:
@@ -481,10 +694,11 @@ class GuidedSolReview:
             next_label = "Continue to " + DEFENSES[list(DEFENSES)[next_index]]["label"] if next_index < len(DEFENSES) else "Finish review"
             confirmation = CONTENT["confirmation"]["selected" if any(r["checked"] for r in rows) else "empty"]
             page = {"title": "Your review is complete" if self.current == COMPLETE else f"{section} review complete" if finished else f"Review your {section} selections", "stage": 2,
-                    "body": ["You’ve reviewed the four defenses included in this prototype. Raise your hand and notify clinic staff if you have further questions."] if self.current == COMPLETE else [self.finish_reasons[defense]] if finished else [confirmation],
+                    "body": ["You’ve reviewed the 17 defenses included in this prototype. Raise your hand and notify clinic staff if you have further questions."] if self.current == COMPLETE else (["No checkboxes were offered in this section. Review the answers below or continue."]
+                          if self.finish_reasons[defense] in self.answer_response else [self.finish_reasons[defense]]) if finished else [*self.notices, ("Review the checkbox selections below. Use Change to update an answer before continuing." if confirmation in self.answer_response else confirmation)],
                     "input_type": "complete" if self.current == COMPLETE else "summary", "rows": rows,
                     "review_answers": self.review_answers(defense),
-                    "why": "Use Change to revisit an answer or choice." + (" The first and third SOL boxes share one question." if defense == DEFENSE else " Clinic staff guide the Identity Theft follow-up; this tool does not select its checkbox." if defense == "identity_theft" else " Each defense’s checkbox choice is recorded separately."),
+                    "why": "Use Change to revisit an answer or choice." + (" The first and third SOL boxes share one question." if defense == DEFENSE else " Each defense’s checkbox choice is recorded separately."),
                     "help_text": self._summary_help(defense),
                     "open_questions": [x["reason"] for x in unresolved],
                     "next_label": next_label}
@@ -498,10 +712,20 @@ class GuidedSolReview:
             rendered = render_node(self.current, None, self.session)
             paragraphs = rendered.question.split("\n\n")[1:]
             question = paragraphs[-1]
+            if self.current == self.moved_preamble or self.current in PRESENTATION["response_only_preambles"]:
+                paragraphs = [question]
+            prefix, remaining_question = _response_prefix(self.current, self.session)
+            if prefix:
+                question = remaining_question
+                paragraphs = [question]
             page = {"title": question, "body": [*self.notices, *paragraphs[:-1]], "input_type": "choice", "stage": 1,
                     "help_text": rendered.explanation.text, "why": "Your answer determines which part of this defense we review next. You choose which offered boxes to check.",
                     "options": [{"value": b.id, "label": b.label} for b in definition.branches]}
-            if definition.discussion_mode == "questions":
+            if definition.kind == "input":
+                page["input_type"] = "text"
+                page["field_label"] = question
+                page["allow_unknown"] = any(b.id == "unknown" for b in definition.branches)
+            elif definition.discussion_mode == "questions":
                 page["title"] = "Ready to return to the pending question?"
                 page["body"] = [*self.notices, "Ask a clarifying question here or speak with clinic staff before choosing an answer."]
                 page["options"] = [{"value": "retry", "label": "I’m ready to answer again"}, {"value": "unknown", "label": "I still need help"}]
@@ -520,6 +744,12 @@ class GuidedSolReview:
                 if isinstance(payment_date, date) and filing:
                     page["visual"] = {"type": "timeline", "payment": payment_date.isoformat(), "filing": filing.isoformat(),
                                       "months": round((filing - payment_date).days / 30.4375, 1)}
+        if self.current in PRESENTATION["explanation_on_question"].get(defense, []):
+            explanation = _script_text(CONTENT["nodes"][defense + "_intro"]["explanation"], self.session)
+            question = page["title"]
+            page["body"] = [explanation, *[text for text in page["body"] if text != explanation], question]
+            page["question_text"] = question
+            page["title"] = section
         page.update({"node_id": self.current, "can_back": bool(self.history), "case_details": self.case_details(),
                      "section": "Preliminary fields" if preliminary else section if self.current != COMPLETE else "Review complete",
                      "section_number": section_number, "section_count": len(DEFENSES) + 1,
@@ -528,7 +758,7 @@ class GuidedSolReview:
         if self.revision:
             page["revision_notice"] = "Your other answers have been kept. Only questions that could affect the available checkboxes need review."
             if self.current in {*SUMMARIES, COMPLETE}:
-                previous_review = GuidedSolReview(self.defaults).replay(self.revision.previous_history)
+                previous_review = GuidedSolReview(self.defaults, debug_section=self.debug_section).replay(self.revision.previous_history)
                 before = {(row["defense_id"], row["id"]): row for key in DEFENSES for row in previous_review._rows(key)}
                 page["changes"] = []
                 for row in page["rows"]:
@@ -538,11 +768,31 @@ class GuidedSolReview:
                         page["changes"].append({"label": row["label"], "before": previous["status"], "after": row["status"]})
                 page["revision_notice"] = ("Your details were updated. Review the checkbox changes below." if page["changes"]
                                            else "Your details were updated. Your checkbox selections are unchanged.")
+        if page["input_type"] == "choice":
+            page["answer_responses"] = {option["value"]: self.preview_response(option["value"])
+                                        for option in page["options"]}
+        page["dynamic_response"] = (page["input_type"] in {"text", "date", "currency"} and
+                                   (self.current in TREE.node_map or self.pending_preliminary_route is not None))
+        formatter = ScriptFormatter(self.session)
+        page["body_blocks"] = formatter.blocks(page["body"])
+        page["help_blocks"] = formatter.blocks([page["help_text"]])
+        if "answer_responses" in page:
+            page["answer_response_blocks"] = {value: formatter.blocks(texts)
+                                               for value,texts in page["answer_responses"].items()}
+        question_blocks = formatter.blocks([page["title"]])
+        if any(block["type"] == "list" for block in question_blocks):
+            # Keep list items out of the heading while preserving their place
+            # above the answer control on this same question page.
+            original_title = page["title"]
+            page["title"] = question_blocks[0]["text"]
+            page["body_blocks"].extend(question_blocks[1:])
+            if page.get("field_label") == original_title:
+                page["field_label"] = page["title"]
         return page
 
     def chat_node(self) -> CurrentNode:
         page = self.page()
-        return CurrentNode(node_id=self.current, question=page["title"], discussion_topic=page["section"], discussion_mode="questions",
+        return CurrentNode(node_id=self.current, question=page.get("question_text", page["title"]), discussion_topic=page["section"], discussion_mode="questions",
                            explanation=NodeExplanation(text=page["help_text"]))
 
 
@@ -557,12 +807,13 @@ def _timing_result(payment: date | None, filing: date | None) -> bool | None:
     return payment <= calendar_cutoff(filing, 1)
 
 
-def _saved_answers(defaults: dict, history: list[GuidedAnswer]) -> dict[str, SavedAnswer]:
-    review = GuidedSolReview(defaults)
+def _saved_answers(defaults: dict, history: list[GuidedAnswer], *, debug_section: str | None = None) -> dict[str, SavedAnswer]:
+    review = GuidedSolReview(defaults, debug_section=debug_section)
     saved = {}
     for answer in history:
         # Validate the source path before treating any of its answers as reusable.
-        if answer.node_id != review.current:
+        review._restore_separate_intro(answer)
+        if answer.node_id != review.current and not review._legacy_intro(answer):
             raise ValueError("The saved review no longer matches the script.")
         saved[answer.node_id] = SavedAnswer(answer=answer, payment_date=_payment_date(review), filing_date=review.session.filing_date)
         review._apply_answer(answer)
@@ -613,27 +864,30 @@ def _reusable_answer(review: GuidedSolReview, saved: dict[str, SavedAnswer], pla
         if any(plan.availability[box.checkbox_id] is not True for box in definition.selection_checkboxes):
             return None
     value = record.answer.value
-    if node == "identity_referral_help" and value == "resolved":
-        return record.answer.model_copy(update={"automatic": True})
     if node in {"laches", "laches_statements", "laches_lost_info"} and value == "unknown":
         # An explicit unknown may be irrelevant when another fact is Yes. The
         # outcome gate still requires clarification when no Yes is available.
         return record.answer.model_copy(update={"automatic": True})
+    if node in {"mitigation_contact", "mitigation_contact_resolve"} and value == "unknown":
+        # November 7 permits this uncertainty after the contact clarification.
+        return record.answer.model_copy(update={"automatic": True})
     if node == "sol_payment_age":
         return record.answer.model_copy(update={"automatic": True}) if record.filing_date == review.session.filing_date else None
+    if definition.kind == "input":
+        return record.answer.model_copy(update={"automatic": True}) if value != "unknown" else None
     if definition.discussion_mode == "questions" or value not in {b.id for b in definition.branches}:
         return None
     # A reached decision already passed the current script's eligibility gates.
     # Reuse only a recorded explicit choice for those exact boxes.
-    if value in {"yes", "no", "original", "buyer"}:
+    if value in {"yes", "no", "original", "buyer", "resolved"}:
         return record.answer.model_copy(update={"automatic": True})
     return None
 
 
 def _dependency_plan(review: GuidedSolReview, saved: dict[str, SavedAnswer], changed_field: str | None) -> SolDependencyPlan:
     """Work backward from the checkbox goals using all still-valid known facts."""
-    records = {**saved, **_saved_answers(review.defaults, review.history)}
-    assessment = GuidedSolReview(review.defaults)
+    records = {**saved, **_saved_answers(review.defaults, review.history, debug_section=review.debug_section)}
+    assessment = GuidedSolReview(review.defaults, debug_section=review.debug_section)
     for node in PRELIMINARY_FIELDS:
         if node in records:
             assessment._intake(node, records[node].answer.value, advance=False)
@@ -676,7 +930,7 @@ def _resume_review(review: GuidedSolReview, revision: GuidedRevision) -> GuidedS
     saved = {record.answer.node_id: record for record in revision.saved_answers}
     plan = _dependency_plan(review, saved, revision.changed_field)
     revision = revision.model_copy(update={"plan": plan})
-    for _ in range(80 - len(review.history)):
+    for _ in range(400 - len(review.history)):
         if review.current in {*SUMMARIES, COMPLETE}:
             break
         answer = _reusable_answer(review, saved, plan)
@@ -686,12 +940,21 @@ def _resume_review(review: GuidedSolReview, revision: GuidedRevision) -> GuidedS
         review.history.append(answer)
     else:
         raise ValueError("The updated review needs too many steps. Return to the previous page.")
+    if review.current in SUMMARY_DEFENSES:
+        defense = SUMMARY_DEFENSES[review.current]
+        visited = {answer.node_id for answer in review.history}
+        # Reaching a summary settles this defense's path. A removed option must
+        # not reappear from the edit cache if a later edit makes it eligible.
+        saved = {key: record for key, record in saved.items()
+                 if key in visited or key not in TREE.node_map or not any(
+                     box.defense_id == defense for box in TREE.node(key).selection_checkboxes)}
+        revision = revision.model_copy(update={"saved_answers": list(saved.values())})
     review.revision = revision
     return review
 
 
 def edit_review(defaults: dict, request: GuidedEditRequest) -> GuidedSolReview:
-    current = GuidedSolReview(defaults).replay(request.history)
+    current = GuidedSolReview(defaults, debug_section=request.debug_section).replay(request.history)
     if request.edit_index >= len(request.history):
         raise ValueError("Choose an answer that is already part of the review.")
     original = request.history[request.edit_index]
@@ -711,31 +974,29 @@ def edit_review(defaults: dict, request: GuidedEditRequest) -> GuidedSolReview:
                              and node.discussion_topic in {spec["label"] for spec in DEFENSES.values()}
                              and list(DEFENSES).index(next(key for key, spec in DEFENSES.items() if spec["label"] == node.discussion_topic))
                              > list(DEFENSES).index(SUMMARY_DEFENSES[current.current]))
-            if record.answer.node_id == "identity_referral_help" and not any(a.node_id == "identity_referral_help" for a in request.history) and not in_progress:
-                continue
             if in_progress or node is None or not node.selection_checkboxes or node.discussion_topic == "Ambiguity" or future_choice:
                 saved[record.answer.node_id] = record
-    saved.update(_saved_answers(defaults, request.history))
+    saved.update(_saved_answers(defaults, request.history, debug_section=request.debug_section))
     saved.pop(original.node_id, None)
     for field, resolution in {"guided_creditor_type": "sol_creditor_type_resolve", "guided_oral": "sol_oral_gate_resolve"}.items():
         if original.node_id == field and original.value != request.value:
             saved.pop(resolution, None)
     if original.value != request.value:
-        if original.node_id in {"guided_recognize", "identity_suspected"}:
-            saved.pop("identity_referral_help", None)
+        if original.node_id == "guided_recognize":
+            saved.pop("consideration_identity_resolve", None)
         if original.node_id in {"laches", "laches_statements", "laches_lost_info"}:
             saved.pop(original.node_id + "_resolve", None)
     revision = GuidedRevision(previous_history=request.revision.previous_history if in_progress else request.history,
                               saved_answers=list(saved.values()), changed_field=original.node_id)
     history = request.history[:request.edit_index] + [GuidedAnswer(node_id=original.node_id, value=request.value)]
-    return _resume_review(GuidedSolReview(defaults).replay(history), revision)
+    return _resume_review(GuidedSolReview(defaults, debug_section=request.debug_section).replay(history), revision)
 
 
 def advance_review(defaults: dict, request: GuidedAdvanceRequest) -> GuidedSolReview:
-    current = GuidedSolReview(defaults).replay(request.history)
+    current = GuidedSolReview(defaults, debug_section=request.debug_section).replay(request.history)
     answer = GuidedAnswer(node_id=current.current, value=request.value)
     history = request.history + [answer]
-    updated = GuidedSolReview(defaults).replay(history)
+    updated = GuidedSolReview(defaults, debug_section=request.debug_section).replay(history)
     if request.revision is None or updated.current == COMPLETE:
         updated.revision = request.revision
         return updated

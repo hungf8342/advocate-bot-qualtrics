@@ -40,8 +40,8 @@ The demo has no file-upload control. Do not use its public-share option with rea
 
 A separate interface presents one question per page with Back and Next controls,
 a payment timeline, a clarification chat window, and a summary for each defense.
-It follows the October 30 script for Statute of Limitations, Ambiguity, Identity
-Theft, and Laches (defenses 1, 2, 6, and 8). Editing
+It follows the November 7 scripts for 17 defenses (1, 2, 5, 8, and 9–21), excluding
+Standing/Privity, Failure to State a Cause of Action, Wrong Party, and Identity Theft. Editing
 a field preserves independent answers and revisits only questions that could
 affect the checkbox choices:
 
@@ -53,10 +53,20 @@ additional questions; unresolved fields return to the preliminary section.
 .venv/bin/python scripts/guided_clickthrough_demo.py
 ```
 
+For debugging, add `--debug` to enable clickable section headers and automatic
+defaults for unanswered intake fields. This mode disables research collection and
+uses separate browser progress.
+
 Open <http://localhost:7861/>. The original-creditor example is prefilled for review.
 Use `--complaint-fields examples/complaints/debt-buyer.json` for the debt-buyer path,
 or `--blank` to start with blank fields. This prototype runs independently of the
-chatbot on port 7860 and stops after Laches, with a final review of all four defenses.
+chatbot on port 7860 and finishes with a review of all 17 included defenses.
+
+Session, defense, and longitudinal response data are collected automatically in
+`output/clickthrough/sessions.csv`, `defenses.csv`, and `responses.csv`. Use
+`--collection-dir PATH` to change the destination. Records persist across restarts;
+the [collection guide](docs/guided-sol-prototype.md#research-csvs) explains the fields
+and browser-exit timing limitation.
 
 The mini chat uses the existing `.env` model configuration and only explains the
 current page. It never records answers or advances the review. See the

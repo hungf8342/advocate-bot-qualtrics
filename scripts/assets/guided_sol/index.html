@@ -11,13 +11,27 @@
 </head>
 <body>
   <header class="topbar"><a class="brand" href="/" aria-label="Debt case guide home"><span class="brand-symbol" aria-hidden="true">✦</span>Debt case guide</a><div class="top-actions"><span class="prototype-badge">GUIDED PROTOTYPE</span><button class="text-button" id="restart">Start over</button></div></header>
-  <div class="section-bar"><span>ONE SECTION AT A TIME</span><span><span id="section-name">Preliminary fields</span> <b id="section-count">01 / 05</b></span></div>
+  <div class="section-bar"><span>ONE SECTION AT A TIME</span><span><span id="section-name">Preliminary fields</span> <b id="section-count">01 / 18</b></span></div>
+  <div id="debug-banner" class="debug-banner" role="status" hidden>Debug mode · Click a section in the header to jump to it. Unanswered intake uses example defaults. Research collection is off. New sections start fresh using the current case details.</div>
   <nav class="progress" aria-label="Review progress"><ol>
-    <li data-stage="0"><span class="step-number">1</span><span>Preliminary fields</span></li>
-    <li data-stage="1"><span class="step-number">2</span><span>Statute of Limitations</span></li>
-    <li data-stage="2"><span class="step-number">3</span><span>Ambiguity</span></li>
-    <li data-stage="3"><span class="step-number">4</span><span>Identity Theft</span></li>
-    <li data-stage="4"><span class="step-number">5</span><span>Laches</span></li>
+    <li data-stage="0" data-section="preliminary"><span class="step-number">1</span><span>Preliminary fields</span></li>
+    <li data-stage="1" data-section="statute_of_limitations"><span class="step-number">2</span><span>1. Statute of Limitations</span></li>
+    <li data-stage="2" data-section="ambiguity"><span class="step-number">3</span><span>2. Ambiguity</span></li>
+    <li data-stage="3" data-section="mistake"><span class="step-number">4</span><span>5. Mistake</span></li>
+    <li data-stage="4" data-section="laches"><span class="step-number">5</span><span>8. Laches</span></li>
+    <li data-stage="5" data-section="fraud"><span class="step-number">6</span><span>9. Fraud Misrepresentation and Concealment</span></li>
+    <li data-stage="6" data-section="failure_to_mitigate"><span class="step-number">7</span><span>10. Failure to Mitigate</span></li>
+    <li data-stage="7" data-section="common_counts"><span class="step-number">8</span><span>11. Common Counts Only</span></li>
+    <li data-stage="8" data-section="unconscionable_contract"><span class="step-number">9</span><span>12. Unconscionable Contract</span></li>
+    <li data-stage="9" data-section="rescission"><span class="step-number">10</span><span>13. Rescission</span></li>
+    <li data-stage="10" data-section="lack_of_consideration"><span class="step-number">11</span><span>14. Lack of Consideration</span></li>
+    <li data-stage="11" data-section="accord_satisfaction"><span class="step-number">12</span><span>15. Accord and Satisfaction</span></li>
+    <li data-stage="12" data-section="excuse_breach"><span class="step-number">13</span><span>16. Excuse or Breach of Contract</span></li>
+    <li data-stage="13" data-section="capacity"><span class="step-number">14</span><span>17. Capacity</span></li>
+    <li data-stage="14" data-section="waiver"><span class="step-number">15</span><span>18. Waiver</span></li>
+    <li data-stage="15" data-section="oral_modification"><span class="step-number">16</span><span>19. Oral Modification</span></li>
+    <li data-stage="16" data-section="tender_payment"><span class="step-number">17</span><span>20. Tender of Payment</span></li>
+    <li data-stage="17" data-section="language_1632"><span class="step-number">18</span><span>21. Violation of Civil Code Section 1632 Regarding Language</span></li>
   </ol></nav>
   <div class="layout">
     <main id="main-content" aria-busy="true">
@@ -29,10 +43,11 @@
       <div id="visual"></div>
       <form id="answer-form" novalidate>
         <div id="answer-control"></div>
+        <section id="answer-response" class="answer-response" role="status" aria-live="polite" aria-atomic="true" hidden></section>
         <p id="form-error" class="error" role="alert" hidden></p>
         <div class="form-footer"><button id="next" class="primary-button" type="submit" disabled><span id="next-label">Next</span><span aria-hidden="true">→</span></button><span id="step-note" class="quiet"></span></div>
       </form>
-      <div class="source-note">Based on the October 30 clinic script · SOL, Ambiguity, Identity Theft &amp; Laches prototype</div>
+      <div class="source-note">Based on the November 7 clinic scripts · 17 defenses</div>
     </main>
     <aside class="sidebar" aria-label="Help with this page">
       <section><div class="aside-icon" id="aside-icon" aria-hidden="true">i</div><h2 id="aside-title">Why we ask</h2><p id="why">You’re in control of the choices you make.</p></section>
@@ -40,7 +55,7 @@
       <div class="reassurance"><span aria-hidden="true">↶</span><p>Your answers can be changed before you finish.</p></div>
     </aside>
   </div>
-  <dialog id="case-dialog" aria-labelledby="case-title"><div class="dialog-head"><h2 id="case-title">Your case details</h2><button class="icon-button" id="close-details" aria-label="Close case details">×</button></div><p class="quiet">Details confirmed in this guided review.</p><div id="case-fields"></div><p class="small-note">Example fields are prefilled. Each becomes part of the review only after you confirm it with Next.</p></dialog>
+  <dialog id="case-dialog" aria-labelledby="case-title"><div class="dialog-head"><h2 id="case-title">Your case details</h2><button class="icon-button" id="close-details" aria-label="Close case details">×</button></div><p class="quiet">Details confirmed in this guided review.</p><div id="case-fields"></div><p id="case-default-note" class="small-note">Example fields are prefilled. Each becomes part of the review only after you confirm it with Next.</p></dialog>
   <dialog id="restart-dialog" aria-labelledby="restart-title"><h2 id="restart-title">Start a new review?</h2><p>This clears the answers and checkbox choices in this tab.</p><div class="dialog-actions"><button class="outline-button" id="cancel-restart">Keep reviewing</button><button class="primary-button" id="confirm-restart">Start over</button></div></dialog>
   <section class="chat-panel" id="chat-panel" role="dialog" aria-labelledby="chat-title" hidden>
     <div class="chat-header"><div><span class="eyebrow">HELP WITH THIS PAGE</span><h2 id="chat-title">Ask a question</h2></div><button class="icon-button" id="close-chat" aria-label="Close clarification chat">×</button></div>

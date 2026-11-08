@@ -4,3 +4,13 @@
 .revision-notice{border-left:3px solid var(--teal);background:var(--pale);border-radius:4px;padding:14px 17px;margin:20px 0;color:var(--teal-dark);font-size:14px;line-height:1.6}.selection-change{color:#7a562e!important}
 .progress{overflow-x:auto}.progress li{font-size:13px}@media(max-width:1000px){.progress ol{min-width:780px}.progress li{font-size:12px}}
 @media(max-width:760px){.progress ol{min-width:0;padding:18px 12px;gap:6px}.progress li{min-width:0;font-size:10px}.progress li>span:last-child{overflow-wrap:anywhere}}
+
+.progress ol{min-width:3600px}.progress li{flex:1;min-width:170px}@media(max-width:1000px){.progress ol{min-width:3400px}}
+
+.answer-response{margin-top:20px;padding:18px 20px;border-left:3px solid var(--teal);border-radius:6px;background:var(--pale)}.answer-response[hidden]{display:none}.answer-response h2{font-size:15px;margin:0 0 10px}.answer-response p{font-size:15px;line-height:1.6;margin:10px 0 0;white-space:pre-line}.answer-response .text-button{margin-top:12px}
+
+.debug-banner{padding:12px 24px;background:#fff3d6;border-bottom:1px solid #e4cc93;color:#634910;font-size:13px;line-height:1.5}.debug-banner[hidden]{display:none}.debug-section-button{display:flex;align-items:center;gap:13px;width:100%;min-height:48px;border:0;background:transparent;color:inherit;font:inherit;font-weight:inherit;text-align:left;padding:6px;cursor:pointer;border-radius:5px}.debug-section-button:hover{background:#e5f2f1;text-decoration:underline}.debug-section-button:focus-visible{outline:3px solid var(--teal);outline-offset:3px}
+
+.debug-section-button:disabled{opacity:.55;cursor:wait}
+
+.script-paragraph{white-space:pre-line}.body-copy .script-paragraph{margin:0 0 18px}.script-list{list-style-position:outside;padding-left:1.55em;margin:12px 0 20px;line-height:1.65}.script-list li{padding-left:.2em;margin:3px 0;white-space:pre-line}.script-list .script-list{margin:6px 0 10px}.body-copy .script-list{font-size:18px}.answer-response .script-paragraph{margin:12px 0 0}.answer-response .script-list{font-size:15px;margin-bottom:12px}.approved-help .script-paragraph{margin:0 0 12px}.approved-help .script-list{margin:8px 0 14px}.approved-help>div{white-space:normal}@media(max-width:760px){.body-copy .script-list{font-size:15px}}
