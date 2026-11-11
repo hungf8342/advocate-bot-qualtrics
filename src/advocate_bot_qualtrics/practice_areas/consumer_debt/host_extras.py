@@ -266,6 +266,9 @@ def _script_text(text: str, session: InteractiveSessionState) -> str:
     text = text.replace("[LANGUAGE]", session.primary_language or "your primary language")
     payment = complaint_payment(session)
     filing = session.filing_date
+    if "[COMPLAINT.DATE - 1 year]" in text:
+        from .affirmative_defenses import calendar_cutoff
+        text = text.replace("[COMPLAINT.DATE - 1 year]", calendar_cutoff(filing, 1).isoformat() if filing else "unknown")
     months = f"{(filing - payment).days / 30.4375:.1f}" if filing and payment else "unknown"
     text = text.replace("[months between that payment and filing]", months)
     restatement = f"The complaint lists your last payment as {payment.isoformat()}, about {months} months before it was filed." if payment else "The last-payment date in the complaint has not been established."

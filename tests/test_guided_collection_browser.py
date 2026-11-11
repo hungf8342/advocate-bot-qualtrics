@@ -76,6 +76,32 @@ vm.runInContext("page.input_type = 'text'", context);
 node('text-unknown').checked = true;
 assert.equal(vm.runInContext('selectedValue()', context), 'unknown');
 node('text-unknown').checked = false;
+// Back followed by Next must show a main SOL choice even if an earlier edit
+// marked that saved choice automatic. Later automatic nested choices stay saved.
+vm.runInContext(`
+  page = {node_id:'sol_payment_age', input_type:'choice'};
+  history = [{node_id:'sol_payment_age', value:'yes'},
+             {node_id:'statute_of_limitations_decision', value:'no', automatic:true},
+             {node_id:'sol_checkboxes_first_third', value:'yes', automatic:true}];
+  cursor=0; busy=false; responsePending=false; responseFailed=false; editMode=false;
+  goto=async index=>{globalThis.stoppedAt=index;};
+`, context);
+node('answer-form').listeners.submit({preventDefault() {}});
+assert.equal(context.stoppedAt, 1);
+vm.runInContext('cursor=2', context);
+assert.equal(vm.runInContext('backIndex()', context), 1);
+// Re-answering a saved disagreement must likewise visit personal timing.
+answer='no';
+vm.runInContext(`
+  page={node_id:'sol_payment_estimate_agree',input_type:'choice'};
+  history=[{node_id:'sol_payment_estimate_agree',value:'no'},
+           {node_id:'sol_payment_age',value:'yes',automatic:true}];
+  cursor=0; stoppedAt=null;
+`, context);
+node('answer-form').listeners.submit({preventDefault() {}});
+assert.equal(context.stoppedAt, 1);
+vm.runInContext('cursor=2', context);
+assert.equal(vm.runInContext('backIndex()', context), 1);
 '''
     root = Path(__file__).resolve().parents[1]
     result = subprocess.run(['node', '-e', script], cwd=root, capture_output=True, text=True)
@@ -172,6 +198,29 @@ function resolveRequest(request, response, ok=true) {request.resolve({ok,json:as
   assert.equal(formatted[1].children.length,2);assert.equal(formatted[1].children[1].tagName,'li');
   assert.equal(formatted[1].children[1].textContent,'<b>Two</b>');
   assert.equal(formatted[2].textContent,'Last paragraph.');
+
+  assert.equal(run("friendly('After 2025-09-20?')"),'After September 20, 2025?');
+  // An edit may retain several answers, but the browser must show each screen.
+  run('render=()=>setBusy(false)');
+  const workflow=run("updateWorkflow('/api/edit',{history:[{node_id:'earlier',value:'yes'}],edit_index:0,value:'no'})");
+  resolveRequest(requests.at(-1),{
+    history:[{node_id:'earlier',value:'no'},
+             {node_id:'laches',value:'yes',automatic:true},
+             {node_id:'laches_statements',value:'yes',automatic:true}],
+    revision:{saved_answers:[]},page:{node_id:'guided_laches_summary'}
+  });
+  for(let i=0;i<8;i++) await Promise.resolve();
+  assert.equal(requests.at(-1).path,'/api/state');
+  assert.equal(requests.at(-1).data.history.length,1);
+  resolveRequest(requests.at(-1),{node_id:'laches',input_type:'choice'});
+  await workflow;
+  assert.equal(run('cursor'),1);assert.equal(run('page.node_id'),'laches');
+  textInput=null;answer='yes';
+  const next=node('answer-form').listeners.submit({preventDefault() {}});
+  assert.equal(requests.at(-1).data.history.length,2);
+  resolveRequest(requests.at(-1),{node_id:'laches_statements',input_type:'choice'});
+  await next;
+  assert.equal(run('cursor'),2);assert.equal(run('backIndex()'),1);
 
 })().catch(error=>{console.error(error);process.exitCode=1;});
 '''

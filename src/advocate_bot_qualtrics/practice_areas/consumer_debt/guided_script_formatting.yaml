@@ -1,1187 +1,2409 @@
-# Generated from the November 7 Word document; preserve paragraph and list metadata.
-source: docs/source-material/2026-11-07/2026.11.07 Affirmative-Defense-Scripts.docx
-source_sha256: cf4d53d3d4a3a4b9f9e59da45adbbab4548ef65da8bd207f544086561873b55a
+# Generated from the November 10 Word document; preserve paragraphs, lists, and screen footnotes.
+source: docs/source-material/2026.11.10/2026.11.10 Affirmative-Defense-Scripts.docx
+source_sha256: 5586d76de59c77b90941dc2d7c4f84b17f45851b3d36539f346ab62f007117b9
 paragraphs:
 - text: Affirmative defense conversation scripts
+  source_index: 0
 - text: Defenses 1 through 21 of Attachment 4
+  source_index: 1
 - text: INSTRUCTIONS FOR REVIEWERS
+  source_index: 2
 - text: Use these scripts to review the exact wording users see and the conditions that control the conversation.
     Each defense begins with its general explanation. The flow and each defense matches Attachment 4.
+  source_index: 3
 - text: Please review quoted wording, screening conditions, missing outcomes, and how well the defenses
     match with Attachment 4. Ignore the footnotes. Use Track Changes for proposed edits and comments for
     questions.
+  source_index: 4
 - text: 'Reading key: Quoted text is shown to the user. Bold directions are instructions for the chatbot
     (see shared steps across all defenses in the section below). Bracketed text is filled with collected
     information. User answers to most of the questions will be classified as Yes, No, or Not sure.'
+  source_index: 5
 - text: SHARED STEPS
-- text: Ask about this checkbox
-- text: Do you want to check off [name or description of the defenses implicated by the checkboxes]?
+  source_index: 6
+- text: Record the user’s checkbox choice
+  source_index: 7
+- text: Record whether the user wants to check off the defense, not check it off, or isn’t sure.
+  source_index: 8
   list_level: 0
   list_format: bullet
-  quote_container: true
-- text: After recording a checkbox choice, continue to the next applicable question, regardless of whether
-    the answer is Yes or No, unless the script explicitly directs otherwise.
-  list_level: 0
-  list_format: bullet
-- text: Record the answer before continuing.
+- text: Continue to the next applicable question if the answer is definitive, unless the script explicitly
+    directs otherwise. If the user isn’t sure, go to “Clarify an unresolved answer.”
+  source_index: 9
   list_level: 0
   list_format: bullet
 - text: Check off the main checkbox
-- text: Check off the main defense checkbox (since at least one of the indented checkboxes are checked
-    off)
+  source_index: 11
+- text: Check off the main defense checkbox (since at least one of the nested checkboxes are checked off)
+  source_index: 12
   list_level: 0
   list_format: bullet
 - text: Record the answer before continuing.
+  source_index: 13
   list_level: 0
   list_format: bullet
 - text: Confirm selections
+  source_index: 15
 - text: Skip remaining questions for the defense.
+  source_index: 16
   list_level: 0
   list_format: bullet
-- text: Summarize the user’s choices for the defense and any nested options presented. Provide a visual
-    of which checkboxes they’ve decided to check off (optional). User should notify clinic staff if they
-    need further assistance before the user advances.
+- text: On a new screen
+  source_index: 17
   list_level: 0
   list_format: bullet
 - text: 'If any checkboxes indicated:'
-  list_level: 0
+  source_index: 18
+  list_level: 1
   list_format: bullet
 - text: Based on your answers to this defense section, here are the checkboxes you’ve indicated you’d
     like to check off. Raise your hand and ask clinic staff for help if you have further questions about
     this defense.
-  list_level: 1
+  source_index: 19
+  list_level: 2
   list_format: bullet
   quote_container: true
 - text: 'If no checkboxes indicated:'
-  list_level: 0
+  source_index: 20
+  list_level: 1
   list_format: bullet
 - text: Based on your answers to this defense section, you don’t want to check off the defense. Raise
     your hand and ask clinic staff for help if you have further questions about this defense.
+  source_index: 21
+  list_level: 2
+  list_format: bullet
+  quote_container: true
+- text: Summarize the user’s choices for the defense and any nested options with a visual of which checkboxes
+    they’ve decided to check off.
+  source_index: 22
+  list_level: 0
+  list_format: bullet
+- text: 'Nested options are displayed as the descriptors for each nested option rather than the ordinal
+    number (e.g. for SOL: First nested checkbox = California written contracts, Third nested checkbox
+    = Delaware written contracts)'
+  source_index: 23
+  list_level: 1
+  list_format: bullet
+- text: Clarify an unresolved answer
+  source_index: 25
+- text: On a new screen
+  source_index: 26
+  screen_footnotes:
+  - '0'
+  list_level: 0
+  list_format: bullet
+- text: Ask a clarifying question with the “Ask a Question” button or speak with clinic staff before choosing
+    an answer. Then click the “Next” button to choose your answer.
+  source_index: 27
   list_level: 1
   list_format: bullet
   quote_container: true
-- text: Clarify an unresolved answer
 - text: Use approved clarification material to answer the user’s questions. Keep an uncertain or unanswered
     fact separate from No. If the script gives no outcome for the remaining uncertainty, leave the issue
     unresolved and refer to clinic staff rather than inventing a conclusion.
+  source_index: 28
+  list_level: 0
+  list_format: bullet
+- text: When user clicks “Next,” return to the previous screen.
+  source_index: 29
   list_level: 0
   list_format: bullet
 - text: Finish this defense
+  source_index: 30
 - text: End the defense without offering further checkboxes.
+  source_index: 31
+  list_level: 0
+  list_format: bullet
+- text: DISPLAY REQUIREMENTS
+  source_index: 33
+- text: Bold text is for internal logic purposes only and is not visible to users.
+  source_index: 34
+  list_level: 0
+  list_format: bullet
+- text: When displayed calculated fields denoted by square brackets, use a user-friendly format. For dates,
+    for example, spell out the date fully (“November 13, 2019”).
+  source_index: 35
+  list_level: 0
+  list_format: bullet
+- text: New screens
+  source_index: 36
+  list_level: 0
+  list_format: bullet
+- text: New screens are denoted by footnotes. The header is the text following “NEW SCREEN:” and may involve
+    calculation for fields denoted in square brackets.
+  source_index: 37
+  list_level: 1
+  list_format: bullet
+- text: User-facing text is displayed in the most recent new screen
+  source_index: 38
+  list_level: 1
+  list_format: bullet
+- text: 'Required screens on Back/Change: Previously recorded answers may prefill a screen, but must not
+    cause it to be skipped if the screen is still on the new path.'
+  source_index: 39
+  list_level: 0
+  list_format: bullet
+- text: 'Paragraphs and lists: Preserve paragraph breaks, bullet points, numbered lists, and indentation
+    as written. These indicate text structure; they do not create screen breaks.'
+  source_index: 40
   list_level: 0
   list_format: bullet
 - text: CONTENTS
+  source_index: 42
 - text: Defenses 1 through 11
+  source_index: 43
 - text: Defenses 12 through 21
+  source_index: 44
 - text: 1 Statute of Limitations
+  source_index: 45
 - text: 12 Unconscionable Contract
+  source_index: 46
 - text: 2 Ambiguity
+  source_index: 47
 - text: 13 Rescission
+  source_index: 48
 - text: 3 Standing and Privity
+  source_index: 49
 - text: 14 Lack of Consideration
+  source_index: 50
 - text: 4 Failure to State a Cause of Action
+  source_index: 51
 - text: 15 Accord and Satisfaction
+  source_index: 52
 - text: 5 Mistake
+  source_index: 53
 - text: 16 Excuse or Breach of Contract
+  source_index: 54
 - text: 6 Identity Theft
+  source_index: 55
 - text: 17 Capacity
+  source_index: 56
 - text: 7 Wrong Party
+  source_index: 57
 - text: 18 Waiver
+  source_index: 58
 - text: 8 Laches
+  source_index: 59
 - text: 19 Oral Modification
+  source_index: 60
 - text: 9 Fraud Misrepresentation and Concealment
+  source_index: 61
 - text: 20 Tender of Payment
+  source_index: 62
 - text: 10 Failure to Mitigate
+  source_index: 63
 - text: 21 Violation of Civil Code Section 1632 Regarding Language
+  source_index: 64
 - text: 11 Common Counts Only
+  source_index: 65
 - text: Overview
+  source_index: 69
 - text: Your Answer is the form you use to respond to the lawsuit. To finish your Answer, you will check
     off what defenses apply to your lawsuit, using a form called Attachment 4.  This clickthrough tool
     will help you decide whether to check off each defense or not.
+  source_index: 70
 - text: First, the tool will ask you to verify some details about your case. Then, it will ask additional
     questions and guide you through the 21 defenses on Attachment 4 in order. Fill out each defense in
     Attachment 4 as recorded in the clickthrough tool.
+  source_index: 72
 - text: 1 Statute of Limitations
+  source_index: 73
 - text: General explanation (show to everyone)
+  source_index: 74
+  screen_footnotes:
+  - '1'
 - text: Statute of limitations is a rule that says if [PLAINTIFF] waits too long, they cannot sue you.
-    The maximum length of time they can wait varies from 2 to 6 years, depending on which state’s law
-    applies. Statute of limitations is a strong defense if it applies.
+    The maximum length of time they can wait varies depending on which state’s law applies. Statute of
+    limitations is a strong defense if it applies.
+  source_index: 75
 - text: Even if [PLAINTIFF] sued within the time limit, it may still need to prove when you last paid.  Consider
     raising this defense in an answer if [PLAINTIFF] filed their complaint one year or more after your
     last payment.
+  source_index: 76
 - text: If the plaintiff is a debt buyer, use the Debt buyer path. If the plaintiff is the original creditor,
     use Original creditor timing. If the plaintiff type is unresolved, continue to “Clarify an unresolved
     answer.”
+  source_index: 77
 - text: Debt buyer path (plaintiff = debt buyer)
-- text: Debt buyers often sue on older accounts or don't have records of a last payment you made to the
-    original creditor.
+  source_index: 78
+  screen_footnotes:
+  - '2'
+- text: Debt buyers often sue on older accounts or may not have records of a last payment you made to
+    the original creditor.
+  source_index: 79
 - text: You are being sued by a debt buyer.
+  source_index: 80
 - text: People sued by debt buyers often check off the statute of limitations defense to preserve it.
-- text: Ask about this checkbox.
-- text: Continue directly to “Checkbox guidance” and then “Confirm selections.” Skip “Original creditor
-    timing” and “Original creditor results.”
+  source_index: 81
+- text: You can seek more information such as your account records to confirm your last payment date later
+    on in discovery.
+  source_index: 82
+- text: Record the user’s checkbox choice.
+  source_index: 83
+- text: Continue directly to “Checkbox guidance” and then “Confirm selections.”
+  source_index: 84
 - text: Original creditor timing (plaintiff = original creditor)
+  source_index: 85
 - text: Use this step only if the plaintiff is the original creditor.
+  source_index: 86
 - text: 'If the complaint includes a last payment date:'
+  source_index: 87
+- text: 'Ask:'
+  source_index: 88
+- text: Do you agree with the last payment date alleged in the complaint?
+  source_index: 89
+  screen_footnotes:
+  - '3'
 - text: The complaint lists your last payment as [LAST.PAYMENT.DATE], about [months between that payment
     and filing] months before it was filed.
-- text: 'Ask:'
-- text: Do you agree with the last payment date alleged in the complaint?
-- text: 'If Yes:'
+  source_index: 90
+- text: 'If user agrees:'
+  source_index: 91
 - text: You agree with the complaint that your last payment was [months between that payment and filing]
     months before the complaint was filed.
+  source_index: 92
 - text: Use the agreed last payment date to determine whether the payment was a year or more before filing,
     or less than a year before filing. Continue to “Original creditor results.”
-- text: 'If No:'
+  source_index: 93
+- text: 'If user disagrees:'
+  source_index: 94
 - text: Continue to “Ask about payment timing.”
-- text: 'If Not sure:'
+  source_index: 95
+- text: 'If user is not sure:'
+  source_index: 96
 - text: You’re not sure how much time passed between your last payment and [PLAINTIFF] filing a complaint.
     If the complaint does not give the correct last payment date, your bank records, payment confirmations,
     or account history may help you estimate when you last paid.
+  source_index: 97
 - text: Continue to “Ask about payment timing.”
+  source_index: 98
 - text: 'If the complaint does not include a last payment date:'
+  source_index: 99
 - text: The complaint did not appear to include the last payment date. If the complaint does not give
     the correct last payment date, your bank records, payment confirmations, or account history may help
     you estimate when you last paid.
+  source_index: 100
 - text: Continue to “Ask about payment timing.”
+  source_index: 101
 - text: Ask about payment timing
+  source_index: 102
 - text: 'Ask:'
-- text: Was your last payment a year or more before the complaint was filed?
+  source_index: 103
+- text: Was your last payment to [PLAINTIFF] after [COMPLAINT.DATE - 1 year]?
+  source_index: 104
+  screen_footnotes:
+  - '4'
 - text: 'If Yes:'
-- text: You said your last payment was a year or more before [PLAINTIFF] filed the complaint.
+  source_index: 105
+- text: You said your last payment was after [COMPLAINT.DATE - 1 year] .
+  source_index: 106
 - text: 'If No:'
-- text: You said your last payment was less than a year before [PLAINTIFF] filed the complaint.
+  source_index: 107
+- text: You said your last payment was on or before [COMPLAINT.DATE - 1 year].
+  source_index: 108
 - text: 'If Not sure:'
-- text: You’re not sure whether your last payment was more or less than a year before [PLAINTIFF] filed
-    the complaint.
+  source_index: 109
+- text: You’re not sure whether your last payment was after [COMPLAINT.DATE - 1 year].
+  source_index: 110
 - text: Record the answer and continue to “Original creditor results.”
+  source_index: 111
 - text: Original creditor results
+  source_index: 112
 - text: 'If the last payment was less than a year before the complaint was filed:'
-- text: This defense does not apply if you’re certain your last payment to [PLAINTIFF] was less than one
-    year before the complaint was filed.
-- text: Finish this defense. Skip “Checkbox guidance” and “Confirm selections.”
+  source_index: 113
+- text: This defense does not apply if you’re certain your last payment to [PLAINTIFF] was after [COMPLAINT.DATE
+    - 1 year]—less than one year before [PLAINTIFF] filed the complaint.
+  source_index: 114
+- text: Finish this defense. Continue to “Confirm selections.”
+  source_index: 115
 - text: 'If the last payment was a year or more before filing OR the user is Not sure:'
-- text: Consider raising this defense if [PLAINTIFF] filed their complaint one year or more after your
-    last payment.
-- text: You think your last payment could be a year or more before the complaint was filed.
-- text: Ask about this checkbox. Continue to “Checkbox guidance” and then “Confirm selections.”
+  source_index: 116
+  screen_footnotes:
+  - '5'
+- text: Consider raising this defense if your last payment was a year or more before [PLAINTIFF] filed
+    their complaint.
+  source_index: 117
+- text: You said your last payment was on or before [COMPLAINT.DATE - 1 year]—a year or more before [PLAINTIFF]
+    filed their complaint.
+  source_index: 118
+- text: Record the user’s checkbox choice. Continue to “Checkbox guidance” and then “Confirm selections.”
+  source_index: 119
 - text: Checkbox guidance
-- text: Show this step to every debt-buyer user and to original-creditor users whose last payment was
-    a year or more before filing or whose timing answer is Not sure.
-- text: The statute of limitations periods differ depending on which state rule applies. People in this
-    situation often check off the first and third indented checkboxes under “Statute of Limitations” in
-    case California or Delaware law applies to their contracts.
-- text: Ask about this checkbox.
+  source_index: 120
+- text: 'First and third nested checkboxes — California written contracts and Delaware written contracts:'
+  source_index: 121
+- text: 'If user has checked the main SOL checkbox:'
+  source_index: 122
+  screen_footnotes:
+  - '6'
+- text: The statute of limitations periods differ depending on which state rule applies.
+  source_index: 123
+- text: People in this situation often check off the first and third indented checkboxes under “Statute
+    of Limitations” in case California or Delaware law applies to their contracts.
+  source_index: 124
+- text: Record the user’s checkbox choice.
+  source_index: 125
+- text: Second nested checkbox — California oral contracts
+  source_index: 126
 - text: 'If the user previously indicated that the contract was oral:'
-- text: Oral contracts have shorter statute of limitations. You’ve indicated your contract with [ORIGINAL.CREDITOR]
-    was oral. People in this situation often check off the second indented checkbox under “Statute of
-    Limitations.”
-- text: Ask about this checkbox.
+  source_index: 127
+  screen_footnotes:
+  - '7'
+- text: Oral contracts have shorter statute of limitations.
+  source_index: 128
+- text: You’ve indicated your contract with [ORIGINAL.CREDITOR] was oral.
+  source_index: 129
+- text: People in this situation often check off the second indented checkbox under “Statute of Limitations.”
+  source_index: 130
+- text: Record the user’s checkbox choice.
+  source_index: 131
 - text: 'If the user previously indicated that the contract was not oral:'
-- text: You’ve indicated your contract with [ORIGINAL.CREDITOR] was in writing. The defense under the
-    second indented checkbox does not apply.
+  source_index: 132
+  screen_footnotes:
+  - '8'
+- text: You previously indicated your contract with [ORIGINAL.CREDITOR] was in writing.
+  source_index: 133
+- text: The defense under the second indented checkbox does not apply.
+  source_index: 134
 - text: If the oral-contract answer is unresolved, continue to “Clarify an unresolved answer” for that
     nested option.
-- text: Continue to “Confirm selections.”
+  source_index: 135
+- text: Confirm selections.
+  source_index: 136
 - text: SOL Checkbox Offer
+  source_index: 139
 - text: Dependency Conditions
+  source_index: 140
 - text: Main
+  source_index: 141
 - text: Debt buyer; or original creditor with qualifying or explicitly uncertain timing
+  source_index: 142
 - text: First and third nested
+  source_index: 143
 - text: Same condition as main
+  source_index: 144
 - text: Second nested
+  source_index: 145
 - text: Same condition as main, plus oral agreement
+  source_index: 146
 - text: 2 Ambiguity
+  source_index: 148
 - text: General explanation show to everyone
+  source_index: 149
+  screen_footnotes:
+  - '9'
 - text: 'Ambiguity means something is unclear. For example, ambiguity may apply if you are at all confused
     about:'
+  source_index: 150
 - text: the complaint; or
+  source_index: 151
   list_level: 0
   list_format: bullet
-- text: the amount sued for; or
-  list_level: 0
-  list_format: bullet
-- text: what the charges are.
+- text: the amount of money you are being sued for
+  source_index: 152
   list_level: 0
   list_format: bullet
 - text: The documents filed with the court may also be ambiguous because they do not contain your entire
     account history or contract. This means you may need to ask for more information from [PLAINTIFF]
-    later.
+    later through a process called discovery.
+  source_index: 153
 - text: Many people check off ambiguity, since it is a broad defense.
-- text: Ask about this checkbox.
-- text: Continue to “Confirm selections.”
+  source_index: 154
+- text: Record the user’s checkbox choice.
+  source_index: 155
+- text: Confirm selections.
+  source_index: 156
 - text: 3 Standing and Privity
+  source_index: 157
 - text: General explanation show to everyone
-- text: To sue for your debt, [PLAINTIFF] must provide proof of a legal relationship such as a contract
-    or agreement with you. t.
+  source_index: 158
+- text: To sue for your debt, [PLAINTIFF] must provide proof that they have a contract/agreement with
+    you.. t.
+  source_index: 159
 - text: Restate what the complaint includes
+  source_index: 160
 - text: 'If the complaint states that the plaintiff owns the debt and has the right to collect:'
+  source_index: 161
 - text: In the complaint, [PLAINTIFF] stated it is the legal owner of the debt and has the right to bring
     a case to collect debt.
+  source_index: 162
 - text: 'If the complaint does not make that statement:'
+  source_index: 163
 - text: In the complaint, [PLAINTIFF] failed to state it is the legal owner of the debt and has the right
     to bring a case to collect debt.
+  source_index: 164
 - text: 'For original-creditor cases only, also show the matching attachment statement:'
+  source_index: 165
 - text: 'If an agreement showing ownership is attached:'
+  source_index: 166
 - text: '[PLAINTIFF] attached a copy of the agreement showing it has ownership over the debt.'
+  source_index: 167
 - text: 'If that agreement is not attached:'
+  source_index: 168
 - text: '[PLAINTIFF] did not attach a copy of the agreement showing it has ownership over the debt.'
+  source_index: 169
 - text: Debt buyer path
+  source_index: 170
 - text: Use this path if the plaintiff is a debt buyer.
+  source_index: 171
 - text: A debt buyer may be a company you have never heard of before. Debt buyers typically will purchase
     the account from the original company you had the account for pennies on the dollar. In order to succeed
     in court, the third party debt buyer must show documents to the court about the transfer of the account
     to them proving that they a) are the legal owner; and b) you are required to pay them.  , debt buyers
     often have difficulty producing paperwork that proves they are legal owners of debt. Many litigants
     sued by debt buyers check off the standing/privity defense to preserve it.
-- text: Ask about this checkbox.
+  source_index: 172
+- text: Record the user’s checkbox choice.
+  source_index: 173
 - text: 'If the complaint states that the plaintiff owns the debt and has the right to collect:'
+  source_index: 174
 - text: The defense in the first indented checkbox does not apply since [PLAINTIFF] stated it is the legal
     owner of the debt and has the right to collect.
+  source_index: 175
 - text: 'If the complaint does not make that statement:'
+  source_index: 176
 - text: The first indented checkbox may apply since [PLAINTIFF] did not state it is the legal owner of
     the debt or it has the right to collect. Many people in this situation check off the first indented
     checkbox.
-- text: Ask about this checkbox.
+  source_index: 177
+- text: Record the user’s checkbox choice.
+  source_index: 178
 - text: 'For every debt-buyer case, also show:'
+  source_index: 179
 - text: The second indented checkbox may apply since debt buyers like [PLAINTIFF] have more difficulty
     producing paperwork that proves they are legal owners of debt. Even if [PLAINTIFF] attached a copy
     of an agreement showing ownership over debt, it still must be verified by the court at trial. Many
     people in this situation check off the second indented checkbox.
-- text: Ask about this checkbox.
+  source_index: 180
+- text: Record the user’s checkbox choice.
+  source_index: 181
 - text: Continue to “Confirm selections.” Skip the “Original creditor path.”
+  source_index: 182
 - text: Original creditor path
+  source_index: 183
 - text: 'If the complaint states ownership AND the agreement showing ownership is attached:'
+  source_index: 184
 - text: The standing/privity defense does not apply since [PLAINTIFF] has stated it actually owns the
     debt and has attached a copy of the agreement showing it has ownership over the debt.
+  source_index: 185
 - text: Finish this defense.
+  source_index: 186
 - text: 'If the ownership statement is missing OR the agreement showing ownership is not attached:'
+  source_index: 187
 - text: The standing/privity defense may apply since [PLAINTIFF] hasn’t stated it actually owns the debt
     or hasn’t attached a copy of the agreement showing it has ownership over the debt. Many people in
     this situation check off the standing/privity defense to preserve it.
-- text: Ask about this checkbox.
+  source_index: 188
+- text: Record the user’s checkbox choice.
+  source_index: 189
 - text: 'Show the matching response for each nested checkbox:'
+  source_index: 190
 - text: 'Ownership statement present:'
+  source_index: 191
 - text: The defense in the first indented checkbox does not apply since [PLAINTIFF] stated it is the legal
     owner of the debt and has the right to collect.
+  source_index: 192
 - text: 'Ownership statement missing:'
+  source_index: 193
 - text: The defense in the first indented checkbox may apply since [PLAINTIFF] does not appear to state
     it owns your debt. Many people in this situation check off the first indented checkbox.
-- text: Ask about this checkbox.
+  source_index: 194
+- text: Record the user’s checkbox choice.
+  source_index: 195
 - text: 'Agreement showing ownership attached:'
+  source_index: 196
 - text: The defense in the second indented checkbox does not apply since [PLAINTIFF] attached a copy of
     the agreement showing it has ownership over the debt.
+  source_index: 197
 - text: 'Agreement showing ownership not attached:'
+  source_index: 198
 - text: The defense in the second indented checkbox may apply since [PLAINTIFF] did not attach a copy
     of the agreement showing it has ownership over the debt. Many people in this situation check off the
     second indented checkbox.
-- text: Ask about this checkbox.
+  source_index: 199
+- text: Record the user’s checkbox choice.
+  source_index: 200
 - text: Continue to “Confirm selections.”
+  source_index: 201
 - text: 4 Failure to State a Cause of Action
+  source_index: 202
 - text: General explanation show to everyone
-- text: To sue for your debt, [PLAINTIFF] must follow certain requirements by making certain statements
-    in the complaint .
+  source_index: 203
+- text: To sue for your debt, [PLAINTIFF] must follow certain requirements by stating specific information
+    in its complaint about the the account  .
+  source_index: 204
 - text: Restate what the complaint includes
+  source_index: 205
 - text: 'If the complaint states that the plaintiff owns the debt:'
+  source_index: 206
 - text: The complaint states that [PLAINTIFF] owns the debt.
+  source_index: 207
 - text: 'For each of the following included items, show the corresponding statement. Skip an item that
     is not included:'
+  source_index: 208
 - text: If the complaint includes
+  source_index: 209
 - text: Show
+  source_index: 210
 - text: An account statement
+  source_index: 211
 - text: The complaint includes an account statement.
+  source_index: 212
 - text: An ownership allegation
+  source_index: 213
 - text: The complaint includes a statement that [PLAINTIFF] owns the debt.
+  source_index: 214
 - text: The document recorded as ownership proof
+  source_index: 215
 - text: The complaint includes a document about ownership of the debt.
+  source_index: 216
 - text: An account-opening date
+  source_index: 217
 - text: The complaint includes an account-opening date of [OPEN.DATE].
+  source_index: 218
 - text: A last payment date
+  source_index: 219
 - text: The complaint includes a last payment date of [LAST.PAYMENT.DATE].
+  source_index: 220
 - text: Use the complaint’s contents for these checks.
+  source_index: 222
 - text: Show the explanation for the plaintiff type
+  source_index: 223
 - text: 'If the plaintiff is a debt buyer:'
+  source_index: 224
 - text: Debt buyers must identify the original creditor in the complaint, and state that they own the
     debt. The complaint should contain basic information about the debt like the date you opened the account
     and breach date (or last payment date). Debt buyers must attach their debt transfer contract with
     [ORIGINAL.CREDITOR] or another company, or provide a final account statement with a charge-off date
     from [ORIGINAL.CREDITOR].
+  source_index: 225
 - text: 'If the plaintiff is the original creditor:'
+  source_index: 226
 - text: Original creditors must state that they own the debt. The complaint should contain basic information
     about the debt like the date you opened the account and breach date (or last payment date).
+  source_index: 227
 - text: If the complaint includes Breach of Contract, follow “Breach of Contract checks.” If it includes
     Common Counts, follow “Common Counts checks.” If it includes both, follow both groups. Show every
     matching response within each group.
+  source_index: 228
 - text: Breach of Contract checks
+  source_index: 229
 - text: A Missing original creditor — debt-buyer cases only
+  source_index: 230
 - text: 'If the complaint does not identify the original creditor:'
+  source_index: 231
 - text: The debt buyer did not identify the original creditor in the complaint. The defense in the first
     indented checkbox under “Breach of Contract” may apply. Many people in this situation check this defense.
-- text: Ask about this checkbox.
+  source_index: 232
+- text: Record the user’s checkbox choice.
+  source_index: 233
 - text: B Missing ownership allegation — either plaintiff type
+  source_index: 234
 - text: 'If the complaint does not state that the plaintiff legally owns the debt and has the right to
     sue, show the response for the plaintiff type:'
+  source_index: 235
 - text: 'Debt buyer:'
+  source_index: 236
 - text: The debt buyer did not state it legally owns the debt and has the right to sue on it in the complaint.
     The defense in the second indented checkbox under “Breach of Contract” may apply. Many people in this
     situation check this defense.
-- text: Ask about this checkbox.
+  source_index: 237
+- text: Record the user’s checkbox choice.
+  source_index: 238
 - text: 'Original creditor:'
+  source_index: 239
 - text: The original creditor did not state it legally owns the debt and has the right to sue on it in
     the complaint. The defense in the second indented checkbox under “Breach of Contract” may apply. Many
     people in this situation check this defense.
-- text: Ask about this checkbox.
+  source_index: 240
+- text: Record the user’s checkbox choice.
+  source_index: 241
 - text: C Missing account-opening date — either plaintiff type
+  source_index: 242
 - text: 'If the opening date is not found in the complaint, show the response for the plaintiff type:'
+  source_index: 243
 - text: 'Debt buyer:'
+  source_index: 244
 - text: The debt buyer did not include the date you opened the account in the complaint. The defense in
     the third indented checkbox under “Breach of Contract” may apply. Many people in this situation check
     this defense.
-- text: Ask about this checkbox.
+  source_index: 245
+- text: Record the user’s checkbox choice.
+  source_index: 246
 - text: 'Original creditor:'
+  source_index: 247
 - text: The original creditor did not include the date you opened the account in the complaint. The defense
     in the third indented checkbox under “Breach of Contract” may apply. Many people in this situation
     check this defense.
-- text: Ask about this checkbox.
+  source_index: 248
+- text: Record the user’s checkbox choice.
+  source_index: 249
 - text: D Missing last payment and breach dates — either plaintiff type
+  source_index: 250
 - text: 'Use this check only if BOTH the last payment date AND the breach date are missing from the complaint.
     Show the response for the plaintiff type:'
+  source_index: 251
 - text: 'Debt buyer:'
+  source_index: 252
 - text: The debt buyer did not include the last payment date or breach date for the account in the complaint.
     The defense in the fourth indented checkbox under “Breach of Contract” may apply. Many people in this
     situation check this defense.
-- text: Ask about this checkbox.
+  source_index: 253
+- text: Record the user’s checkbox choice.
+  source_index: 254
 - text: 'Original creditor:'
+  source_index: 255
 - text: The original creditor did not include the last payment date or breach date for the account in
     the complaint. The defense in the fourth indented checkbox under “Breach of Contract” may apply. Many
     people in this situation check this defense.
-- text: Ask about this checkbox.
+  source_index: 256
+- text: Record the user’s checkbox choice.
+  source_index: 257
 - text: E Missing statement and ownership proof — debt-buyer cases only
+  source_index: 258
 - text: 'If neither the statement nor the document recorded as ownership proof is attached:'
+  source_index: 259
 - text: This defense may apply since [PLAINTIFF] did not appear to attach either a statement from [ORIGINAL.CREDITOR]
     or a contract showing they bought the debt. Many people in this situation check this fifth indented
     checkbox under “Breach of Contract” and write in “no proof of plaintiff ownership.”
-- text: Ask about this checkbox.
+  source_index: 260
+- text: Record the user’s checkbox choice.
+  source_index: 261
 - text: 'If none of the applicable Breach of Contract checks (A-E) match:'
+  source_index: 262
 - text: None of the defenses under “Breach of Contract” apply, so they should not be checked.
+  source_index: 263
 - text: 'If at least one of the applicable Breach of Contract checks (A-E) match:'
+  source_index: 264
 - text: If you believe at least one of the defenses under “Breach of Contract” applies, check off the
     “Breach of Contract” parent box and the main “Failure to State a Cause of Action” box.
-- text: Ask about this checkbox.
+  source_index: 265
+- text: Record the user’s checkbox choice.
+  source_index: 266
 - text: If Common Counts is also included, continue to “Common Counts checks.” Otherwise continue to “Confirm
     and complete this defense.”
+  source_index: 267
 - text: Common Counts checks
+  source_index: 268
 - text: A Missing original creditor — debt-buyer cases only
+  source_index: 269
 - text: 'If the complaint does not identify the original creditor:'
+  source_index: 270
 - text: The debt buyer did not identify the original creditor in the complaint. The defense in the first
     indented checkbox under “Common Counts” may apply. Many people in this situation check this defense.
-- text: Ask about this checkbox.
+  source_index: 271
+- text: Record the user’s checkbox choice.
+  source_index: 272
 - text: B Missing ownership allegation — either plaintiff type
+  source_index: 273
 - text: 'If the complaint does not state that the plaintiff legally owns the debt and has the right to
     sue, show the response for the plaintiff type:'
+  source_index: 274
 - text: 'Debt buyer:'
+  source_index: 275
 - text: The debt buyer did not state it legally owns the debt and has the right to sue on it in the complaint.
     The defense in the second indented checkbox under “Common Counts” may apply.
+  source_index: 276
 - text: Many people in this situation check this defense.
-- text: Ask about this checkbox.
+  source_index: 277
+- text: Record the user’s checkbox choice.
+  source_index: 278
 - text: 'Original creditor:'
+  source_index: 279
 - text: The original creditor did not state it legally owns the debt and has the right to sue on it in
     the complaint. The defense in the second indented checkbox under “Common Counts” may apply.
+  source_index: 280
 - text: Many people in this situation check this defense.
-- text: Ask about this checkbox.
+  source_index: 281
+- text: Record the user’s checkbox choice.
+  source_index: 282
 - text: C Missing statement and ownership proof — debt-buyer cases only
+  source_index: 283
 - text: 'If neither the statement nor the document recorded as ownership proof is attached:'
+  source_index: 284
 - text: This defense may apply since [PLAINTIFF] did not appear to attach either a statement from [ORIGINAL.CREDITOR]
     or a contract showing they bought the debt.
+  source_index: 285
 - text: Many people in this situation check this third indented checkbox under “Common Counts” and write
     in “no proof of plaintiff ownership.”
-- text: Ask about this checkbox.
+  source_index: 286
+- text: Record the user’s checkbox choice.
+  source_index: 287
 - text: 'If none of the applicable Common Counts checks (A-C) match:'
+  source_index: 288
 - text: None of the defenses under “Common Counts” apply, so they should not be checked.
+  source_index: 289
 - text: 'If at least one of the applicable Common Counts checks (A-C) match:'
+  source_index: 290
 - text: If you believe at least one of the defenses under “Common Counts” applies, check off the “Common
     Counts” parent box and the main “Failure to State a Cause of Action” box.
-- text: Ask about this checkbox.
+  source_index: 291
+- text: Record the user’s checkbox choice.
+  source_index: 292
 - text: Confirm and complete this defense
+  source_index: 293
 - text: Continue to “Confirm selections.”
+  source_index: 294
 - text: 5 Mistake
+  source_index: 295
 - text: General explanation show to everyone
-- text: 'Mistake may apply if there was any error made in the whole process. This includes:'
-- text: incorrect late fees
+  source_index: 296
+- text: 'Mistake may apply if there was any error made at any point while the account was open or after
+    it was closed. This includes:'
+  source_index: 297
+- text: incorrect late fees or interest;
+  source_index: 298
   list_level: 0
   list_format: bullet
-- text: more money sued for than owed; or
+- text: failing to account for payments you made on the account;
+  source_index: 299
   list_level: 0
   list_format: bullet
-- text: anything that makes you confused about the amount sued
+- text: asking for more money in the lawsuit than is actually owed; or
+  source_index: 300
   list_level: 0
   list_format: bullet
-- text: Many litigants check off mistake, since it is a broad defense.
-- text: Ask about this checkbox.
+- text: anything that makes you confused about the amount you are being sued for
+  source_index: 301
+  list_level: 0
+  list_format: bullet
+- text: Many litigants check off Mistake, since it is a broad defense.
+  source_index: 302
+- text: Record the user’s checkbox choice.
+  source_index: 303
 - text: Continue to “Confirm selections.”
+  source_index: 304
 - text: 6 Identity Theft
+  source_index: 305
 - text: General explanation show to everyone
+  source_index: 306
 - text: 'Identity theft happens when someone uses your personal information without your permission to:'
+  source_index: 307
 - text: open an account
+  source_index: 308
   list_level: 0
   list_format: bullet
 - text: buy things
+  source_index: 309
   list_level: 0
   list_format: bullet
 - text: receive services; or
+  source_index: 310
   list_level: 0
   list_format: bullet
 - text: take money or property.
+  source_index: 311
   list_level: 0
   list_format: bullet
 - text: This defense may apply if [PLAINTIFF] is trying to collect a debt that another person created
     without your permission. For example, someone may have used your personal information to open a credit
     card that you never applied for.
+  source_index: 312
 - text: Use the account recognition answer already collected
+  source_index: 313
 - text: 'If the user recognizes the account as one they opened:'
+  source_index: 314
 - text: You previously said that you opened this account.
+  source_index: 315
 - text: This defense does not apply if you recognize the account sued for as yours.
+  source_index: 316
 - text: Finish this defense.
+  source_index: 317
 - text: 'If the user does not recognize the account as one they opened:'
+  source_index: 318
 - text: You said that you do not recognize the account being sued for as one you opened. This could happen
     because [PLAINTIFF] mistakenly sued someone with a similar name, or because someone stole your identity
     to create the account.
+  source_index: 319
 - text: This defense only deals with the situation where someone stole your identity.
+  source_index: 320
 - text: 'Ask:'
+  source_index: 321
 - text: Do you think someone stole your identity to create this debt?
+  source_index: 322
 - text: 'If Yes:'
+  source_index: 323
 - text: You think someone stole your identity to create this debt. Please raise your hand and ask clinic
     staff to discuss your options with you..
+  source_index: 324
 - text: Refer to clinic staff. Do not automatically select this defense.
+  source_index: 325
 - text: 'If No:'
+  source_index: 326
 - text: You said that you don’t think someone stole your identity to create this debt. This defense does
     not apply.
+  source_index: 327
 - text: Finish this defense.
+  source_index: 328
 - text: 'If Not sure:'
+  source_index: 329
 - text: You said that you’re not sure whether someone stole your identity to create this debt.
+  source_index: 330
 - text: Would you like help figuring out whether this account exists because of ID theft?
+  source_index: 331
 - text: Continue to Clarify an unresolved answer.
+  source_index: 332
 - text: 7 Wrong Party
+  source_index: 333
 - text: General explanation show to everyone
+  source_index: 334
 - text: Wrong party means [PLAINTIFF] is suing you for a debt that someone else is legally responsible
     for. For example, you may have been confused with someone who has a similar name. Another example
     is being sued for a credit card someone else is responsible for, even if they allowed you to use that
     card. If you signed an agreement with another person to open a joint account, you may be responsible.
+  source_index: 335
 - text: Use the account recognition answer already collected
+  source_index: 336
 - text: 'If the user recognizes the account as one they opened:'
+  source_index: 337
 - text: You said that you recognize the account being sued for as one that you opened.
+  source_index: 338
 - text: If you recognize this account as one you opened, this defense does not apply.
+  source_index: 339
 - text: Finish this defense.
+  source_index: 340
 - text: 'If the user does not recognize the account as one they opened:'
+  source_index: 341
 - text: You said that you do not recognize the account being sued for as one that you opened.
+  source_index: 342
 - text: 'Ask:'
+  source_index: 343
 - text: Did someone else open the account (even if you’ve used the card)?
+  source_index: 344
 - text: 'If Yes:'
+  source_index: 345
 - text: You said that you’re not responsible for this debt because someone else opened the account. This
     is an important matter which may require further steps.
+  source_index: 346
 - text: Please raise your hand and ask clinic staff for help.
+  source_index: 347
 - text: Refer to clinic staff. Do not automatically select this defense.
+  source_index: 348
 - text: 'If No OR Not sure:'
+  source_index: 349
 - text: You’ve indicated that you’re not sure whether the wrong party opened the account.
+  source_index: 350
 - text: Do you have further questions on how to determine whether this account belongs to you or not?
+  source_index: 351
 - text: Continue to Clarify an unresolved answer.
+  source_index: 352
 - text: 8 Laches
+  source_index: 353
 - text: General explanation show to everyone
+  source_index: 354
+  screen_footnotes:
+  - '10'
 - text: 'Laches may apply if:'
-- text: '[PLAINTIFF] waited an unreasonably long time to sue'
+  source_index: 355
+- text: '[PLAINTIFF] waited a long time to sue'
+  source_index: 356
   list_level: 0
   list_format: bullet
 - text: that delay made it harder for you to defend yourself
+  source_index: 357
   list_level: 0
   list_format: bullet
-- text: For example, account records may have been lost or become unavailable while [PLAINTIFF] waited.
+- text: For example, you may need account records and statements as evidence to prove your case. These
+    account records and statements may have been lost or become unavailable while [PLAINTIFF] waited.
+  source_index: 358
 - text: The following questions help identify whether the delay made it harder to obtain information about
     your account.
+  source_index: 359
 - text: Ask about access to account information
+  source_index: 360
 - text: 'Ask:'
+  source_index: 361
 - text: Are you locked out of your online portal?
+  source_index: 362
+  screen_footnotes:
+  - '11'
 - text: 'Ask:'
+  source_index: 363
 - text: Are you reliant only on [PLAINTIFF]’s provided statements (as opposed to having your own copies
     of your account statements)?
+  source_index: 364
+  screen_footnotes:
+  - '12'
 - text: 'Ask:'
+  source_index: 365
 - text: Would you have difficulty finding information that you used to have about your accounts because
     [PLAINTIFF] waited too long to sue?
+  source_index: 366
+  screen_footnotes:
+  - '13'
 - text: 'If the user answers Yes to at least one question:'
+  source_index: 367
+  screen_footnotes:
+  - '14'
 - text: 'Laches may apply since waiting to sue made it more difficult for you to find information about
     your account. You said at least one of the following applies:'
+  source_index: 368
 - text: You’re locked out of your online portal
+  source_index: 369
   list_level: 0
   list_format: bullet
 - text: You’re reliant only on [PLAINTIFF]’s provided account statements
+  source_index: 370
   list_level: 0
   list_format: bullet
 - text: You’re having difficulty finding information you used to have about your account
+  source_index: 371
   list_level: 0
   list_format: bullet
 - text: Many litigants check off laches, since it is a broad defense.
-- text: Ask about this checkbox.
-- text: Continue to Confirm selections.
+  source_index: 372
+- text: Record the user’s checkbox choice.
+  source_index: 373
 - text: 'If the user answers No to all three questions:'
+  source_index: 374
+  screen_footnotes:
+  - '15'
 - text: You did not report difficulty accessing your account records.
+  source_index: 375
 - text: Laches does not apply if you did not experience difficulty in finding account information.
+  source_index: 376
 - text: Finish this defense.
+  source_index: 377
 - text: If an answer remains unresolved and there is no Yes answer
+  source_index: 378
 - text: Clarify an unresolved answer.
-- text: 9 Fraud Misrepresentation and Concealment
+  source_index: 379
+- text: Continue to Confirm selections.
+  source_index: 380
+- text: 9 Fraud, Misrepresentation and Concealment
+  source_index: 382
 - text: General explanation show to everyone
+  source_index: 383
+  screen_footnotes:
+  - '16'
 - text: Fraud, misrepresentation, and concealment involve being misled about important facts related to
-    the debt, by any party.
-- text: For example, a creditor may have misled you about fees or penalties, and you agreed to the account
-    or made payments based on that information.
+    the terms of the contract.
+  source_index: 384
+- text: For example, the credit card company may have misled you about interest rates, fees, or penalties.
+    You may have then agreed to the account or made payments based on that false information.
+  source_index: 385
 - text: Another example is if someone else opened the account by stealing your identity.
+  source_index: 386
 - text: Use the identity theft answer already collected
+  source_index: 387
 - text: 'If the user reported suspected identity theft:'
+  source_index: 388
+  screen_footnotes:
+  - '17'
 - text: You said earlier that you suspect identity theft—someone else opened this account under your name
     without your permission. This defense may apply since you suspect identity theft.
+  source_index: 389
 - text: Many litigants who check off identity theft also check off this defense.
-- text: Ask about this checkbox. Record that the user reported fraud for reuse in Common Counts Only.
-    Continue to Confirm selections. Skip the question below.
+  source_index: 390
+- text: Record the user’s checkbox choice. Continue to Confirm selections.
+  source_index: 391
 - text: Ask about false or missing information
+  source_index: 392
 - text: 'If the identity theft answer was No or Not sure, ask the following question. The question is
     the same for either plaintiff type:'
+  source_index: 393
 - text: 'Ask:'
+  source_index: 394
+  screen_footnotes:
+  - '18'
 - text: Did [PLAINTIFF] give you false information or leave out important information about this account,
     such as fees?
+  source_index: 395
 - text: 'If Yes, show the response for the plaintiff type:'
+  source_index: 396
+  screen_footnotes:
+  - '19'
 - text: 'Debt buyer:'
+  source_index: 397
 - text: This defense may apply if you think [PLAINTIFF] or [ORIGINAL.CREDITOR] hid important facts about
     your account from you.
+  source_index: 398
+- text: You said [PLAINTIFF] may have hidden important facts about your account from you.
+  source_index: 399
+- text: Many people in this situation check this box to keep open this defense for later use.
+  source_index: 400
 - text: 'Original creditor:'
+  source_index: 401
 - text: This defense may apply if you think [PLAINTIFF] hid important facts about your account from you.
-- text: Ask about this checkbox. Record that the user reported fraud for reuse in Common Counts Only.
-    Continue to Confirm selections.
+  source_index: 402
+- text: You said [PLAINTIFF] may have hidden important facts about your account from you.
+  source_index: 403
+- text: Many people in this situation check this box to keep open this defense for later use.
+  source_index: 404
+- text: Record the user’s checkbox choice. Record that the user reported fraud for reuse in Common Counts
+    Only.
+  source_index: 405
 - text: 'If No:'
+  source_index: 406
+  screen_footnotes:
+  - '20'
 - text: This defense does not apply since you did not report false or missing information about this account.
+  source_index: 407
 - text: Finish this defense.
+  source_index: 408
 - text: 'If Not sure:'
+  source_index: 409
 - text: You said that you’re not sure whether [PLAINTIFF] misled you about your account.
-- text: Do you have further questions on how to determine whether [PLAINTIFF] hid important facts about
-    your account from you or not?
+  source_index: 410
 - text: Continue to Clarify an unresolved answer.
+  source_index: 411
+- text: Continue to Confirm selections.
+  source_index: 412
 - text: 10 Failure to Mitigate
+  source_index: 413
 - text: General explanation show to everyone
+  source_index: 414
+  screen_footnotes:
+  - '21'
 - text: Failure to mitigate means [PLAINTIFF] did not take reasonable steps to avoid or reduce losses
     related to the debt. The questions below ask about whether [PLAINTIFF] attempted to negotiate before
     suing.
-- text: Use the debt consolidation answer already collected
-- text: 'If the user is working with a debt consolidation company:'
-- text: You are working with a debt consolidation company on this account.
+  source_index: 415
 - text: Ask about contact and settlement offers
-- text: 'If the user is not working with a debt consolidation company, ask both questions:'
-- text: 'Ask:'
-- text: Did the plaintiff try to call or email you to negotiate before suing?
-- text: 'Ask:'
-- text: Did the plaintiff sue after declining a settlement offer you made?
-- text: 'If the user is working with a debt consolidation company, ask these versions instead:'
-- text: Did the plaintiff try to call or email you or the debt consolidation company to negotiate before
-    suing?
-- text: Did the plaintiff sue after declining a settlement offer made by you or the debt consolidation
-    company?
-- text: Follow up on uncertain answers
-- text: 'If the user is Not sure about attempted contact, use the matching version:'
+  source_index: 416
 - text: 'If the user is not working with a debt consolidation company:'
-- text: 'You said that you’re not sure whether [PLAINTIFF] tried to call or email you to negotiate before
-    suing. Is this because:'
-- text: you haven’t noticed a call or email
-  list_level: 0
-  list_format: bullet
-- text: you don’t pick up the phone
-  list_level: 0
-  list_format: bullet
-- text: or another reason?
-  list_level: 0
-  list_format: bullet
-- text: 'If the user is working with a debt consolidation company:'
-- text: 'You said that you’re not sure whether [PLAINTIFF] tried to call or email you or the debt consolidation
-    company to negotiate before suing. Is this because:'
-- text: you haven’t noticed a call or email
-  list_level: 0
-  list_format: bullet
-- text: you don’t pick up the phone
-  list_level: 0
-  list_format: bullet
-- text: or another reason?
-  list_level: 0
-  list_format: bullet
-- text: 'If the user is Not sure about the declined settlement offer, use the matching version:'
-- text: 'If the user is not working with a debt consolidation company:'
-- text: You said that you’re not sure whether [PLAINTIFF] negotiated with you after declining a settlement
-    offer that you made. Why is that?
-- text: 'If the user is working with a debt consolidation company:'
-- text: You said that you’re not sure whether [PLAINTIFF] negotiated with you or the debt consolidation
-    company after declining a settlement offer. Why is that?
-- text: Use any clarification to resolve the answers before applying the responses below. Keep an unresolved
-    answer as Not sure.
-- text: Explain each nested checkbox separately
+  source_index: 417
 - text: First nested checkbox — settlement offer declined before suit
+  source_index: 418
+- text: 'Ask:'
+  source_index: 419
+- text: Did the plaintiff sue after declining a settlement offer you made?
+  source_index: 420
+  screen_footnotes:
+  - '22'
 - text: 'If the declined-offer answer is Yes, use the matching version:'
-- text: 'If the user is not working with a debt consolidation company:'
+  source_index: 421
+  screen_footnotes:
+  - '23'
 - text: You said that [PLAINTIFF] sued after declining a settlement offer you made. The defense in the
     first indented checkbox may apply.
+  source_index: 422
 - text: Many people in similar situations check this box to keep the option of using this defense later.
-- text: Ask about this checkbox.
-- text: 'If the user is working with a debt consolidation company:'
-- text: You said that [PLAINTIFF] sued after declining a settlement offer made by you or the debt consolidation
-    company. The defense in the first indented checkbox may apply.
-- text: Many people in similar situations check this box to keep the option of using this defense later.
-- text: Ask about this checkbox.
+  source_index: 423
+- text: Record the user’s checkbox choice.
+  source_index: 424
 - text: 'If the declined-offer answer is No, use the matching version:'
-- text: 'If the user is not working with a debt consolidation company:'
+  source_index: 425
+  screen_footnotes:
+  - '24'
 - text: You said that you didn’t make a settlement offer to [PLAINTIFF], or that [PLAINTIFF] did not sue
     after declining a settlement offer you made.
+  source_index: 426
 - text: The defense in the first indented checkbox does not apply.
-- text: 'If the user is working with a debt consolidation company:'
-- text: You said that neither you nor the debt consolidation company made a settlement offer to [PLAINTIFF],
-    or that [PLAINTIFF] did not sue after declining such an offer.
-- text: The defense in the first indented checkbox does not apply.
+  source_index: 427
+- text: 'If the user is Not sure about the declined settlement offer, use the matching version:'
+  source_index: 428
+- text: Clarify an unresolved answer.
+  source_index: 429
+- text: You said that you’re not sure whether [PLAINTIFF] negotiated with you after declining a settlement
+    offer that you made.
+  source_index: 430
 - text: Second nested checkbox — attempted collection or settlement before suit
+  source_index: 431
+- text: 'Ask:'
+  source_index: 432
+- text: Did the plaintiff try to call or email you to negotiate before suing?
+  source_index: 433
+  screen_footnotes:
+  - '25'
 - text: 'If attempted contact is Yes, use the matching version:'
-- text: 'If the user is not working with a debt consolidation company:'
+  source_index: 434
+  screen_footnotes:
+  - '26'
 - text: You said that [PLAINTIFF] tried to set up a payment plan or agreement with you before suing.
+  source_index: 435
 - text: The defense in the second indented checkbox does not apply.
-- text: 'If the user is working with a debt consolidation company:'
-- text: You said that [PLAINTIFF] tried to set up a payment plan or agreement with you or the debt consolidation
-    company before suing.
-- text: The defense in the second indented checkbox does not apply.
+  source_index: 436
 - text: 'If attempted contact is No or Not sure, use the matching version:'
-- text: 'If the user is not working with a debt consolidation company:'
+  source_index: 437
+  screen_footnotes:
+  - '27'
 - text: You said that you’re not aware that [PLAINTIFF] tried to set up a payment plan or agreement with
     you before suing. The defense in the second indented checkbox may apply.
+  source_index: 438
 - text: Many litigants in similar situations check this box to keep the option of using this defense later.
-- text: Ask about this checkbox.
-- text: 'If the user is working with a debt consolidation company:'
+  source_index: 439
+- text: Record the user’s checkbox choice.
+  source_index: 440
+- text: 'If the user is Not sure about attempted contact:'
+  source_index: 441
+- text: Clarify an unresolved answer.
+  source_index: 442
+- text: 'You said that you’re not sure whether [PLAINTIFF] tried to call or email to negotiate before
+    suing. This may be because:'
+  source_index: 443
+- text: you haven’t noticed a call or email
+  source_index: 444
+  list_level: 0
+  list_format: bullet
+- text: you don’t pick up the phone
+  source_index: 445
+  list_level: 0
+  list_format: bullet
+- text: or another reason
+  source_index: 446
+  list_level: 0
+  list_format: bullet
+- text: 'If the user is working with a debt consolidation company, ask these versions instead:'
+  source_index: 448
+- text: First nested checkbox — settlement offer declined before suit
+  source_index: 449
+- text: 'Ask:'
+  source_index: 450
+- text: Did the plaintiff sue after declining a settlement offer made by you or the debt consolidation
+    company?
+  source_index: 451
+  screen_footnotes:
+  - '28'
+- text: 'If the declined-offer answer is Yes:'
+  source_index: 452
+  screen_footnotes:
+  - '29'
+- text: You said that [PLAINTIFF] sued after declining a settlement offer made by you or the debt consolidation
+    company. The defense in the first indented checkbox may apply.
+  source_index: 453
+- text: Many people in similar situations check this box to keep the option of using this defense later.
+  source_index: 454
+- text: Record the user’s checkbox choice.
+  source_index: 455
+- text: 'If the declined-offer answer is No:'
+  source_index: 456
+  screen_footnotes:
+  - '30'
+- text: You said that neither you nor the debt consolidation company made a settlement offer to [PLAINTIFF],
+    or that [PLAINTIFF] did not sue after declining such an offer.
+  source_index: 457
+- text: The defense in the first indented checkbox does not apply.
+  source_index: 458
+- text: 'If the user is Not sure about the declined settlement offer:'
+  source_index: 459
+- text: Clarify an unresolved answer.
+  source_index: 460
+- text: You said that you’re not sure whether [PLAINTIFF] negotiated with you or the debt consolidation
+    company after declining a settlement offer.
+  source_index: 461
+- text: Second nested checkbox — attempted collection or settlement before suit
+  source_index: 462
+- text: 'Ask:'
+  source_index: 463
+- text: Did the plaintiff try to call or email you or the debt consolidation company to negotiate before
+    suing?
+  source_index: 464
+  screen_footnotes:
+  - '31'
+- text: 'If attempted contact is Yes:'
+  source_index: 465
+  screen_footnotes:
+  - '32'
+- text: You said that [PLAINTIFF] tried to set up a payment plan or agreement with you or the debt consolidation
+    company before suing.
+  source_index: 466
+- text: The defense in the second indented checkbox does not apply.
+  source_index: 467
+- text: 'If attempted contact is No or Not sure, use the matching version:'
+  source_index: 468
+  screen_footnotes:
+  - '33'
 - text: You said that you’re not aware that [PLAINTIFF] tried to set up a payment plan or agreement with
     you or the debt consolidation company before suing. The defense in the second indented checkbox may
     apply.
+  source_index: 469
 - text: Many litigants in similar situations check this box to keep the option of using this defense later.
-- text: Ask about this checkbox.
+  source_index: 470
+- text: Record the user’s checkbox choice.
+  source_index: 471
+- text: 'If the user is Not sure about attempted contact:'
+  source_index: 472
+- text: Clarify an unresolved answer.
+  source_index: 473
+- text: 'You said that you’re not sure whether [PLAINTIFF] tried to call or email to negotiate before
+    suing. This may be because:'
+  source_index: 474
+- text: you haven’t noticed a call or email
+  source_index: 475
+  list_level: 0
+  list_format: bullet
+- text: you don’t pick up the phone
+  source_index: 476
+  list_level: 0
+  list_format: bullet
+- text: or another reason
+  source_index: 477
+  list_level: 0
+  list_format: bullet
 - text: Show the overall explanation when its condition matches
-- text: 'If none of the indented checkboxes are checked off:'
+  source_index: 478
+  screen_footnotes:
+  - '34'
+- text: 'If none of the two nested checkboxes are checked off:'
+  source_index: 479
 - text: You said that [PLAINTIFF] attempted to arrange payments or negotiate before suing.
+  source_index: 480
 - text: The “Failure to Mitigate” defense does not apply.
+  source_index: 481
 - text: 'If any of the indented checkboxes are checked off:'
+  source_index: 482
 - text: You said that [PLAINTIFF] did not attempt to arrange payments or negotiate before suing.
+  source_index: 483
 - text: Check off the overall “Failure to Mitigate” defense.
+  source_index: 484
 - text: Check off the main checkbox.
+  source_index: 485
 - text: Continue to Confirm selections. Use Clarify an unresolved answer for unresolved issues.
+  source_index: 486
 - text: 11 Common Counts Only
+  source_index: 487
 - text: General explanation show to everyone
+  source_index: 488
+  screen_footnotes:
+  - '35'
 - text: 'Common counts are claims that you owe money, even if you don’t have a formal agreement to pay
     [PLAINTIFF]. [PLAINTIFF] still has to prove that you owe the amount claimed. This section addresses
     problems with that claim, including:'
+  source_index: 489
 - text: payments that were not credited
+  source_index: 490
   list_level: 0
   list_format: bullet
 - text: an agreement to accept less
+  source_index: 491
   list_level: 0
   list_format: bullet
 - text: unpaid benefits under a credit insurance plan
+  source_index: 492
   list_level: 0
   list_format: bullet
 - text: identity theft
+  source_index: 493
   list_level: 0
   list_format: bullet
-- text: fraud.
+- text: fraud
+  source_index: 494
   list_level: 0
   list_format: bullet
 - text: This defense applies only if the complaint includes common counts.
+  source_index: 495
 - text: Use the claim type already collected
-- text: 'If the complaint includes Common Counts, alone or with Breach of Contract:'
-- text: '[PLAINTIFF] sued under common counts.'
-- text: Continue to Account problems below.
+  source_index: 496
 - text: 'If the complaint includes Breach of Contract alone:'
+  source_index: 497
+  screen_footnotes:
+  - '36'
 - text: '[PLAINTIFF] did not sue under common counts. This defense does not apply.'
+  source_index: 498
 - text: Finish this defense.
+  source_index: 499
 - text: Explain each nested checkbox separately
+  source_index: 500
 - text: Use this step only if Common Counts is included.
+  source_index: 501
 - text: 'First nested checkbox — Payments were not credited:'
+  source_index: 502
+  screen_footnotes:
+  - '37'
 - text: In some cases, plaintiffs miscalculate part of consumer debt in ways that are not obvious from
     the complaint.
+  source_index: 503
 - text: Many people in this situation check off the first indented checkbox in case this scenario applies.
-- text: Ask about this checkbox.
+  source_index: 504
+- text: Record the user’s checkbox choice.
+  source_index: 505
 - text: 'Second nested checkbox — A lower payment was agreed to but more is now demanded:'
+  source_index: 507
 - text: 'Ask:'
+  source_index: 508
 - text: Did plaintiff agree to accept a lower payment, but is now asking for more than agreed on?
+  source_index: 509
+  screen_footnotes:
+  - '38'
 - text: 'If plaintiff is asking for more than agreed on:'
+  source_index: 510
+  screen_footnotes:
+  - '39'
 - text: You said that [PLAINTIFF] has agreed to accept a lower payment, but is now asking for more than
     agreed on.
+  source_index: 511
 - text: Many people in this situation check off the second indented checkbox.
-- text: Ask about this checkbox.
+  source_index: 512
+- text: Record the user’s checkbox choice.
+  source_index: 513
 - text: 'Third nested checkbox — Credit insurance payments were not made:'
+  source_index: 515
 - text: 'Ask:'
+  source_index: 516
 - text: Did plaintiff fail to make payments under the insurance plan you purchased?
+  source_index: 517
+  screen_footnotes:
+  - '40'
 - text: 'If plaintiff failed to make payments under purchased insurance plan:'
+  source_index: 518
+  screen_footnotes:
+  - '41'
 - text: You said that [PLAINTIFF] has failed to make payments under an insurance plan you purchased.
+  source_index: 519
 - text: Many people in this situation check off the third indented checkbox.
-- text: Ask about this checkbox.
+  source_index: 520
+- text: Record the user’s checkbox choice.
+  source_index: 521
 - text: 'Fourth nested checkbox — Suspected identity theft was reported:'
+  source_index: 523
 - text: 'If user checked off the “Identity Theft” defense:'
+  source_index: 524
+  screen_footnotes:
+  - '42'
 - text: Earlier, you said that someone may have stolen your identity to create this debt.
+  source_index: 525
 - text: Many people in this situation check off the fourth indented checkbox.
-- text: Ask about this checkbox.
+  source_index: 526
+- text: Record the user’s checkbox choice.
+  source_index: 527
 - text: 'Fifth nested checkbox — Fraud misrepresentation or concealment was reported:'
+  source_index: 529
 - text: 'If user checked off the “Fraud Misrepresentation and Concealment” defense:'
+  source_index: 530
+  screen_footnotes:
+  - '43'
 - text: Earlier, you said [PLAINTIFF] or someone else gave you false information or hid important facts
     about this account.
+  source_index: 531
 - text: Many people in this situation check off the fifth indented checkbox.
-- text: Ask about this checkbox.
+  source_index: 532
+- text: Record the user’s checkbox choice.
+  source_index: 533
+- text: Show the overall explanation when its condition matches
+  source_index: 534
+  screen_footnotes:
+  - '44'
 - text: 'If none of the indented checkboxes are checked by the user:'
+  source_index: 535
 - text: You said there are no issues under Common Counts with the amount or account being sued over.
+  source_index: 536
 - text: This defense does not apply.
-- text: 'If at least one of the indented checkboxes are checked by the user:'
+  source_index: 537
+- text: 'If at least one of the indented checkboxes is checked by the user:'
+  source_index: 538
 - text: You said that there are issues with the amount or account being claimed and sued over.
+  source_index: 539
 - text: Check off the overall “Common Counts” defense.
+  source_index: 540
 - text: Check off the main checkbox.
+  source_index: 541
 - text: Continue to Confirm selections. For any unclear answers, go to Clarify an unresolved answer.
+  source_index: 543
 - text: 12 Unconscionable Contract
+  source_index: 544
 - text: General explanation show to everyone
+  source_index: 545
+  screen_footnotes:
+  - '45'
 - text: An unconscionable contract is one that was made unfairly and has terms that are extremely unfair
     to you.
+  source_index: 546
 - text: For example, important terms may have been hidden or difficult to understand, while giving the
     creditor an unfair advantage.
+  source_index: 547
 - text: Many litigants check off this defense because it is a broad defense.
-- text: Ask about this checkbox.
+  source_index: 548
+- text: Record the user’s checkbox choice.
+  source_index: 549
 - text: Continue to Confirm selections.
+  source_index: 550
 - text: 13 Rescission
+  source_index: 551
 - text: General explanation show to everyone
+  source_index: 552
+  screen_footnotes:
+  - '46'
 - text: Rescission applies when the original creditor refuses to close an account, even though the account
     holder wants to.
+  source_index: 553
 - text: The next question asks whether you unsuccessfully requested to close the account before you stopped
     making payments.
-- text: 'If the user is working with a debt consolidation company:'
-- text: You are working with a debt consolidation company on this account.
+  source_index: 554
 - text: Ask about a request to close the account
+  source_index: 555
 - text: 'If the user is not working with a debt consolidation company:'
+  source_index: 556
 - text: 'Ask:'
+  source_index: 557
 - text: Did you request to close your account before you stopped making payments?
-- text: 'If the user is working with a debt consolidation company:'
-- text: Did you or the debt consolidation company request to close your account before you stopped making
-    payments?
-- text: 'If No, use the matching version:'
-- text: 'If the user is not working with a debt consolidation company:'
+  source_index: 558
+  screen_footnotes:
+  - '47'
+- text: 'If user did not request to close the account:'
+  source_index: 559
+  screen_footnotes:
+  - '48'
 - text: You said you did not request to close the account before you stopped making payments. This defense
     does not apply.
+  source_index: 560
+- text: Finish this defense.
+  source_index: 561
 - text: 'If the user is working with a debt consolidation company:'
+  source_index: 562
+- text: 'Ask:'
+  source_index: 563
+- text: Did you or the debt consolidation company request to close your account before you stopped making
+    payments?
+  source_index: 564
+  screen_footnotes:
+  - '49'
+- text: 'If user/company did not request to close the account:'
+  source_index: 565
+  screen_footnotes:
+  - '50'
 - text: You said neither you nor the debt consolidation company requested to close the account before
     you stopped making payments. This defense does not apply.
+  source_index: 566
 - text: Finish this defense.
+  source_index: 567
 - text: If a request was made, ask whether it was refused
+  source_index: 568
 - text: 'If the user is not working with a debt consolidation company:'
+  source_index: 569
 - text: 'Ask:'
+  source_index: 570
 - text: Did the original creditor refuse to grant your request to close the account?
-- text: 'If the user is working with a debt consolidation company:'
-- text: Did the original creditor refuse to grant the request by you or the debt consolidation company
-    to close the account?
-- text: 'If Yes, use the matching version:'
-- text: 'If the user is not working with a debt consolidation company:'
+  source_index: 571
+  screen_footnotes:
+  - '51'
+- text: 'If original creditor refused:'
+  source_index: 572
+  screen_footnotes:
+  - '52'
 - text: You said the original creditor refused to grant your request to close the account before you stopped
     making payments.
+  source_index: 573
 - text: Many people in this situation check this box to keep the option of using this defense later.
-- text: Ask about this checkbox.
-- text: 'If the user is working with a debt consolidation company:'
-- text: You said the original creditor refused to grant the request by you or the debt consolidation company
-    to close the account before you stopped making payments.
-- text: Many people in this situation check this box to keep the option of using this defense later.
-- text: Ask about this checkbox.
-- text: Continue to Confirm selections.
-- text: 'If No, use the matching version:'
-- text: 'If the user is not working with a debt consolidation company:'
+  source_index: 574
+- text: Record the user’s checkbox choice.
+  source_index: 575
+- text: 'If original creditor granted the request:'
+  source_index: 576
+  screen_footnotes:
+  - '53'
 - text: You said the original creditor granted your request to close the account before you stopped making
     payments.
+  source_index: 577
 - text: This defense does not apply.
+  source_index: 578
+- text: Finish this defense.
+  source_index: 579
 - text: 'If the user is working with a debt consolidation company:'
+  source_index: 580
+- text: 'Ask:'
+  source_index: 581
+- text: Did the original creditor refuse to grant the request by you or the debt consolidation company
+    to close the account?
+  source_index: 582
+  screen_footnotes:
+  - '54'
+- text: 'If original creditor refused:'
+  source_index: 583
+  screen_footnotes:
+  - '55'
+- text: You said the original creditor refused to grant the request by you or the debt consolidation company
+    to close the account before you stopped making payments.
+  source_index: 584
+- text: Many people in this situation check this box to keep the option of using this defense later.
+  source_index: 585
+- text: Record the user’s checkbox choice.
+  source_index: 586
+- text: 'If original creditor granted the request:'
+  source_index: 587
+  screen_footnotes:
+  - '56'
 - text: You said the original creditor granted the request by you or the debt consolidation company to
     close the account before you stopped making payments.
+  source_index: 588
 - text: This defense does not apply.
-- text: Finish this defense. If either question remains unresolved, use Clarify an unresolved answer.
+  source_index: 589
+- text: Finish this defense.
+  source_index: 590
+- text: Continue to Confirm selections. If either question remains unresolved, use Clarify an unresolved
+    answer.
+  source_index: 591
 - text: 14 Lack of Consideration
+  source_index: 592
 - text: General explanation show to everyone
+  source_index: 593
+  screen_footnotes:
+  - '57'
 - text: Consideration is something of value exchanged in a contract. For a credit account, this may include
     the creditor providing credit in exchange for a promise to repay. Lack of consideration means you
     didn’t get any benefit from the creditor. The questions below ask about identity theft and whether
     you or someone you opened the account for actually used the account.
+  source_index: 594
 - text: Use the identity theft answer already collected
+  source_index: 595
 - text: 'If the user reported suspected identity theft:'
+  source_index: 596
+  screen_footnotes:
+  - '58'
 - text: Earlier, you said that someone may have stolen your identity to create this debt.
+  source_index: 597
 - text: Many people in this situation check off this affirmative defense, since only someone else used
     the card.
-- text: Ask about this checkbox.
+  source_index: 598
+- text: Record the user’s checkbox choice.
+  source_index: 599
 - text: Continue to Confirm selections. Skip the card-use questions below.
+  source_index: 600
 - text: Card use questions
+  source_index: 601
 - text: 'If the identity theft answer is No:'
+  source_index: 602
 - text: 'Ask:'
+  source_index: 603
 - text: Did you ever use the card yourself?
+  source_index: 604
+  screen_footnotes:
+  - '59'
 - text: 'If Yes:'
+  source_index: 605
+  screen_footnotes:
+  - '60'
 - text: You said you have used this card. This defense does not apply if you opened the card and used
     it.
+  source_index: 606
 - text: Finish this defense.
+  source_index: 607
 - text: 'If No:'
+  source_index: 608
 - text: 'Ask:'
+  source_index: 609
 - text: You said you have not used this card. Did you open the account explicitly for another person to
     use?
+  source_index: 610
+  screen_footnotes:
+  - '61'
 - text: 'If the account was opened for another intended user:'
+  source_index: 611
+  screen_footnotes:
+  - '62'
 - text: You said you opened the account specifically for another person to use, though you never used
     the card yourself.
+  source_index: 612
 - text: This defense does not apply if you opened the card that benefitted another intended user.
+  source_index: 613
 - text: Finish this defense.
+  source_index: 614
 - text: 'If the account was not opened for another intended user:'
+  source_index: 615
+  screen_footnotes:
+  - '63'
 - text: You said you didn’t use the card and that neither did any intended users you had in mind when
     you opened the account.
+  source_index: 616
 - text: This defense may apply if neither you nor intended users actually used the card.
-- text: Ask about this checkbox.
+  source_index: 617
+- text: Record the user’s checkbox choice.
+  source_index: 618
 - text: Continue to Confirm selections. If identity theft or a card-use answer remains uncertain, use
     Clarify an unresolved answer.
+  source_index: 619
 - text: 15 Accord and Satisfaction
+  source_index: 620
 - text: General explanation show to everyone
+  source_index: 621
+  screen_footnotes:
+  - '64'
 - text: 'This defense involves an agreement to settle the debt:'
+  source_index: 622
 - text: 'Accord: [PLAINTIFF] agreed to accept a different payment or something else to settle the debt.'
+  source_index: 623
   list_level: 0
   list_format: bullet
 - text: 'Satisfaction: You did what was agreed, and [PLAINTIFF] accepted it.'
+  source_index: 624
   list_level: 0
   list_format: bullet
 - text: If [PLAINTIFF] has already agreed to a repayment plan, they should not be able to sue you.
-- text: 'If the user is working with a debt consolidation company:'
-- text: You are working with a debt consolidation company on this account.
+  source_index: 625
 - text: Ask about an existing settlement agreement
+  source_index: 626
 - text: 'If the user is not working with a debt consolidation company:'
+  source_index: 627
 - text: 'Ask:'
+  source_index: 628
 - text: Are you following an existing agreement with [PLAINTIFF] to settle this debt?
-- text: 'If the user is working with a debt consolidation company:'
-- text: Are you or the debt consolidation company following an existing agreement with [PLAINTIFF] to
-    settle this debt?
-- text: 'If Yes, use the matching version:'
-- text: 'If the user is not working with a debt consolidation company:'
+  source_index: 629
+  screen_footnotes:
+  - '65'
+- text: 'If yes:'
+  source_index: 630
+  screen_footnotes:
+  - '66'
 - text: You said that an agreement with [PLAINTIFF] exists to settle this debt and that you are following
     it. This defense may apply.
+  source_index: 631
 - text: Many people in this situation check this box to keep the option of using this defense later.
-- text: Ask about this checkbox.
+  source_index: 632
+- text: Record the user’s checkbox choice.
+  source_index: 633
+- text: 'If no:'
+  source_index: 634
+  screen_footnotes:
+  - '67'
+- text: You said that you are not following an existing agreement with [PLAINTIFF] to settle this debt.
+  source_index: 635
+- text: This defense does not apply.
+  source_index: 636
+- text: Finish this defense.
+  source_index: 637
 - text: 'If the user is working with a debt consolidation company:'
+  source_index: 638
+- text: Are you or the debt consolidation company following an existing agreement with [PLAINTIFF] to
+    settle this debt?
+  source_index: 639
+  screen_footnotes:
+  - '68'
+- text: 'If yes:'
+  source_index: 640
+  screen_footnotes:
+  - '69'
 - text: You said that an agreement with [PLAINTIFF] exists to settle this debt and that it is being followed
     by you or the debt consolidation company. This defense may apply.
+  source_index: 641
 - text: Many people in this situation check this box to keep the option of using this defense later.
-- text: Ask about this checkbox.
-- text: Continue to Confirm selections.
-- text: 'If No, use the matching version:'
-- text: 'If the user is not working with a debt consolidation company:'
-- text: You said that you are not following an existing agreement with [PLAINTIFF] to settle this debt.
-- text: This defense does not apply.
-- text: 'If the user is working with a debt consolidation company:'
+  source_index: 642
+- text: Record the user’s checkbox choice.
+  source_index: 643
+- text: 'If no:'
+  source_index: 644
+  screen_footnotes:
+  - '70'
 - text: You said that neither you nor the debt consolidation company is following an existing agreement
     with [PLAINTIFF] to settle this debt.
+  source_index: 645
 - text: This defense does not apply.
+  source_index: 646
 - text: Finish this defense.
+  source_index: 647
 - text: 'If Not sure:'
+  source_index: 648
+- text: Clarify an unresolved answer.
+  source_index: 649
 - text: You’re not sure whether an agreement with [PLAINTIFF] exists or is being followed. A settlement
     letter, payment history, or confirmation from the debt consolidation company may help clarify this.
-- text: Do you have further questions about what counts as an agreement to settle the debt?
-- text: Continue to Clarify an unresolved answer.
+  source_index: 650
+- text: Continue to Confirm selections.
+  source_index: 651
 - text: 16 Excuse or Breach of Contract
+  source_index: 653
 - text: General explanation show to everyone
+  source_index: 654
+  screen_footnotes:
+  - '71'
 - text: This defense concerns whether [PLAINTIFF] failed to follow your credit agreement. For example,
     [PLAINTIFF] may have failed to credit payments or follow an agreed change to the account. The questions
     below also ask about unauthorized changes, credit insurance benefits, and the handling of financial
     hardship. This defense applies if [PLAINTIFF] is suing under breach of contract.
+  source_index: 655
 - text: Use the claim type already collected
+  source_index: 656
 - text: 'If the complaint includes Common Counts alone:'
+  source_index: 657
+  screen_footnotes:
+  - '72'
 - text: '[PLAINTIFF] did not sue for breach of contract.'
+  source_index: 658
 - text: This defense only applies to a complaint for breach of contract.
+  source_index: 659
 - text: Finish this defense.
-- text: 'If the complaint includes Breach of Contract, alone or with Common Counts:'
-- text: '[PLAINTIFF] sued for breach of contract.'
+  source_index: 660
 - text: Explain each nested checkbox separately
-- text: 'First indented checkbox — Terms changed without consent:'
+  source_index: 661
+- text: 'First nested checkbox — Terms changed without consent:'
+  source_index: 663
 - text: 'Ask:'
+  source_index: 664
 - text: Did [PLAINTIFF] change the terms of the contract without your permission?
+  source_index: 665
+  screen_footnotes:
+  - '73'
 - text: 'If plaintiff changed contract terms without permission:'
+  source_index: 666
+  screen_footnotes:
+  - '74'
 - text: You said that [PLAINTIFF] changed the contract terms without your permission.
+  source_index: 667
 - text: Many people in this situation check off the first indented checkbox.
-- text: Ask about this checkbox.
-- text: 'Second indented checkbox — Payments were not credited:'
-- text: 'Ask:'
+  source_index: 668
+- text: Record the user’s checkbox choice.
+  source_index: 669
+- text: 'Second nested checkbox — Payments were not credited:'
+  source_index: 670
+  screen_footnotes:
+  - '75'
 - text: In some cases, plaintiffs miscalculate part of consumer debt in ways that are not obvious from
     the complaint.
+  source_index: 671
 - text: Many people in this situation check off the second indented checkbox in case this scenario applies.
-- text: Ask about this checkbox.
-- text: 'Third indented checkbox — An agreed change was not honored:'
+  source_index: 672
+- text: Record the user’s checkbox choice.
+  source_index: 673
+- text: 'Third nested checkbox — An agreed change was not honored:'
+  source_index: 674
 - text: 'Ask:'
+  source_index: 675
 - text: Did [PLAINTIFF] agree to change the original contract, but is not honoring the new agreement?
+  source_index: 676
+  screen_footnotes:
+  - '76'
 - text: 'If plaintiff is not honoring amended contract:'
+  source_index: 677
+  screen_footnotes:
+  - '77'
 - text: You said that [PLAINTIFF] agreed to change the original contract but is not honoring the new agreement.
+  source_index: 678
 - text: Many people in this situation check off the third indented checkbox.
-- text: Ask about this checkbox.
-- text: 'Fourth indented checkbox — Credit insurance payments were not made:'
+  source_index: 679
+- text: Record the user’s checkbox choice.
+  source_index: 680
+- text: 'Fourth nested checkbox — Credit insurance payments were not made:'
+  source_index: 681
 - text: 'Ask:'
+  source_index: 682
 - text: Did [PLAINTIFF] fail to make payments under a credit insurance plan you purchased for the account?
+  source_index: 683
+  screen_footnotes:
+  - '78'
+- text: 'If plaintiff failed to make payments under purchased insurance plan:'
+  source_index: 684
+  screen_footnotes:
+  - '79'
 - text: You said that [PLAINTIFF] failed to make payments under a credit insurance plan you purchased.
+  source_index: 685
 - text: Many people in this situation check off the fourth indented checkbox.
-- text: Ask about this checkbox.
-- text: 'Fifth indented checkbox — Unreasonable accommodation of the user’s financial situation was reported:'
+  source_index: 686
+- text: Record the user’s checkbox choice.
+  source_index: 687
+- text: 'Fifth nested checkbox — Unreasonable accommodation of the user’s financial situation:'
+  source_index: 688
+  screen_footnotes:
+  - '80'
 - text: The implied warranty of good faith and fair dealing requires that [PLAINTIFF] act reasonably.
     This is a broad defense that many people check off because of the policy argument that banks and debt
     buyers are unreasonable for collecting from people who can’t afford to pay back debts.
+  source_index: 689
 - text: Many people in this situation check off the fifth indented checkbox.
-- text: Ask about this checkbox.
-- text: 'If none of the indented checkboxes are checked by the user:'
+  source_index: 690
+- text: Record the user’s checkbox choice.
+  source_index: 691
+- text: Show the overall explanation when its condition matches
+  source_index: 692
+  screen_footnotes:
+  - '81'
+- text: 'If none of the nested checkboxes are checked by the user:'
+  source_index: 693
 - text: You said there are no issues under Excuse or Breach of Contract with the amount or account being
     sued over. This defense does not apply.
-- text: 'If at least one of the indented checkboxes are checked by the user:'
+  source_index: 694
+- text: 'If at least one of the nested checkboxes are checked by the user:'
+  source_index: 695
 - text: You said that there are issues with the amount or account being claimed and sued over. Check off
     the overall “Excuse or Breach of Contract” defense.
+  source_index: 696
 - text: Check off the main checkbox.
-- text: Continue to Confirm selections. For any unclear answers, go to Clarify an unresolved answer.
+  source_index: 697
+- text: Confirm selections. For any unclear answers, go to Clarify an unresolved answer.
+  source_index: 699
 - text: 17 Capacity
+  source_index: 700
 - text: General explanation show to everyone
+  source_index: 701
+  screen_footnotes:
+  - '82'
 - text: 'This defense may apply if, when you agreed to the contract:'
+  source_index: 702
 - text: You were under 18; or
+  source_index: 703
   list_level: 0
   list_format: bullet
 - text: A mental condition kept you from understanding the agreement or what it would mean for you.
+  source_index: 704
   list_level: 0
   list_format: bullet
 - text: 'Before sharing information about a mental condition:'
+  source_index: 705
 - text: Other people may be able to see it in court records.
-  list_level: 0
-  list_format: bullet
-- text: If the condition is severe and continues, the court may appoint someone to make financial or legal
-    decisions for you.
+  source_index: 706
   list_level: 0
   list_format: bullet
 - text: Restate the account opening date
+  source_index: 708
+  screen_footnotes:
+  - '83'
 - text: 'If an opening date is found in the complaint:'
+  source_index: 709
 - text: According to the complaint, this account was opened on [OPEN.DATE].
+  source_index: 710
 - text: If that date is incorrect, use the date you believe you actually entered the agreement when answering
-    the questions below.
+    the following questions.
+  source_index: 711
 - text: 'If no opening date is found in the complaint:'
-- text: The complaint did not appear to include the date this account was opened.
-- text: The questions below concern your age and ability to understand the agreement when you entered
+  source_index: 712
+- text: The complaint did not appear to include the date this account was opened. Try to remember when
+    you opened the account.
+  source_index: 713
+- text: The following questions concern your age and ability to understand the agreement when you entered
     it.
+  source_index: 714
 - text: Ask about age at the time of the agreement
+  source_index: 715
 - text: 'Ask:'
+  source_index: 716
 - text: Were you under 18 when you entered the contract for this account?
+  source_index: 717
+  screen_footnotes:
+  - '84'
 - text: 'If the user was under 18:'
+  source_index: 718
+  screen_footnotes:
+  - '85'
 - text: You said that you were under 18 when you entered the agreement. This defense may apply.
+  source_index: 719
 - text: Many people in this situation check this box to keep the option of using this defense later.
-- text: Ask about this checkbox.
-- text: Skip the mental condition questions below. Continue to Confirm selections.
+  source_index: 720
+- text: Record the user’s checkbox choice.
+  source_index: 721
+- text: Skip the mental condition questions below.
+  source_index: 722
+- text: Confirm selections.
+  source_index: 723
 - text: Ask about understanding the agreement
+  source_index: 724
 - text: 'Ask:'
+  source_index: 725
 - text: At the time you entered the contract, did a mental condition prevent you from understanding the
     agreement or its consequences?
+  source_index: 726
+  screen_footnotes:
+  - '86'
 - text: 'If Yes, ask:'
+  source_index: 727
 - text: 'Ask:'
+  source_index: 728
 - text: Would you be willing to share this with the court, knowing that the information may become part
     of the public record?
+  source_index: 729
+  screen_footnotes:
+  - '87'
 - text: 'If willing to share:'
+  source_index: 730
+  screen_footnotes:
+  - '88'
 - text: You said that you could not understand the agreement or its consequences when you entered it,
     and that you are willing to share this with the court. This defense may apply.
+  source_index: 731
 - text: Many people in this situation check this box to keep the option of using this defense later.
-- text: Ask about this checkbox.
+  source_index: 732
+- text: Record the user’s checkbox choice.
+  source_index: 733
 - text: Continue to Confirm selections.
+  source_index: 734
 - text: 'If unwilling or Not sure about sharing:'
+  source_index: 735
+  screen_footnotes:
+  - '89'
 - text: You said that you do not want to share this information with the court or are not sure.
+  source_index: 736
 - text: Please raise your hand and speak with clinic staff before including information about your mental
     condition in court papers.
+  source_index: 737
 - text: Complete the applicable outcomes
+  source_index: 738
 - text: 'If the user was at least 18 AND reports no inability to understand the agreement:'
+  source_index: 739
+  screen_footnotes:
+  - '90'
 - text: You said that you were at least 18 and could understand the agreement when you made it.
+  source_index: 740
 - text: This defense may not apply based on those answers.
+  source_index: 741
 - text: 'If either the age answer OR the mental-capacity answer is Not sure:'
+  source_index: 742
+- text: Clarify an unresolved answer.
+  source_index: 743
 - text: You’re not sure about your age or ability to understand the agreement at the time.
+  source_index: 744
 - text: Clinic staff can help you discuss what information may be relevant.
+  source_index: 745
+- text: Confirm selections.
+  source_index: 746
 - text: 18 Waiver
+  source_index: 747
 - text: General explanation show to everyone
-- text: 'Waiver is a defense that may apply if the original creditor allowed you to:'
-- text: pay late without late fees; or
+  source_index: 748
+  screen_footnotes:
+  - '91'
+- text: 'Waiver is a defense that may apply if the original creditor allowed you to change a term of the
+    agreement while the account was still open, such as:'
+  source_index: 749
+- text: pay late without charging late fees; or
+  source_index: 750
   list_level: 0
   list_format: bullet
 - text: skip payments without penalty
+  source_index: 751
   list_level: 0
   list_format: bullet
 - text: Show the plaintiff type restatement
+  source_index: 752
 - text: 'If the plaintiff is a debt buyer:'
+  source_index: 753
 - text: '[PLAINTIFF] is suing over an account originally held by [ORIGINAL.CREDITOR], the original creditor.'
+  source_index: 754
 - text: The question below concerns [ORIGINAL.CREDITOR]’s handling of payments.
+  source_index: 755
 - text: 'If the plaintiff is the original creditor:'
+  source_index: 756
 - text: '[PLAINTIFF] is the original creditor for this account.'
+  source_index: 757
 - text: Ask about payments without penalties
+  source_index: 758
 - text: 'Ask:'
+  source_index: 759
 - text: Did you skip or delay a payment to the original creditor without penalties like late fees?
+  source_index: 760
+  screen_footnotes:
+  - '92'
 - text: 'If Yes:'
+  source_index: 761
+  screen_footnotes:
+  - '93'
 - text: You said that you skipped or delayed a payment to the original creditor without penalties like
     late fees. This defense may apply.
+  source_index: 762
 - text: Many people in this situation check this box to keep the option of using this defense later.
-- text: Ask about this checkbox.
-- text: Continue to Confirm selections.
+  source_index: 763
+- text: Record the user’s checkbox choice.
+  source_index: 764
 - text: 'If No:'
+  source_index: 765
+  screen_footnotes:
+  - '94'
 - text: You haven’t identified a skipped or delayed payment that the original creditor allowed without
     penalties.
+  source_index: 766
 - text: This defense does not apply based on that answer.
+  source_index: 767
 - text: Finish this defense.
+  source_index: 768
 - text: 'If Not sure:'
-- text: You’re not sure how the original creditor handled missed or late payments. Account statements
-    and messages about payment arrangements or fees may help clarify this.
-- text: Do you have further questions about waiver?
-- text: Continue to Clarify an unresolved answer.
+  source_index: 769
+- text: Clarify an unresolved answer.
+  source_index: 770
+- text: You’re not sure how [ORIGINAL.CREDITOR] handled missed or late payments. Account statements and
+    messages about payment arrangements or fees may help clarify this.
+  source_index: 772
+- text: Confirm selections.
+  source_index: 773
 - text: 19 Oral Modification
+  source_index: 775
 - text: General explanation show to everyone
+  source_index: 776
+  screen_footnotes:
+  - '95'
 - text: An oral modification is an agreement made by speaking, rather than in writing, to change an existing
     contract. For example, you and [PLAINTIFF] may have agreed by phone to different payment amounts or
     due dates.
+  source_index: 777
 - text: This defense may apply if the lawsuit relies on the original terms even though you agreed to a
     change.
+  source_index: 778
 - text: 'If the user previously reported that an agreed contract change was not honored:'
+  source_index: 779
+  screen_footnotes:
+  - '96'
 - text: Earlier, you said that [PLAINTIFF] agreed to change the original contract but is not honoring
     the new agreement.
-- text: The question below asks whether that change or another was agreed to during a conversation.
+  source_index: 780
+- text: The following question asks whether that change or another was agreed to during a conversation.
+  source_index: 781
 - text: Ask about an agreement made by speaking
+  source_index: 782
 - text: 'Ask:'
+  source_index: 783
 - text: Did you and [PLAINTIFF] agree by speaking, such as during a phone call, to change the original
     contract?
+  source_index: 784
+  screen_footnotes:
+  - '97'
 - text: 'If Yes:'
+  source_index: 785
+  screen_footnotes:
+  - '98'
 - text: You said that you and [PLAINTIFF] agreed to change the original contract during a conversation.
     This defense may apply.
+  source_index: 786
 - text: Many people in this situation check this box to keep the option of using this defense later.
-- text: Ask about this checkbox.
-- text: Continue to Confirm selections.
+  source_index: 787
+- text: Record the user’s checkbox choice.
+  source_index: 788
 - text: 'If No:'
+  source_index: 789
+  screen_footnotes:
+  - '99'
 - text: You said that you and [PLAINTIFF] did not agree to change the contract during a conversation.
+  source_index: 790
 - text: This defense may not apply based on that answer.
+  source_index: 791
 - text: Finish this defense.
+  source_index: 792
 - text: 'If Not sure:'
+  source_index: 793
+- text: Clarify an unresolved answer.
+  source_index: 794
 - text: You’re not sure whether [PLAINTIFF] agreed to a change during a conversation. Notes of the call,
     a confirmation message, or payments made under the changed terms may help clarify what was agreed.
-- text: Do you have further questions about oral modification?
-- text: Continue to Clarify an unresolved answer.
+  source_index: 795
+- text: Confirm selections.
+  source_index: 796
 - text: 20 Tender of Payment
+  source_index: 798
 - text: General explanation show to everyone
+  source_index: 799
+  screen_footnotes:
+  - '100'
 - text: This defense may apply if you tried to make a payment to [PLAINTIFF], but [PLAINTIFF] refused
     to accept it.
+  source_index: 800
 - text: 'If the user previously reported a declined settlement offer before suit:'
+  source_index: 801
 - text: Earlier, you said that [PLAINTIFF] declined a settlement offer before suing.
+  source_index: 802
 - text: The question below asks separately whether [PLAINTIFF] refused a payment you tried to make.
+  source_index: 803
 - text: Ask about a refused payment
+  source_index: 804
 - text: 'Ask:'
+  source_index: 805
 - text: Did you try to make a payment to [PLAINTIFF] that [PLAINTIFF] refused to accept?
+  source_index: 806
+  screen_footnotes:
+  - '101'
 - text: 'If Yes:'
+  source_index: 807
+  screen_footnotes:
+  - '102'
 - text: You said that you tried to make a payment and [PLAINTIFF] refused to accept it. This defense may
     apply.
+  source_index: 808
 - text: Many people in this situation check this box to keep the option of using this defense later.
-- text: Ask about this checkbox.
-- text: Continue to Confirm selections.
+  source_index: 809
+- text: Record the user’s checkbox choice.
+  source_index: 810
 - text: 'If No:'
+  source_index: 811
+  screen_footnotes:
+  - '103'
 - text: You haven’t identified a payment that you tried to make and [PLAINTIFF] refused to accept.
+  source_index: 812
 - text: This defense may not apply based on that answer.
+  source_index: 813
 - text: Finish this defense.
+  source_index: 814
 - text: 'If Not sure:'
+  source_index: 815
+- text: Clarify an unresolved answer.
+  source_index: 816
 - text: 'You’re not sure if [PLAINTIFF] refused a payment you tried to make. You may want to check if
     you have any documents showing that you tried to pay, such as:'
+  source_index: 817
 - text: bank statements
+  source_index: 818
   list_level: 0
   list_format: bullet
 - text: returned checks or payments
+  source_index: 819
   list_level: 0
   list_format: bullet
 - text: letters, emails, or text messages showing the payment was refused; or
+  source_index: 820
   list_level: 0
   list_format: bullet
 - text: notes about when and how you tried to pay
+  source_index: 821
   list_level: 0
   list_format: bullet
-- text: Do you have further questions about Tender of Payment?
-- text: Continue to Clarify an unresolved answer.
+- text: Confirm selections.
+  source_index: 822
 - text: 21 Violation of Civil Code Section 1632 Regarding Language
+  source_index: 824
 - text: General explanation show to everyone
+  source_index: 825
+  screen_footnotes:
+  - '104'
 - text: If you opened the credit card account with [PLAINTIFF] in another language, California law requires
     [PLAINTIFF] to provide a written translation in that language. [PLAINTIFF] must provide the required
     translation generally before the contract is signed and must include its terms.
+  source_index: 826
 - text: This defense may apply if you opened the account speaking a language other than English and the
     credit agreement provided to you was only in English.
+  source_index: 827
 - text: Use the primary language already collected
+  source_index: 828
 - text: 'If the user’s primary language is English:'
+  source_index: 829
+  screen_footnotes:
+  - '105'
 - text: You said that your primary language is English.
+  source_index: 830
 - text: This defense may not apply based on your primary language. The defense concerns an agreement mostly
     discussed in a non-English language.
+  source_index: 831
 - text: Finish this defense.
+  source_index: 832
 - text: 'If the user’s primary language is known and is not English:'
+  source_index: 833
 - text: You said that your primary language is [LANGUAGE].
+  source_index: 834
 - text: Ask about the language used to negotiate
+  source_index: 835
 - text: 'Ask:'
+  source_index: 836
 - text: Did you apply for the credit card in [LANGUAGE]?
+  source_index: 837
+  screen_footnotes:
+  - '106'
 - text: 'If No:'
+  source_index: 838
+  screen_footnotes:
+  - '107'
 - text: You said that you did not apply for the credit card in [LANGUAGE]. This defense may not apply
     based on that answer.
+  source_index: 839
 - text: Finish this defense.
+  source_index: 840
 - text: If Yes ask about the translated agreement
+  source_index: 841
 - text: 'Ask:'
+  source_index: 842
 - text: Did the original creditor give you the credit card agreement in [LANGUAGE] before you signed?
+  source_index: 843
+  screen_footnotes:
+  - '108'
 - text: 'If the required translation was not provided:'
+  source_index: 844
+  screen_footnotes:
+  - '109'
 - text: 'You said that:'
+  source_index: 845
 - text: your primary language is [LANGUAGE]
+  source_index: 846
   list_level: 0
   list_format: bullet
 - text: the agreement was mostly discussed in [LANGUAGE]
+  source_index: 847
   list_level: 0
   list_format: bullet
 - text: you were not given the agreement or translation in that language before signing
+  source_index: 848
   list_level: 0
   list_format: bullet
 - text: This defense may apply if the law required a translation of your agreement in [LANGUAGE].
+  source_index: 849
 - text: Many people in this situation check this box to keep the option of using this defense later.
-- text: Ask about this checkbox.
-- text: Continue to Confirm selections.
+  source_index: 850
+- text: Record the user’s checkbox choice.
+  source_index: 851
 - text: 'If it was provided:'
+  source_index: 852
+  screen_footnotes:
+  - '110'
 - text: You said that you were given the credit card agreement in [LANGUAGE] before signing.
+  source_index: 853
 - text: This defense does not apply based on that answer.
+  source_index: 854
 - text: Finish this defense.
+  source_index: 855
 - text: 'If either the negotiation-language answer OR the translation answer is Not sure:'
+  source_index: 856
+- text: Clarify an unresolved answer.
+  source_index: 857
 - text: You’re not sure what language was used when you opened the account  or whether a translation was
     provided. Copies of the agreement and messages from when you opened the account may help clarify this.
-- text: Clinic staff can help if the question remains unresolved.
-- text: Continue to Clarify an unresolved answer. If the primary language has not yet been established,
-    clarify it before applying the language-specific branches.
+  source_index: 858
+- text: Confirm selections.
+  source_index: 859
 - text: Common questions
+  source_index: 861
 - text: Should I call the original creditor to negotiate?
+  source_index: 862
   list_level: 0
   list_format: bullet
 - text: 'No, call their lawyer: contact info is on the summons and complaint'
+  source_index: 863
   list_level: 1
   list_format: bullet
 - text: How many copies should I make of my forms?
+  source_index: 864
   list_level: 0
   list_format: bullet
 - text: Original answer + copy, proof of service, fee waiver → court, who will give you back an answer
     copy
+  source_index: 865
   list_level: 1
   list_format: bullet
 - text: Mail copy of answer
+  source_index: 866
   list_level: 1
   list_format: bullet
 - text: 'For litigant: copy of answer, fee waiver, proof of service'
+  source_index: 867
   list_level: 1
   list_format: bullet
 - text: Should I check attorney's fees in the prayer section even if I'm not sure I'll win?
+  source_index: 868
   list_level: 0
   list_format: bullet
 - text: 'Yes: it''s important to preserve your defenses and options'
+  source_index: 869
   list_level: 1
   list_format: bullet
 - text: What if I can't get in touch with the lawyer for my debt collector?
+  source_index: 870
   list_level: 0
   list_format: bullet
 - text: Keep calling - it can take several attempts to contact them. If you can, send an email as well
     so you have written proof of your attempts to contact them.
+  source_index: 871
   list_level: 1
   list_format: bullet
 - text: Which window do I go to?
+  source_index: 872
   list_level: 0
   list_format: bullet
 - text: For Chatsworth - Windows 10 or 11, says “Limited Civil and Small Claims” above the window. They
     will stamp and give you the answer copy, and take the answer original and fee waiver.
+  source_index: 873
   list_level: 1
   list_format: bullet
+screen_headers:
+  '5': Do you want to check off the Statute of Limitations checkbox?
+  '1': Statute of Limitations
+  '3': Do you agree with the last payment date alleged in the complaint?
+  '2': Do you want to check off the Statute of Limitations checkbox?
+  '4': Was your last payment after [COMPLAINT.DATE - 1 year]?
+  '6': Do you want to check off both the first and third indented Statute of Limitations checkboxes?
+  '7': Do you want to check off the second indented Statute of Limitations checkbox?
+  '0': Ready to return to the pending question?
+  '9': Ambiguity
+  '8': The second indented Statute of Limitations checkbox
+  '10': Laches
+  '11': Are you locked out of your online portal?
+  '12': Are you reliant only on [PLAINTIFF]’s provided statements (as opposed to having your own copies
+    of your account statements)?
+  '13': Would you have difficulty finding information that you used to have about your accounts because
+    [PLAINTIFF] waited too long to sue?
+  '14': Do you want to check off Laches?
+  '15': Laches does not apply
+  '16': Fraud, Misrepresentation, and Concealment
+  '17': Do you want to check off Fraud, Misrepresentation, and Concealment?
+  '18': Did [PLAINTIFF] give you false information or leave out important information about this account,
+    such as fees?
+  '19': Do you want to check off Fraud, Misrepresentation, and Concealment?
+  '20': Fraud, Misrepresentation, and Concealment does not apply
+  '21': Failure to Mitigate
+  '22': Did the plaintiff sue after declining a settlement offer you made?
+  '28': Did the plaintiff sue after declining a settlement offer made by you or the debt consolidation
+    company?
+  '34': Main Failure to Mitigate checkbox
+  '35': Common Counts Only
+  '36': Common Counts Only does not apply
+  '37': Do you want to check off the first indented Common Counts Only checkbox?
+  '38': Did plaintiff agree to accept a lower payment, but is now asking for more than agreed on?
+  '39': Do you want to check off the second indented Common Counts Only checkbox?
+  '40': Did plaintiff fail to make payments under the insurance plan you purchased?
+  '41': Do you want to check off the third indented Common Counts Only checkbox?
+  '42': Do you want to check off the fourth indented Common Counts Only checkbox?
+  '43': Do you want to check off the fifth indented Common Counts Only checkbox?
+  '45': Unconscionable Contract
+  '46': Rescission
+  '47': Did you request to close your account before you stopped making payments?
+  '49': Did you or the debt consolidation company request to close your account before you stopped making
+    payments?
+  '51': Did the original creditor refuse to grant your request to close the account?
+  '52': Do you want to check off Rescission?
+  '53': Rescission does not apply
+  '48': Rescission does not apply
+  '50': Rescission does not apply
+  '54': Did the original creditor refuse to grant the request by you or the debt consolidation company
+    to close the account?
+  '55': Do you want to check off Rescission?
+  '56': Rescission does not apply
+  '57': Lack of Consideration
+  '58': Do you want to check off Lack of Consideration?
+  '59': Did you ever use the card yourself?
+  '60': Lack of Consideration does not apply
+  '61': You said you have not used this card. Did you open the account explicitly for another person to
+    use?
+  '62': Lack of Consideration does not apply
+  '63': Do you want to check off Lack of Consideration?
+  '64': Accord and Satisfaction
+  '65': Are you following an existing agreement with [PLAINTIFF] to settle this debt?
+  '66': Do you want to check off Accord and Satisfaction?
+  '67': Accord and Satisfaction does not apply
+  '68': Are you or the debt consolidation company following an existing agreement with [PLAINTIFF] to
+    settle this debt?
+  '69': Do you want to check off Accord and Satisfaction?
+  '70': Accord and Satisfaction does not apply
+  '71': Excuse or Breach of Contract
+  '72': Excuse or Breach of Contract does not apply
+  '73': Did [PLAINTIFF] change the terms of the contract without your permission?
+  '74': Do you want to check off the first indented Excuse or Breach of Contract checkbox?
+  '75': Do you want to check off the second indented Excuse or Breach of Contract checkbox?
+  '76': Did [PLAINTIFF] agree to change the original contract, but is not honoring the new agreement?
+  '77': Do you want to check off the third indented Excuse or Breach of Contract checkbox?
+  '79': Do you want to check off the fourth indented Excuse or Breach of Contract checkbox?
+  '78': Did [PLAINTIFF] fail to make payments under a credit insurance plan you purchased for the account?
+  '80': Do you want to check off the fifth indented Excuse or Breach of Contract checkbox?
+  '44': Main Common Counts Only checkbox
+  '81': Main Excuse or Breach of Contract checkbox
+  '82': Capacity
+  '83': Account opening date
+  '84': Were you under 18 when you entered the contract for this account?
+  '85': Do you want to check off Capacity?
+  '86': At the time you entered the contract, did a mental condition prevent you from understanding the
+    agreement or its consequences?
+  '87': Would you be willing to share this with the court, knowing that the information may become part
+    of the public record?
+  '88': Do you want to check off Capacity?
+  '89': Ask clinic staff for help
+  '90': Capacity does not apply
+  '91': Waiver
+  '92': Did you skip or delay a payment to the original creditor without penalties like late fees?
+  '93': Do you want to check off Waiver?
+  '94': Waiver does not apply
+  '95': Oral Modification
+  '96': Contract Change
+  '97': Did you and [PLAINTIFF] agree by speaking, such as during a phone call, to change the original
+    contract?
+  '98': Do you want to check off Oral Modification?
+  '99': Oral Modification does not apply
+  '100': Tender of Payment
+  '101': Did you try to make a payment to [PLAINTIFF] that [PLAINTIFF] refused to accept?
+  '102': Do you want to check off Tender of Payment?
+  '103': Tender of Payment does not apply
+  '104': Violation of Civil Code Section 1632 Regarding Language
+  '105': Civil Code Section 1632 Regarding Language does not apply
+  '106': Did you apply for the credit card in [LANGUAGE]?
+  '107': Civil Code Section 1632 Regarding Language does not apply
+  '108': Did the original creditor give you the credit card agreement in [LANGUAGE] before you signed?
+  '109': Do you want to check off Civil Code Section Section 1632 Regarding Language?
+  '110': Civil Code Section 1632 Regarding Language does not apply
+  '23': Do you want to check off the first indented Failure to Mitigate checkbox?
+  '29': Do you want to check off the first indented Failure to Mitigate checkbox?
+  '24': The first indented Failure to Mitigate checkbox
+  '30': The first indented Failure to Mitigate checkbox
+  '25': Did the plaintiff try to call or email you to negotiate before suing?
+  '31': Did the plaintiff try to call or email you or the debt consolidation company to negotiate before
+    suing?
+  '26': The second indented Failure to Mitigate checkbox
+  '27': Do you want to check off the second indented Failure to Mitigate checkbox?
+  '32': The second indented Failure to Mitigate checkbox
+  '33': Do you want to check off the second indented Failure to Mitigate checkbox?
+sol_source: docs/source-material/2026.11.10/2026.11.10 Affirmative-Defense-Scripts.docx
+sol_source_sha256: 5586d76de59c77b90941dc2d7c4f84b17f45851b3d36539f346ab62f007117b9

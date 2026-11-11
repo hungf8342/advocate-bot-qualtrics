@@ -108,6 +108,8 @@ def test_known_preliminary_values_are_not_requested_again_in_defense_sections(cr
 
 def test_unresolved_preliminary_answer_returns_to_its_own_section():
     current = review(intake('unknown'))
+    assert current.current == 'sol_creditor_type_resolve'
+    current = advance_updated(current, 'continue')
     assert current.current == 'guided_creditor_type'
     assert current.page()['section'] == 'Preliminary fields'
     assert 'still unresolved' in current.page()['body'][0]
@@ -191,11 +193,11 @@ def test_personal_timing_review_excludes_discarded_complaint_date(agreement, pay
     if agreement:
         history += answers(('sol_payment_estimate_agree', agreement))
     history += answers(('sol_payment_age', timing))
-    if timing != 'no':
-        history += answers(('statute_of_limitations_decision', 'no'), ('sol_checkboxes_first_third', 'no'))
+    if timing != 'yes':
+        history += answers(('statute_of_limitations_decision', 'no'), ('sol_checkboxes_first_third', 'no'), ('sol_written', 'continue'))
     current = review(history)
     expected = ['guided_creditor_type', 'guided_filing_date', 'sol_payment_age']
-    if timing != 'no':
+    if timing != 'yes':
         expected += ['guided_oral']
     assert review_nodes(current) == expected
     timing_row = next(row for row in current.page()['review_answers'] if row['node_id'] == 'sol_payment_age')
@@ -224,7 +226,7 @@ def test_retained_comparison_review_does_not_claim_agreement_with_the_edited_dat
     assert current.current == SUMMARY
     assert review_nodes(current) == ['guided_creditor_type', 'guided_payment_date', 'guided_filing_date', 'guided_oral']
     payment = next(row for row in current.page()['review_answers'] if row['node_id'] == 'guided_payment_date')
-    assert payment['value'] == 'Apr 15, 2024'
+    assert payment['value'] == 'April 15, 2024'
 
 
 def test_original_path_matches_script_and_combines_first_and_third():
@@ -236,6 +238,8 @@ def test_original_path_matches_script_and_combines_first_and_third():
     history += answers(('sol_payment_estimate_agree','yes'))
     assert review(history).current=='statute_of_limitations_decision'
     history += answers(('statute_of_limitations_decision','no'),('sol_checkboxes_first_third','yes'))
+    assert review(history).current == 'sol_written'
+    history += answers(('sol_written', 'continue'))
     current=review(history)
     assert current.current==SUMMARY
     assert current.session.checkbox_selections['statute_of_limitations']=={'main':'exclude','first':'include','third':'include'}
@@ -268,8 +272,8 @@ def test_missing_payment_uses_timing_question_without_inventing_date(timing):
     assert review(history).current=='sol_payment_age'
     current=review(history+answers(('sol_payment_age',timing)))
     assert current.session.last_payment_complaint is None
-    assert current.current==(SUMMARY if timing=='no' else 'statute_of_limitations_decision')
-    if timing=='no':assert not current.session.checkbox_selections
+    assert current.current==(SUMMARY if timing=='yes' else 'statute_of_limitations_decision')
+    if timing=='yes':assert not current.session.checkbox_selections
 
 
 def test_recent_payment_finishes_with_summary_and_no_checkbox_offer():
@@ -278,12 +282,12 @@ def test_recent_payment_finishes_with_summary_and_no_checkbox_offer():
     assert page['node_id']==SUMMARY
     assert all(not row['checked'] and row['edit_index'] is None for row in page['rows'])
     assert 'less than one year' in ' '.join(review(history[:-1]).page()['answer_responses']['yes'])
-    assert 'No checkboxes were offered' in page['body'][0]
+    assert 'you don’t want to check off the defense' in page['body'][0]
 
 
 def test_back_and_changed_timing_clear_downstream_choices():
     prefix=intake()+answers(('sol_payment_estimate_agree','yes'))
-    old=prefix+answers(('statute_of_limitations_decision','yes'),('sol_checkboxes_first_third','yes'))
+    old=prefix+answers(('statute_of_limitations_decision','yes'),('sol_checkboxes_first_third','yes'),('sol_written','continue'))
     assert review(old).page()['node_id']==SUMMARY
     changed=intake(payment='2026-07-01')+answers(('sol_payment_estimate_agree','yes'))
     current=review(changed)
@@ -305,6 +309,8 @@ def test_uncertainty_keeps_both_boxes_unselected_until_resolved():
     assert current.session.defense_open_questions
     assert current.session.checkbox_selections['statute_of_limitations']=={'main':'exclude'}
     history+=answers((current.current,'retry'),('sol_checkboxes_first_third','no'))
+    assert review(history).current == 'sol_written'
+    history += answers(('sol_written', 'continue'))
     current=review(history)
     assert current.current==SUMMARY
     assert not current.session.defense_open_questions
@@ -313,10 +319,10 @@ def test_uncertainty_keeps_both_boxes_unselected_until_resolved():
 
 def test_unknown_oral_answer_cannot_complete_until_it_is_resolved():
     history=intake('buyer',oral='unknown')+answers(('statute_of_limitations_decision','yes'),('sol_checkboxes_first_third','yes'))
-    assert review(history).current=='guided_oral'
-    history+=answers(('guided_oral','unknown'))
-    assert review(history).current=='guided_oral'
-    assert review(history+answers(('guided_oral','no'))).current==SUMMARY
+    assert review(history).current=='sol_oral_gate_resolve'
+    history+=answers(('sol_oral_gate_resolve','continue'),('guided_oral','unknown'))
+    assert review(history).current=='sol_oral_gate_resolve'
+    assert review(history+answers(('sol_oral_gate_resolve','continue'),('guided_oral','no'),('sol_written','continue'))).current==SUMMARY
 
 
 @pytest.mark.parametrize('value',['2026-02-30','tomorrow','20260920','2026-9-2'])
@@ -330,8 +336,8 @@ def test_unusable_dates_do_not_advance(value):
 
 def test_unknown_plaintiff_type_is_clarified_before_timing():
     history=intake('unknown')
-    assert review(history).current=='guided_creditor_type'
-    history+=answers(('guided_creditor_type','original'))
+    assert review(history).current=='sol_creditor_type_resolve'
+    history+=answers(('sol_creditor_type_resolve','continue'),('guided_creditor_type','original'))
     assert review(history).current=='sol_payment_estimate_agree'
 
 
@@ -397,6 +403,8 @@ def completed_history(creditor='original', payment='2024-03-15', filing='2026-09
     history += answers(('statute_of_limitations_decision', 'yes'), ('sol_checkboxes_first_third', 'yes'))
     if oral == 'yes':
         history += answers(('sol_checkbox_second', 'yes'))
+    if oral == 'no':
+        history += answers(('sol_written', 'continue'))
     assert review(history).current == SUMMARY
     return history
 
@@ -448,7 +456,7 @@ def test_filing_date_edit_can_remove_boxes_without_repeating_unrelated_fields():
     assert len(current.page()['changes']) == 3
     assert all(change['after'] == 'Not offered on this path' for change in current.page()['changes'])
     assert 'less than one year' in ' '.join(current.answer_response)
-    assert 'No checkboxes were offered' in current.page()['body'][0]
+    assert 'you don’t want to check off the defense' in current.page()['body'][0]
 
 
 def test_payment_edit_across_year_boundary_asks_only_necessary_date_review():
@@ -466,6 +474,9 @@ def test_declining_changed_payment_date_retains_valid_choices_after_timing_is_re
     current = change(completed_history(), 'guided_payment_date', '2026-07-01')
     current = advance_updated(current, 'no')
     assert current.current == 'sol_payment_age'
+    current = advance_updated(current, 'no')
+    assert current.current == 'statute_of_limitations_decision'
+    assert current.page()['default_value'] == 'yes'
     current = advance_updated(current, 'yes')
     assert current.current == SUMMARY
     assert len(current.session.checkbox_selections[DEFENSE_KEY]) == 3
@@ -479,15 +490,17 @@ def test_written_to_oral_edit_asks_only_new_second_box():
     current = advance_updated(current, 'no')
     assert current.current == SUMMARY
     assert current.session.checkbox_selections[DEFENSE_KEY]['second'] == 'exclude'
-    assert current.page()['changes'] == [{'label': 'California · oral contract', 'before': 'Not offered on this path', 'after': 'Not selected'}]
+    assert current.page()['changes'] == [{'label': 'California oral contracts', 'before': 'Not offered on this path', 'after': 'Not selected'}]
 
 
 def test_oral_to_written_removes_only_second_box():
     current = change(completed_history(oral='yes'), 'guided_oral', 'no')
+    assert current.current == 'sol_written'
+    current = advance_updated(current, 'continue')
     assert current.current == SUMMARY
     assert current.session.checkbox_selections[DEFENSE_KEY] == {'main': 'include', 'first': 'include', 'third': 'include'}
     assert len(current.page()['changes']) == 1
-    assert current.page()['changes'][0]['label'] == 'California · oral contract'
+    assert current.page()['changes'][0]['label'] == 'California oral contracts'
 
 
 def test_original_to_buyer_keeps_all_choices_without_requesting_a_name():
@@ -503,24 +516,28 @@ def test_buyer_to_original_asks_timing_and_keeps_all_still_eligible_choices():
     current = change(completed_history('buyer', oral='yes'), 'guided_creditor_type', 'original')
     assert current.current == 'sol_payment_estimate_agree'
     current = advance_updated(current, 'yes')
+    assert current.current == 'statute_of_limitations_decision'
+    current = advance_updated(current, 'yes')
     assert current.current == SUMMARY
     assert current.session.checkbox_selections[DEFENSE_KEY] == {'main': 'include', 'first': 'include', 'third': 'include', 'second': 'include'}
 
 
 def test_an_existing_personal_estimate_is_retained_when_filing_date_does_not_change():
-    history = intake(payment='missing') + answers(('sol_payment_age', 'yes'), ('statute_of_limitations_decision', 'yes'), ('sol_checkboxes_first_third', 'yes'))
+    history = intake(payment='missing') + answers(('sol_payment_age', 'no'), ('statute_of_limitations_decision', 'yes'), ('sol_checkboxes_first_third', 'yes'), ('sol_written', 'continue'))
     current = change(history, 'guided_payment_date', '2026-07-01')
     assert current.current == SUMMARY
-    assert current.session.defense_answers['sol_payment_age'] == 'yes'
+    assert current.session.defense_answers['sol_payment_age'] == 'no'
     assert 'sol_payment_estimate_agree' not in current.session.defense_answers
     assert current.page()['changes'] == []
 
 
 def test_changed_filing_date_invalidates_a_personal_estimate_but_not_other_facts():
-    history = intake(payment='missing') + answers(('sol_payment_age', 'yes'), ('statute_of_limitations_decision', 'yes'), ('sol_checkboxes_first_third', 'yes'))
+    history = intake(payment='missing') + answers(('sol_payment_age', 'no'), ('statute_of_limitations_decision', 'yes'), ('sol_checkboxes_first_third', 'yes'), ('sol_written', 'continue'))
     current = change(history, 'guided_filing_date', '2025-09-20')
     assert current.current == 'sol_payment_age'
     assert current.session.preliminary_fields['ORAL'].value == 'no'
+    current = advance_updated(current, 'no')
+    assert current.current == 'statute_of_limitations_decision'
     current = advance_updated(current, 'yes')
     assert current.current == SUMMARY and current.page()['changes'] == []
 
@@ -571,9 +588,12 @@ def test_edit_api_round_trips_retained_answers_and_summary_changes(api):
     request = {'history': [a.model_dump(mode='json') for a in history], 'edit_index': next(i for i, a in enumerate(history) if a.node_id == 'sol_payment_estimate_agree'), 'value': 'yes'}
     result = client.post('/api/edit', json=request)
     assert result.status_code == 200
-    # Changing the date agreement to its existing answer still
-    # skips the subsequent questions and returns the saved summary.
+    # Revisiting timing shows the saved main choice before reusing later choices.
     payload = result.json()
+    assert payload['page']['node_id'] == 'statute_of_limitations_decision'
+    assert payload['page']['default_value'] == 'yes'
+    assert client.post('/api/state', json={'history': payload['history'], 'revision': payload['revision']}).json() == payload['page']
+    payload = client.post('/api/advance', json={'history': payload['history'], 'revision': payload['revision'], 'value': 'yes'}).json()
     assert payload['page']['node_id'] == SUMMARY
     assert payload['page']['changes'] == []
     assert client.post('/api/state', json={'history': payload['history'], 'revision': payload['revision']}).json() == payload['page']
@@ -623,6 +643,8 @@ def test_two_defenses_have_independent_choices_and_per_defense_summaries(credito
     history += answers(('statute_of_limitations_decision', main), ('sol_checkboxes_first_third', group))
     if oral == 'yes':
         history += answers(('sol_checkbox_second', 'no'))
+    else:
+        history += answers(('sol_written', 'continue'))
     sol = review(history)
     assert sol.page()['section_number'] == 2
     assert sol.page()['next_label'] == 'Continue to Ambiguity'
@@ -661,7 +683,7 @@ def test_recent_sol_finish_still_offers_ambiguity_without_inventing_sol_confirma
     current = review(history)
     assert current.current == SUMMARY
     assert 'does not apply' in ' '.join(current.answer_response)
-    assert 'No checkboxes were offered' in current.page()['body'][0]
+    assert 'you don’t want to check off the defense' in current.page()['body'][0]
     assert current.session.defense_results[DEFENSE_KEY]['status'] == 'finished'
     history += answers((SUMMARY, 'continue'))
     assert review(history).current == 'ambiguity_decision'
@@ -739,7 +761,7 @@ def test_ambiguity_chat_receives_current_script_and_never_advances(api):
     assert client.post('/api/state', json={'history': history}).json()['node_id'] == 'ambiguity_decision'
 
 
-def test_november_7_explanations_match_source_and_do_not_change_chatbot_copy():
+def test_current_explanations_match_source_and_do_not_change_chatbot_copy():
     import re
     from zipfile import ZipFile
     from xml.etree import ElementTree as ET
@@ -747,7 +769,11 @@ def test_november_7_explanations_match_source_and_do_not_change_chatbot_copy():
     with ZipFile(ROOT / CONTENT['source']) as document:
         root = ET.fromstring(document.read('word/document.xml'))
     namespace = {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
-    source = ' '.join(''.join(p.itertext()) for p in root.findall('.//w:p', namespace))
+    # Read visible Word text, excluding deleted text retained by tracked changes.
+    source = ' '.join(''.join(t.text or '' for t in p.findall('.//w:t', namespace))
+                      for p in root.findall('.//w:p', namespace))
+    # The display repairs this single missing space in the November 10 document.
+    source = source.replace('variesdepending', 'varies depending')
     normalize = lambda text: re.sub(r'\s+', ' ', text).strip()
     for overrides in CONTENT['nodes'].values():
         if 'explanation' in overrides:
@@ -803,6 +829,8 @@ def test_recent_original_to_buyer_offers_main_without_repeating_timing():
     current = advance_updated(current, 'no')
     assert current.current == 'sol_checkboxes_first_third'
     current = advance_updated(current, 'yes')
+    assert current.current == 'sol_written'
+    current = advance_updated(current, 'continue')
     assert current.current == SUMMARY
     assert current.session.checkbox_selections[DEFENSE_KEY] == {'main': 'exclude', 'first': 'include', 'third': 'include'}
 
@@ -869,6 +897,8 @@ def test_laches_any_yes_all_no_and_uncertainty_paths(values):
         assert current.session.defense_open_questions
         assert 'laches' not in current.session.checkbox_selections
     else:
+        assert current.current == 'laches_finish'
+        current = advance_updated(current, 'continue')
         assert current.current == LACHES_SUMMARY
         assert current.session.defense_results['laches']['status'] == 'finished'
         assert all(row['value'] == 'No' for row in current.page()['review_answers'])
@@ -906,6 +936,8 @@ def test_laches_removed_choice_is_not_restored_after_another_completed_edit():
     history = laches_history() + answers(('laches', 'yes'), ('laches_statements', 'no'), ('laches_lost_info', 'no'),
                                         ('laches_decision', 'yes'), (LACHES_SUMMARY, 'continue'))
     current = change(history, 'laches', 'no')
+    assert current.current == 'laches_finish'
+    current = advance_updated(current, 'continue')
     assert current.current == LACHES_SUMMARY
     assert 'laches' not in current.session.checkbox_selections
     current = advance_updated(current, 'continue')

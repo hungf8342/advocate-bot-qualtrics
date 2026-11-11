@@ -74,7 +74,7 @@ def test_headers_completion_exit_and_restart_persistence(collector):
     session = rows(directory, 'sessions.csv')[0]
     assert session['SESSION.COMPLETED'] == 'Yes'
     assert session['SESSION.END.TIME'] == ''
-    assert session['SESSION.TREE.VERSION'].startswith('guided-17-defenses-2026-11-07-')
+    assert session['SESSION.TREE.VERSION'].startswith('guided-17-defenses-2026-11-10-')
     assert client.post('/api/collection/end', json={'session_id': sid}).status_code == 200
     assert datetime.fromisoformat(rows(directory, 'sessions.csv')[0]['SESSION.END.TIME']).tzinfo
     module['create_app'](collection_dir=directory)
@@ -130,6 +130,8 @@ def test_edits_invalidation_revisions_and_fresh_checkbox_answer(collector):
     assert invalidations[-1]['RESPONSE.CHECK.TIME'] == 'NA'
     assert invalidations[-1]['RESPONSE.ITEM.VALUE'] == ''
     assert rows(directory, 'sessions.csv')[0]['SESSION.COMPLETED'] == 'No'
+    assert result['page']['node_id'] == 'laches_finish'
+    result = step(client, sid, result, 'continue')
     result = edit(client, sid, result, 'laches', 'yes')
     from advocate_bot_qualtrics.practice_areas.consumer_debt.guided_sol import GuidedAnswer
     advance(client, sid, [GuidedAnswer(**a) for a in result['history']], result['revision'], 'no')

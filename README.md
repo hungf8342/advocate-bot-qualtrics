@@ -40,7 +40,7 @@ The demo has no file-upload control. Do not use its public-share option with rea
 
 A separate interface presents one question per page with Back and Next controls,
 a payment timeline, a clarification chat window, and a summary for each defense.
-It follows the November 7 scripts for 17 defenses (1, 2, 5, 8, and 9–21), excluding
+It follows the November 10 scripts for 17 defenses (1, 2, 5, 8, and 9–21), excluding
 Standing/Privity, Failure to State a Cause of Action, Wrong Party, and Identity Theft. Editing
 a field preserves independent answers and revisits only questions that could
 affect the checkbox choices:

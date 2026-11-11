@@ -1,5 +1,8 @@
-# November 7 approved wording and prototype-only routing overrides.
-source: docs/source-material/2026-11-07/2026.11.07 Affirmative-Defense-Scripts.docx
+# November 10 approved wording and prototype-only routing overrides.
+source: docs/source-material/2026.11.10/2026.11.10 Affirmative-Defense-Scripts.docx
+sol_source: docs/source-material/2026.11.10/2026.11.10 Affirmative-Defense-Scripts.docx
+shared_clarification: Ask a clarifying question with the “Ask a Question” button or speak with clinic
+  staff before choosing an answer. Then click the “Next” button to choose your answer.
 overview:
 - Your Answer is the form you use to respond to the lawsuit. To finish your Answer, you will check off
   what defenses apply to your lawsuit, using a form called Attachment 4. This clickthrough tool will help
@@ -8,47 +11,102 @@ overview:
   and guide you through the 21 defenses on Attachment 4 in order. Fill out each defense in Attachment
   4 as recorded in the clickthrough tool.
 nodes:
+  mitigation_consolidation:
+    routes:
+      'yes': mitigation_settlement
+      'no': mitigation_settlement
   statute_of_limitations_intro:
-    explanation: "Statute of limitations is a rule that says if [PLAINTIFF] waits too long, they cannot\
-      \ sue you. The maximum length of time they can wait varies from 2 to 6 years, depending on which\
-      \ state’s law applies. Statute of limitations is a strong defense if it applies. \nEven if [PLAINTIFF]\
-      \ sued within the time limit, it may still need to prove when you last paid.  Consider raising this\
-      \ defense in an answer if [PLAINTIFF] filed their complaint one year or more after your last payment."
+    explanation: 'Statute of limitations is a rule that says if [PLAINTIFF] waits too long, they cannot
+      sue you. The maximum length of time they can wait varies depending on which state’s law applies. Statute
+      of limitations is a strong defense if it applies.
+
+      Even if [PLAINTIFF] sued within the time limit, it may still need to prove when you last paid.  Consider
+      raising this defense in an answer if [PLAINTIFF] filed their complaint one year or more after your
+      last payment.'
   sol_payment_estimate_agree:
-    question: 'The complaint lists your last payment as [LAST.PAYMENT.DATE], about [months between that
-      payment and filing] months before it was filed.
+    question: 'Do you agree with the last payment date alleged in the complaint?
 
 
-      Do you agree with the last payment date alleged in the complaint?'
+      The complaint lists your last payment as [LAST.PAYMENT.DATE], about [months between that payment
+      and filing] months before it was filed.'
+  sol_payment_age:
+    question: Was your last payment to [PLAINTIFF] after [COMPLAINT.DATE - 1 year]?
+    routes:
+      'yes': sol_age_no
+      'no': sol_age_yes
+  sol_age_yes:
+    question: You said your last payment was on or before [COMPLAINT.DATE - 1 year].
+  sol_age_no:
+    question: You said your last payment was after [COMPLAINT.DATE - 1 year] .
+  sol_age_unknown:
+    question: You’re not sure whether your last payment was after [COMPLAINT.DATE - 1 year].
+  sol_original_preserve:
+    question: 'Consider raising this defense if your last payment was a year or more before [PLAINTIFF]
+      filed their complaint.
+
+      You said your last payment was on or before [COMPLAINT.DATE - 1 year]—a year or more before [PLAINTIFF]
+      filed their complaint.'
+  statute_of_limitations_decision:
+    question: Do you want to check off the Statute of Limitations checkbox?
+  sol_finish:
+    question: This defense does not apply if you’re certain your last payment to [PLAINTIFF] was after
+      [COMPLAINT.DATE - 1 year]—less than one year before [PLAINTIFF] filed the complaint.
   sol_guidance:
-    question: The statute of limitations periods differ depending on which state rule applies. People
-      in this situation often check off the first and third indented checkboxes under “Statute of Limitations”
-      in case California or Delaware law applies to their contracts.
+    question: 'The statute of limitations periods differ depending on which state rule applies.
+
+      People in this situation often check off the first and third indented checkboxes under “Statute
+      of Limitations” in case California or Delaware law applies to their contracts.'
   sol_checkbox_second:
-    question: 'Oral contracts have shorter statute of limitations. You’ve indicated your contract with
-      [ORIGINAL.CREDITOR] was oral. People in this situation often check off the second indented checkbox
-      under “Statute of Limitations.”
+    question: 'Oral contracts have shorter statute of limitations.
+
+      You’ve indicated your contract with [ORIGINAL.CREDITOR] was oral.
+
+      People in this situation often check off the second indented checkbox under “Statute of Limitations.”
 
 
       Do you want to check off the second indented Statute of Limitations checkbox?'
   sol_written:
-    question: You’ve indicated your contract with [ORIGINAL.CREDITOR] was in writing. The defense under
-      the second indented checkbox does not apply.
+    question: 'You previously indicated your contract with [ORIGINAL.CREDITOR] was in writing.
+
+      The defense under the second indented checkbox does not apply.'
   ambiguity_intro:
-    explanation: "Ambiguity means something is unclear. For example, ambiguity may apply if you are at\
-      \ all confused about:\nthe complaint; or\nthe amount sued for; or \nwhat the charges are. \nThe\
-      \ documents filed with the court may also be ambiguous because they do not contain your entire account\
-      \ history or contract. This means you may need to ask for more information from [PLAINTIFF] later.\
-      \ \nMany people check off ambiguity, since it is a broad defense."
+    explanation: 'Ambiguity means something is unclear. For example, ambiguity may apply if you are at all
+      confused about:
+
+      the complaint; or
+
+      the amount of money you are being sued for
+
+      The documents filed with the court may also be ambiguous because they do not contain your entire account
+      history or contract. This means you may need to ask for more information from [PLAINTIFF] later through
+      a process called discovery.
+
+      Many people check off ambiguity, since it is a broad defense.'
   mistake_intro:
-    explanation: "Mistake may apply if there was any error made in the whole process. This includes:\n\
-      incorrect late fees\nmore money sued for than owed; or \nanything that makes you confused about\
-      \ the amount sued\nMany litigants check off mistake, since it is a broad defense."
+    explanation: 'Mistake may apply if there was any error made at any point while the account was open
+      or after it was closed. This includes:
+
+      incorrect late fees or interest;
+
+      failing to account for payments you made on the account;
+
+      asking for more money in the lawsuit than is actually owed; or
+
+      anything that makes you confused about the amount you are being sued for
+
+      Many litigants check off Mistake, since it is a broad defense.'
   laches_intro:
-    explanation: "Laches may apply if:\n[PLAINTIFF] waited an unreasonably long time to sue\nthat delay\
-      \ made it harder for you to defend yourself\n For example, account records may have been lost or\
-      \ become unavailable while [PLAINTIFF] waited. \nThe following questions help identify whether the\
-      \ delay made it harder to obtain information about your account."
+    explanation: 'Laches may apply if:
+
+      [PLAINTIFF] waited a long time to sue
+
+      that delay made it harder for you to defend yourself
+
+      For example, you may need account records and statements as evidence to prove your case. These account
+      records and statements may have been lost or become unavailable while [PLAINTIFF] waited.
+
+      The following questions help identify whether the delay made it harder to obtain information about
+      your account.'
   laches_statements:
     question: Are you reliant only on [PLAINTIFF]’s provided statements (as opposed to having your own
       copies of your account statements)?
@@ -62,31 +120,41 @@ nodes:
     question: "You did not report difficulty accessing your account records.\n Laches does not apply if\
       \ you did not experience difficulty in finding account information."
   fraud_intro:
-    explanation: "Fraud, misrepresentation, and concealment involve being misled about important facts\
-      \ related to the debt, by any party. \nFor example, a creditor may have misled you about fees or\
-      \ penalties, and you agreed to the account or made payments based on that information. \nAnother\
-      \ example is if someone else opened the account by stealing your identity."
+    explanation: 'Fraud, misrepresentation, and concealment involve being misled about important facts related
+      to the terms of the contract.
+
+      For example, the credit card company may have misled you about interest rates, fees, or penalties.
+      You may have then agreed to the account or made payments based on that false information.
+
+      Another example is if someone else opened the account by stealing your identity.'
   fraud_uncertain:
-    question: "You said that you’re not sure whether [PLAINTIFF] misled you about your account. \nDo you\
-      \ have further questions on how to determine whether [PLAINTIFF] hid important facts about your\
-      \ account from you or not?"
+    question: You said that you’re not sure whether [PLAINTIFF] misled you about your account.
   failure_to_mitigate_intro:
     explanation: Failure to mitigate means [PLAINTIFF] did not take reasonable steps to avoid or reduce
       losses related to the debt. The questions below ask about whether [PLAINTIFF] attempted to negotiate
       before suing.
+    fact_restatements: []
   mitigation_contact:
     question: Did the plaintiff try to call or email you to negotiate before suing?
-    question_variants: &id006
+    question_variants:
     - fact_key: field:CONSOLIDATION
       equals: 'yes'
-      text: Did the plaintiff try to call or email you or the debt consolidation company to negotiate
-        before suing?
+      text: Did the plaintiff try to call or email you or the debt consolidation company to negotiate before
+        suing?
+    routes:
+      'yes': mitigation_contact_pending
+      'no': mitigation_contact_pending
+      unknown: mitigation_contact_pending
   mitigation_settlement:
     question_variants:
     - fact_key: field:CONSOLIDATION
       equals: 'yes'
       text: Did the plaintiff sue after declining a settlement offer made by you or the debt consolidation
         company?
+    routes:
+      'yes': mitigation_settlement_pending
+      'no': mitigation_settlement_pending
+      unknown: mitigation_settlement_pending
   mitigation_contact_uncertain:
     question: 'You said that you’re not sure whether [PLAINTIFF] tried to call or email you to negotiate
       before suing. Is this because:
@@ -123,17 +191,20 @@ nodes:
     question: "You said that [PLAINTIFF] attempted to arrange payments or negotiate before suing. \nThe\
       \ “Failure to Mitigate” defense does not apply."
   mitigation_first_checkbox:
-    question: "You said that [PLAINTIFF] sued after declining a settlement offer you made. The defense\
-      \ in the first indented checkbox may apply.  \nMany people in similar situations check this box\
-      \ to keep the option of using this defense later.\n\nDo you want to check off the first indented\
-      \ Failure to Mitigate checkbox?"
+    question: "You said that [PLAINTIFF] sued after declining a settlement offer you made. The defense in\
+      \ the first indented checkbox may apply.  \nMany people in similar situations check this box to keep\
+      \ the option of using this defense later.\n\nDo you want to check off the first indented Failure to\
+      \ Mitigate checkbox?"
     question_variants:
     - fact_key: field:CONSOLIDATION
       equals: 'yes'
-      text: "You said that [PLAINTIFF] sued after declining a settlement offer made by you or the debt\
-        \ consolidation company. The defense in the first indented checkbox may apply. \nMany people in\
-        \ similar situations check this box to keep the option of using this defense later.\n\nDo you\
-        \ want to check off the first indented Failure to Mitigate checkbox?"
+      text: "You said that [PLAINTIFF] sued after declining a settlement offer made by you or the debt consolidation\
+        \ company. The defense in the first indented checkbox may apply. \nMany people in similar situations\
+        \ check this box to keep the option of using this defense later.\n\nDo you want to check off the\
+        \ first indented Failure to Mitigate checkbox?"
+    routes:
+      'yes': mitigation_contact
+      'no': mitigation_contact
   mitigation_first_no:
     question: "You said that you didn’t make a settlement offer to [PLAINTIFF], or that [PLAINTIFF] did\
       \ not sue after declining a settlement offer you made. \nThe defense in the first indented checkbox\
@@ -144,6 +215,7 @@ nodes:
       text: "You said that neither you nor the debt consolidation company made a settlement offer to [PLAINTIFF],\
         \ or that [PLAINTIFF] did not sue after declining such an offer. \nThe defense in the first indented\
         \ checkbox does not apply."
+    next: mitigation_contact
   mitigation_second_checkbox:
     question: "You said that you’re not aware that [PLAINTIFF] tried to set up a payment plan or agreement\
       \ with you before suing. The defense in the second indented checkbox may apply. \nMany litigants\
@@ -166,11 +238,21 @@ nodes:
       text: "You said that [PLAINTIFF] tried to set up a payment plan or agreement with you or the debt\
         \ consolidation company before suing. \nThe defense in the second indented checkbox does not apply."
   common_counts_intro:
-    explanation: "Common counts are claims that you owe money, even if you don’t have a formal agreement\
-      \ to pay [PLAINTIFF]. [PLAINTIFF] still has to prove that you owe the amount claimed. This section\
-      \ addresses problems with that claim, including:\npayments that were not credited\nan agreement\
-      \ to accept less\nunpaid benefits under a credit insurance plan\nidentity theft\nfraud. \nThis defense\
-      \ applies only if the complaint includes common counts."
+    explanation: 'Common counts are claims that you owe money, even if you don’t have a formal agreement
+      to pay [PLAINTIFF]. [PLAINTIFF] still has to prove that you owe the amount claimed. This section
+      addresses problems with that claim, including:
+
+      payments that were not credited
+
+      an agreement to accept less
+
+      unpaid benefits under a credit insurance plan
+
+      identity theft
+
+      fraud
+
+      This defense applies only if the complaint includes common counts.'
   common_counts_decision:
     question: "You said that there are issues with the amount or account being claimed and sued over.\
       \ \nCheck off the overall “Common Counts” defense.\n\nDo you want to check off Common Counts Only?"
@@ -274,9 +356,8 @@ nodes:
       \ agreed, and [PLAINTIFF] accepted it. \nIf [PLAINTIFF] has already agreed to a repayment plan,\
       \ they should not be able to sue you."
   accord_uncertain:
-    question: "You’re not sure whether an agreement with [PLAINTIFF] exists or is being followed. A settlement\
-      \ letter, payment history, or confirmation from the debt consolidation company may help clarify\
-      \ this. \nDo you have further questions about what counts as an agreement to settle the debt?"
+    question: You’re not sure whether an agreement with [PLAINTIFF] exists or is being followed. A settlement
+      letter, payment history, or confirmation from the debt consolidation company may help clarify this.
   accord_compliance:
     question: Are you following an existing agreement with [PLAINTIFF] to settle this debt?
     question_variants:
@@ -361,10 +442,8 @@ nodes:
 
       Before sharing information about a mental condition:
 
-      Other people may be able to see it in court records.
-
-      If the condition is severe and continues, the court may appoint someone to make financial or legal
-      decisions for you.'
+      Other people may be able to see it in court records.'
+    fact_restatements: []
   capacity_minor_yes:
     question: "You said that you were under 18 when you entered the agreement. This defense may apply.\
       \ \nMany people in this situation check this box to keep the option of using this defense later."
@@ -379,21 +458,23 @@ nodes:
     question: "You said that you were at least 18 and could understand the agreement when you made it.\
       \ \nThis defense may not apply based on those answers."
   capacity_age_uncertain:
-    question: "You’re not sure about your age or ability to understand the agreement at the time. \nClinic\
-      \ staff can help you discuss what information may be relevant."
-  capacity_mental_uncertain:
-    question: "You’re not sure about your age or ability to understand the agreement at the time. \nClinic\
-      \ staff can help you discuss what information may be relevant."
-  waiver_intro:
-    explanation: 'Waiver is a defense that may apply if the original creditor allowed you to:
+    question: 'You’re not sure about your age or ability to understand the agreement at the time.
 
-      pay late without late fees; or
+      Clinic staff can help you discuss what information may be relevant.'
+  capacity_mental_uncertain:
+    question: 'You’re not sure about your age or ability to understand the agreement at the time.
+
+      Clinic staff can help you discuss what information may be relevant.'
+  waiver_intro:
+    explanation: 'Waiver is a defense that may apply if the original creditor allowed you to change a term
+      of the agreement while the account was still open, such as:
+
+      pay late without charging late fees; or
 
       skip payments without penalty'
   waiver_uncertain:
-    question: "You’re not sure how the original creditor handled missed or late payments. Account statements\
-      \ and messages about payment arrangements or fees may help clarify this. \nDo you have further questions\
-      \ about waiver?"
+    question: You’re not sure how [ORIGINAL.CREDITOR] handled missed or late payments. Account statements
+      and messages about payment arrangements or fees may help clarify this.
   waiver_payment_without_penalty:
     question: Did you skip or delay a payment to the original creditor without penalties like late fees?
   waiver_decision:
@@ -408,16 +489,11 @@ nodes:
       \ an existing contract. For example, you and [PLAINTIFF] may have agreed by phone to different payment\
       \ amounts or due dates. \nThis defense may apply if the lawsuit relies on the original terms even\
       \ though you agreed to a change."
-    fact_restatements:
-    - fact_key: answer:excuse_modified
-      equals: 'yes'
-      text: "Earlier, you said that [PLAINTIFF] agreed to change the original contract but is not honoring\
-        \ the new agreement. \nThe question below asks whether that change or another was agreed to during\
-        \ a conversation."
+    fact_restatements: []
   oral_modification_uncertain:
-    question: "You’re not sure whether [PLAINTIFF] agreed to a change during a conversation. Notes of\
-      \ the call, a confirmation message, or payments made under the changed terms may help clarify what\
-      \ was agreed. \nDo you have further questions about oral modification?"
+    question: You’re not sure whether [PLAINTIFF] agreed to a change during a conversation. Notes of the
+      call, a confirmation message, or payments made under the changed terms may help clarify what was
+      agreed.
   oral_modification_decision:
     question: "You said that you and [PLAINTIFF] agreed to change the original contract during a conversation.\
       \ This defense may apply. \nMany people in this situation check this box to keep the option of using\
@@ -448,6 +524,10 @@ nodes:
       \ the required translation generally before the contract is signed and must include its terms. \n\
       This defense may apply if you opened the account speaking a language other than English and the\
       \ credit agreement provided to you was only in English."
+    fact_restatements:
+    - fact_key: rule:language
+      equals: other
+      text: You said that your primary language is [LANGUAGE].
   language_english:
     question: 'You said that your primary language is English.
 
@@ -455,10 +535,7 @@ nodes:
       This defense may not apply based on your primary language. The defense concerns an agreement mostly
       discussed in a non-English language.'
   language_negotiation:
-    fact_restatements:
-    - fact_key: rule:language
-      equals: other
-      text: You said that your primary language is [LANGUAGE].
+    fact_restatements: []
     question: Did you apply for the credit card in [LANGUAGE]?
   language_contract:
     question: Did the original creditor give you the credit card agreement in [LANGUAGE] before you signed?
@@ -472,23 +549,22 @@ nodes:
     question: "You said that you were given the credit card agreement in [LANGUAGE] before signing. \n\
       This defense does not apply based on that answer."
   sol_buyer:
-    question: 'Debt buyers often sue on older accounts or don''t have records of a last payment you made
+    question: 'Debt buyers often sue on older accounts or may not have records of a last payment you made
       to the original creditor.
+
 
       You are being sued by a debt buyer.
 
-      People sued by debt buyers often check off the statute of limitations defense to preserve it.'
+
+      People sued by debt buyers often check off the statute of limitations defense to preserve it.
+
+
+      You can seek more information such as your account records to confirm your last payment date later
+      on in discovery.'
   sol_uncertain_date:
     question: You’re not sure how much time passed between your last payment and [PLAINTIFF] filing a
       complaint. If the complaint does not give the correct last payment date, your bank records, payment
       confirmations, or account history may help you estimate when you last paid.
-  sol_finish:
-    question: This defense does not apply if you’re certain your last payment to [PLAINTIFF] was less
-      than one year before the complaint was filed.
-  sol_original_preserve:
-    question: "Consider raising this defense if [PLAINTIFF] filed their complaint one year or more after\
-      \ your last payment. \nYou think your last payment could be a year or more before the complaint\
-      \ was filed."
   laches_statements_resolve:
     question: Are you reliant only on [PLAINTIFF]’s provided statements (as opposed to having your own
       copies of your account statements)?
@@ -506,20 +582,27 @@ nodes:
       \ people in this situation check this box to keep the option of using this defense later.\n\nDo\
       \ you want to check off Violation of Civil Code Section 1632 Regarding Language?"
   language_negotiation_uncertain:
-    question: "You’re not sure what language was used when you opened the account  or whether a translation\
-      \ was provided. Copies of the agreement and messages from when you opened the account may help clarify\
-      \ this. \nClinic staff can help if the question remains unresolved."
+    question: You’re not sure what language was used when you opened the account  or whether a translation
+      was provided. Copies of the agreement and messages from when you opened the account may help clarify
+      this.
   language_translation_uncertain:
-    question: "You’re not sure what language was used when you opened the account  or whether a translation\
-      \ was provided. Copies of the agreement and messages from when you opened the account may help clarify\
-      \ this. \nClinic staff can help if the question remains unresolved."
+    question: You’re not sure what language was used when you opened the account  or whether a translation
+      was provided. Copies of the agreement and messages from when you opened the account may help clarify
+      this.
   tender_payment_uncertain:
-    question: "You’re not sure if [PLAINTIFF] refused a payment you tried to make. You may want to check\
-      \ if you have any documents showing that you tried to pay, such as:\nbank statements\nreturned checks\
-      \ or payments\nletters, emails, or text messages showing the payment was refused; or \nnotes about\
-      \ when and how you tried to pay\nDo you have further questions about Tender of Payment?"
+    question: 'You’re not sure if [PLAINTIFF] refused a payment you tried to make. You may want to check
+      if you have any documents showing that you tried to pay, such as:
+
+      bank statements
+
+      returned checks or payments
+
+      letters, emails, or text messages showing the payment was refused; or
+
+      notes about when and how you tried to pay'
   common_counts_applicable:
     next: common_counts_first_checkbox
+    question: ''
   common_counts_renege:
     routes: &id001
       'yes': common_counts_second_checkbox
@@ -556,6 +639,7 @@ nodes:
     routes: *id005
   mitigation_settlement_pending:
     routes:
+      unknown: mitigation_settlement_help
       'yes': mitigation_first
       'no': mitigation_first
   mitigation_settlement_resolve:
@@ -567,9 +651,15 @@ nodes:
       unknown: mitigation_second_checkbox
   mitigation_contact_resolve:
     routes:
-      unknown: mitigation_settlement_pending
+      'yes': mitigation_second
+      'no': mitigation_second
+      unknown: mitigation_second
     question: Did the plaintiff try to call or email you to negotiate before suing?
-    question_variants: *id006
+    question_variants:
+    - fact_key: field:CONSOLIDATION
+      equals: 'yes'
+      text: Did the plaintiff try to call or email you or the debt consolidation company to negotiate before
+        suing?
   common_counts_none:
     question: 'You said there are no issues under Common Counts with the amount or account being sued
       over.
@@ -580,6 +670,51 @@ nodes:
       your name without your permission. This defense may apply since you suspect identity theft.
 
       Many litigants who check off identity theft also check off this defense.'
+  fraud_buyer_yes:
+    question: 'This defense may apply if you think [PLAINTIFF] or [ORIGINAL.CREDITOR] hid important facts
+      about your account from you.
+
+      You said [PLAINTIFF] may have hidden important facts about your account from you.
+
+      Many people in this situation check this box to keep open this defense for later use.'
+  fraud_original_yes:
+    question: 'This defense may apply if you think [PLAINTIFF] hid important facts about your account
+      from you.
+
+      You said [PLAINTIFF] may have hidden important facts about your account from you.
+
+      Many people in this situation check this box to keep open this defense for later use.'
+  excuse_applicable:
+    question: ''
+  rescission_consolidated:
+    question: ''
+  accord_consolidated:
+    question: ''
+  mitigation_contact_pending:
+    routes:
+      'yes': mitigation_second
+      'no': mitigation_second
+      unknown: mitigation_contact_help
+  mitigation_contact_help:
+    question: 'You said that you’re not sure whether [PLAINTIFF] tried to call or email to negotiate before
+      suing. This may be because:
+
+      you haven’t noticed a call or email
+
+      you don’t pick up the phone
+
+      or another reason'
+  mitigation_settlement_help:
+    question: You said that you’re not sure whether [PLAINTIFF] negotiated with you after declining a
+      settlement offer that you made.
+    question_variants:
+    - fact_key: field:CONSOLIDATION
+      equals: 'yes'
+      text: You said that you’re not sure whether [PLAINTIFF] negotiated with you or the debt consolidation
+        company after declining a settlement offer.
+  mitigation_consolidated:
+    question: ''
+    next: mitigation_settlement
 confirmation:
   selected: Based on your answers to this defense section, here are the checkboxes you’ve indicated you’d
     like to check off. Raise your hand and ask clinic staff for help if you have further questions about
@@ -610,6 +745,24 @@ presentation:
   - sol_original_preserve
   - sol_guidance
   - sol_written
+  - fraud_buyer_yes
+  - fraud_original_yes
+  - fraud_identity_yes
+  - consideration_identity
+  - capacity_minor_yes
+  - capacity_disclosure_yes
+  - capacity_staff
+  - mitigation_consolidated
+  - mitigation_contact_help
+  - mitigation_settlement_help
+  - accord_uncertain
+  - capacity_age_uncertain
+  - capacity_mental_uncertain
+  - waiver_uncertain
+  - oral_modification_uncertain
+  - tender_payment_uncertain
+  - language_negotiation_uncertain
+  - language_translation_uncertain
   context_preambles:
   - sol_checkbox_second
   - common_counts_first_checkbox
@@ -617,66 +770,46 @@ presentation:
   - common_counts_fifth_checkbox
   - excuse_second_checkbox
   - excuse_fifth_checkbox
-  response_only_nodes:
-  - mitigation_first_no
-  - mitigation_second_no
-  response_only_preambles:
-  - mitigation_first_checkbox
-  - mitigation_second_checkbox
-  prefix_separators:
-    consideration_other_user: . Did you open
-    mitigation_contact_uncertain: '. Is this because:'
-    mitigation_settlement_uncertain: . Why is that?
-  answer_rules:
-    mitigation_contact:
-      'yes':
-        node: mitigation_second_no
-        part: all
-      'no':
-        node: mitigation_second_checkbox
-        part: preamble
-      unknown:
-        node: mitigation_contact_uncertain
-        part: prefix
-    mitigation_contact_resolve:
-      'yes':
-        node: mitigation_second_no
-        part: all
-      'no':
-        node: mitigation_second_checkbox
-        part: preamble
-      unknown:
-        node: mitigation_second_checkbox
-        part: preamble
-    mitigation_settlement:
-      'yes':
-        node: mitigation_first_checkbox
-        part: preamble
-      'no':
-        node: mitigation_first_no
-        part: all
-      unknown:
-        node: mitigation_settlement_uncertain
-        part: prefix
-    mitigation_settlement_resolve:
-      'yes':
-        node: mitigation_first_checkbox
-        part: preamble
-      'no':
-        node: mitigation_first_no
-        part: all
-      unknown:
-        node: mitigation_settlement_uncertain
-        part: prefix
+  response_only_nodes: []
+  response_only_preambles: []
+  prefix_separators: {}
+  answer_rules: {}
   checkbox_context_defenses:
   - statute_of_limitations
   - ambiguity
+  - mistake
+  - laches
+  - fraud
+  - failure_to_mitigate
+  - common_counts
+  - unconscionable_contract
+  - rescission
+  - lack_of_consideration
+  - accord_satisfaction
+  - excuse_breach
+  - capacity
+  - waiver
+  - oral_modification
+  - tender_payment
+  - language_1632
   confirmation_on_review_defenses:
   - statute_of_limitations
   - ambiguity
   - mistake
   - laches
-  # Only defenses without screening branches combine the introduction and decision.
+  - fraud
+  - failure_to_mitigate
+  - common_counts
+  - unconscionable_contract
+  - rescission
+  - lack_of_consideration
+  - accord_satisfaction
+  - excuse_breach
+  - capacity
+  - waiver
+  - oral_modification
+  - tender_payment
+  - language_1632
   explanation_on_question:
     ambiguity:
     - ambiguity_decision
@@ -684,3 +817,23 @@ presentation:
     - mistake_decision
     unconscionable_contract:
     - unconscionable_contract_decision
+summary_labels:
+  statute_of_limitations:
+    first: California written contracts
+    second: California oral contracts
+    third: Delaware written contracts
+  failure_to_mitigate:
+    first: Settlement offer declined before suit
+    second: Attempted collection or settlement before suit
+  common_counts:
+    first: Payments were not credited
+    second: A lower payment was agreed to but more is now demanded
+    third: Credit insurance payments were not made
+    fourth: Suspected identity theft was reported
+    fifth: Fraud misrepresentation or concealment was reported
+  excuse_breach:
+    first: Terms changed without consent
+    second: Payments were not credited
+    third: An agreed change was not honored
+    fourth: Credit insurance payments were not made
+    fifth: Unreasonable accommodation of the user’s financial situation

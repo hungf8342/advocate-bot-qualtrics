@@ -1,8 +1,8 @@
-"""November 7 source: scope, nested choices, uncertainty, and full traversal."""
+"""November 10 source: scope, nested choices, uncertainty, and full traversal."""
 import pytest
 
 from advocate_bot_qualtrics.practice_areas.consumer_debt.guided_sol import (
-    COMPLETE, CONTENT, DEFENSES, TREE, GuidedAdvanceRequest, GuidedEditRequest,
+    COMPLETE, CONTENT, CONTINUE_PAGES, DEFENSES, TREE, GuidedAdvanceRequest, GuidedEditRequest,
     GuidedRequest, GuidedSolReview, advance_review, edit_review,
 )
 from test_guided_sol import intake, review, advance_updated, default_answer
@@ -30,10 +30,10 @@ def submit(current, *values):
     return current
 
 
-def test_scope_and_source_are_november_7():
+def test_scope_and_source_are_november_9():
     assert [d['number'] for d in DEFENSES.values()] == [1, 2, 5, 8, *range(9, 22)]
     assert not {'standing_privity', 'failure_to_state_cause', 'wrong_party', 'identity_theft'} & DEFENSES.keys()
-    assert '2026-11-07' in CONTENT['source']
+    assert '2026.11.10' in CONTENT['source']
     assert 'may still need to prove when you last paid' in CONTENT['nodes']['statute_of_limitations_intro']['explanation']
     assert 'Ambiguity means something is unclear' in CONTENT['nodes']['ambiguity_intro']['explanation']
     assert 'Laches may apply if:' in CONTENT['nodes']['laches_intro']['explanation']
@@ -58,6 +58,8 @@ def test_common_counts_broad_first_offer_and_parent_derive_from_choices(selected
     assert current.current == 'common_counts_first_checkbox'
     assert 'miscalculate' in ' '.join(current.page()['body'])
     current = submit(current, selected, 'no', 'no')
+    assert current.current == 'guided_common_counts_parent'
+    current = submit(current, 'continue')
     assert current.current == DEFENSES['common_counts']['summary']
     choices = current.session.checkbox_selections['common_counts']
     assert choices == {'first': 'include' if selected == 'yes' else 'exclude',
@@ -75,6 +77,8 @@ def test_excuse_offers_second_and_fifth_without_factual_screening():
     assert current.current == 'excuse_fifth_checkbox'
     assert 'good faith and fair dealing' in ' '.join(current.page()['body'])
     current = submit(current, 'yes')
+    assert current.current == 'guided_excuse_breach_parent'
+    current = submit(current, 'continue')
     assert current.current == DEFENSES['excuse_breach']['summary']
     assert current.session.checkbox_selections['excuse_breach'] == {'second': 'exclude', 'fifth': 'include', 'main': 'include'}
 
@@ -86,6 +90,8 @@ def test_fraud_fact_alone_does_not_offer_common_counts_fifth():
     while current.current != DEFENSES['common_counts']['intro']:
         current = submit(current, default_answer(current))
     current = submit(current, 'continue', 'no', 'no', 'no')
+    assert current.current == 'guided_common_counts_parent'
+    current = submit(current, 'continue')
     assert current.current == DEFENSES['common_counts']['summary']
     assert 'fifth' not in current.session.checkbox_selections['common_counts']
 
@@ -105,6 +111,8 @@ def test_selected_fraud_offers_common_counts_fifth_and_requires_separate_choice(
 @pytest.mark.parametrize('suit,defense', [('breach','common_counts'), ('common','excuse_breach')])
 def test_claim_type_finishes_inapplicable_section_without_offers(suit, defense):
     current = reach(defense, suit=suit)
+    assert current.page()['input_type'] == 'continue'
+    current = submit(current, 'continue')
     assert current.current == DEFENSES[defense]['summary']
     assert all(r['status'] == 'Not offered on this path' for r in current.page()['rows'])
 
@@ -112,10 +120,12 @@ def test_claim_type_finishes_inapplicable_section_without_offers(suit, defense):
 def test_mitigation_nested_options_derive_parent_and_keep_consolidation_wording():
     current = reach('failure_to_mitigate', consolidation='yes')
     assert 'debt consolidation company' in current.page()['title']
-    current = submit(current, 'no', 'yes')
+    current = submit(current, 'yes')
     assert current.current == 'mitigation_first_checkbox'
-    assert 'debt consolidation company' in ' '.join(current.answer_response)
-    assert current.page()['body'] == []
+    assert current.answer_response == []
+    assert 'debt consolidation company' in ' '.join(current.page()['body'])
+    current = submit(current, 'no')
+    assert current.current == 'mitigation_contact'
     current = submit(current, 'no')
     assert current.current == 'mitigation_second_checkbox'
     current = submit(current, 'yes')
@@ -124,11 +134,10 @@ def test_mitigation_nested_options_derive_parent_and_keep_consolidation_wording(
 
 def test_mitigation_contact_uncertainty_gets_clarification_then_second_offer():
     current = reach('failure_to_mitigate')
-    current = submit(current, 'unknown', 'no')
-    assert current.current == 'mitigation_contact_uncertain'
-    assert current.page()['input_type'] == 'text'
-    assert current.page()['allow_unknown']
-    current = submit(current, 'I do not pick up calls', 'unknown')
+    current = submit(current, 'no', 'continue', 'unknown')
+    assert current.current == 'mitigation_contact_help_help'
+    assert current.page()['input_type'] == 'continue'
+    current = submit(current, 'continue', 'unknown')
     assert current.current == 'mitigation_second_checkbox'
     assert current.session.defense_answers['mitigation_contact'] == 'unknown'
 
@@ -146,7 +155,7 @@ def test_unknown_screening_and_checkbox_choice_never_become_no():
     assert current.current == DEFENSES['waiver']['summary']
 
 
-@pytest.mark.parametrize('translated,expected', [('yes', 'guided_language_1632_summary'), ('no', 'language_1632_decision')])
+@pytest.mark.parametrize('translated,expected', [('yes', 'language_translation_present'), ('no', 'language_1632_decision')])
 def test_language_translation_question_uses_positive_wording_and_correct_polarity(translated, expected):
     current = reach('language_1632')
     assert current.current == 'language_primary'
@@ -161,9 +170,9 @@ def test_language_translation_question_uses_positive_wording_and_correct_polarit
 
 
 def test_capacity_minor_skips_mental_condition_and_staff_referral_blocks():
-    current = submit(reach('capacity'), 'yes')
+    current = submit(reach('capacity'), 'continue', 'yes')
     assert current.current == 'capacity_decision'
-    current = submit(reach('capacity'), 'no', 'yes', 'no')
+    current = submit(reach('capacity'), 'continue', 'no', 'yes', 'no')
     assert current.current == 'capacity_staff_help'
     current = submit(current, 'unknown')
     assert current.current == 'capacity_staff_help'
@@ -180,7 +189,7 @@ def test_full_affirmative_path_exceeds_old_history_limit_and_final_review_has_ev
             break
         seen.add(current._current_defense())
         node = TREE.node_map.get(current.current)
-        value = 'continue' if current.current.startswith('guided_') else 'yes'
+        value = 'continue' if current.current in CONTINUE_PAGES else 'yes'
         if node and node.kind == 'input': value = 'Spanish'
         if current.current == 'language_contract': value = 'no'
         current = submit(current, value)
@@ -195,10 +204,12 @@ def test_full_affirmative_path_exceeds_old_history_limit_and_final_review_has_ev
 
 
 def test_editing_excuse_fact_removes_invalid_nested_choice_but_keeps_broad_choices():
-    current = submit(reach('excuse_breach'), 'yes', 'yes', 'yes', 'no', 'no', 'no')
+    current = submit(reach('excuse_breach'), 'yes', 'yes', 'yes', 'no', 'no', 'no', 'continue')
     assert current.current == DEFENSES['excuse_breach']['summary']
     index = next(i for i,a in enumerate(current.history) if a.node_id == 'excuse_unconsented_change')
     updated = edit_review({}, GuidedEditRequest(history=current.history, edit_index=index, value='no'))
+    if updated.current == 'guided_excuse_breach_parent':
+        updated = submit(updated, 'continue')
     assert updated.current == DEFENSES['excuse_breach']['summary']
     assert updated.session.checkbox_selections['excuse_breach'] == {'second':'include','fifth':'exclude','main':'include'}
 
@@ -246,14 +257,14 @@ def test_later_sections_reuse_consolidation_resolved_in_mitigation(defense):
 
 
 def test_unrelated_edit_retains_explicitly_uncertain_mitigation_contact():
-    current = submit(reach('failure_to_mitigate'), 'unknown', 'no', 'I do not pick up calls', 'unknown', 'no')
+    current = submit(reach('failure_to_mitigate'), 'no', 'continue', 'unknown', 'continue', 'unknown', 'no', 'continue')
     assert current.current == DEFENSES['failure_to_mitigate']['summary']
     index = next(i for i,a in enumerate(current.history) if a.node_id == 'guided_plaintiff')
     current = edit_review({}, GuidedEditRequest(history=current.history, edit_index=index, value='Renamed Bank'))
     for _ in range(30):
         if current.current == DEFENSES['failure_to_mitigate']['summary']:
             break
-        assert current.current.startswith('guided_')
+        assert current.page()['input_type'] in {'continue','summary','preliminary_summary'}
         current = submit(current, 'continue')
     assert current.current == DEFENSES['failure_to_mitigate']['summary']
     assert current.session.defense_answers['mitigation_contact'] == 'unknown'

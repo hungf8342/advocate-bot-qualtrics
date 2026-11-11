@@ -17,7 +17,7 @@ def test_mistake_general_explanation_and_checkbox_share_one_screen(choice):
     assert page['body'][-1]=='Do you want to check off Mistake?'
     assert page['input_type']=='choice'
     assert [b['type'] for b in page['body_blocks']]==['paragraph','list','paragraph','paragraph']
-    assert len(page['body_blocks'][1]['items'])==3
+    assert len(page['body_blocks'][1]['items'])==4
     assert page['answer_responses'][choice]==[]
     current=advance_updated(current,choice)
     assert current.current==DEFENSES['mistake']['summary']
@@ -64,6 +64,8 @@ def test_laches_general_explanation_is_shown_even_if_no_checkbox_is_offered():
     current=advance_updated(current,'continue')
     for answer in ['no','no','no']:
         current=advance_updated(current,answer)
+    assert current.current=='laches_finish'
+    current=advance_updated(current,'continue')
     assert current.current==DEFENSES['laches']['summary']
     assert current.page()['rows'][0]['status']=='Not offered on this path'
 
@@ -111,7 +113,8 @@ def test_old_completed_path_keeps_choices_after_an_unrelated_edit():
 @pytest.mark.parametrize('defense', DEFENSES)
 def test_every_defense_starts_with_its_name_as_the_heading(defense):
     current=jump_to_section(GuidedSolReview(),defense)
-    assert current.page()['title']==DEFENSES[defense]['label']
+    from advocate_bot_qualtrics.practice_areas.consumer_debt.guided_sol import _screen_header
+    assert current.page()['title']==(_screen_header(current.current,current.session) or DEFENSES[defense]['label'])
 
 
 @pytest.mark.parametrize('defense',['ambiguity','mistake','unconscionable_contract'])

@@ -1,7 +1,7 @@
 'use strict';
 const $ = (id) => document.getElementById(id);
 const debugMode = document.body?.dataset?.debugMode === 'true';
-const storageKey = 'debt-case-guide:guided-defenses:2026-11-07:collection-v4' + (debugMode ? ':debug' : '');
+const storageKey = 'debt-case-guide:guided-defenses:2026-11-10:nested-labels-v1' + (debugMode ? ':debug' : '');
 let debugSection = null;
 let history = [], cursor = 0, page = null, revision = null, editMode = false, busy = false, chatBusy = false, chatKey = '', chatController = null;
 const drafts = new Map(), conversations = new Map();
@@ -17,9 +17,9 @@ function element(tag, className, text) {
 }
 function dateLabel(value) {
   const [year, month, day] = value.split('-').map(Number);
-  return new Intl.DateTimeFormat('en-US', {month:'short', day:'numeric', year:'numeric', timeZone:'UTC'}).format(new Date(Date.UTC(year, month-1, day)));
+  return new Intl.DateTimeFormat('en-US', {month:'long', day:'numeric', year:'numeric', timeZone:'UTC'}).format(new Date(Date.UTC(year, month-1, day)));
 }
-function friendly(text) { return text.replace(/\b\d{4}-\d{2}-\d{2}\b/g, (value) => dateLabel(value)); }
+function friendly(text) { return String(text ?? '').replace(/\b\d{4}-\d{2}-\d{2}\b/g, (value) => dateLabel(value)); }
 function prefixKey() { return JSON.stringify(history.slice(0, cursor)); }
 function save() { try { sessionStorage.setItem(storageKey, JSON.stringify({history, cursor, revision, editMode, sessionId, debugSection})); } catch (_) {} }
 function setError(message) { $('form-error').textContent = message; $('form-error').hidden = !message; }
@@ -200,7 +200,7 @@ function summaryTable(group) {
 }
 function detailsRows(items = page.case_details) {
   const details=element('div');
-  for(const item of items) { const row=element('div','review-detail'), text=element('div');text.append(element('strong','',item.label),element('span','',item.value));if(item.derived)text.append(element('small','','Same as plaintiff'));row.append(text);if(item.edit_index!==null) row.append(editButton(item.edit_index,item.label));details.append(row); }
+  for(const item of items) { const row=element('div','review-detail'), text=element('div');text.append(element('strong','',friendly(item.label)),element('span','',friendly(item.value)));if(item.derived)text.append(element('small','','Same as plaintiff'));row.append(text);if(item.edit_index!==null) row.append(editButton(item.edit_index,item.label));details.append(row); }
   return details;
 }
 function answerReview() {
@@ -212,14 +212,14 @@ function answerReview() {
   return details;
 }
 function render(focus=true) {
-  $('question').textContent=page.title;
+  $('question').textContent=friendly(page.title);
   $('eyebrow').textContent=page.section.toUpperCase();
   $('section-name').textContent=page.section;
   $('section-count').textContent=`${String(page.section_number).padStart(2,'0')} / ${String(page.section_count).padStart(2,'0')}`;
   $('body').replaceChildren(...scriptNodes(page.body,page.body_blocks));
   $('revision-notice').textContent=page.revision_notice||'';
   $('revision-notice').hidden=!page.revision_notice;
-  $('why').textContent=page.why;$('aside-title').textContent=page.stage===2?'Your choices, in one place':'Why we ask';
+  $('why').textContent=friendly(page.why);$('aside-title').textContent=page.stage===2?'Your choices, in one place':'Why we ask';
   $('back').disabled=backIndex()<0;
   for(const li of document.querySelectorAll('[data-stage]')) { const stage=Number(li.dataset.stage);li.classList.toggle('active',stage===page.progress_stage);li.classList.toggle('done',!debugMode&&stage<page.progress_stage);if(stage===page.progress_stage)li.setAttribute('aria-current','step');else li.removeAttribute('aria-current');li.querySelector('.step-number').textContent=!debugMode&&stage<page.progress_stage?'✓':String(stage+1); }
   document.querySelector('.progress li.active')?.scrollIntoView({block:'nearest',inline:'center'});
@@ -228,13 +228,13 @@ function render(focus=true) {
   $('step-note').textContent=['choice','date','text','currency'].includes(page.input_type)?'One question at a time':'';
   const nextKey=page.node_id+prefixKey();
   if(chatKey!==nextKey) {chatController?.abort();chatBusy=false;chatKey=nextKey;$('chat-send').disabled=false;$('chat-input').value='';renderChat();}
-  $('chat-context').textContent=page.title;$('approved-text').replaceChildren(...scriptNodes([page.help_text],page.help_blocks));
+  $('chat-context').textContent=friendly(page.title);$('approved-text').replaceChildren(...scriptNodes([page.help_text],page.help_blocks));
   setBusy(false);if(focus){$('question').focus({preventScroll:true});window.scrollTo({top:0,behavior:'instant'});}
   displayedAt = new Date().toISOString();
   checkedAt = null;
 }
 function backIndex() {
-  for(let index=cursor-1;index>=0;index--) if(!history[index].automatic && !['guided_mistake_intro','guided_unconscionable_contract_intro'].includes(history[index].node_id)) return index;
+  for(let index=cursor-1;index>=0;index--) if(!['guided_mistake_intro','guided_unconscionable_contract_intro'].includes(history[index].node_id)) return index;
   return -1;
 }
 async function goto(index,asEdit=false) {
@@ -248,7 +248,15 @@ async function updateWorkflow(path,data) {
     const collection=debugMode?{}:{collection:{session_id:sessionId,event_id:crypto.randomUUID(),displayed_at:displayedAt,checked_at:checkedAt,ended_at:new Date().toISOString()}};
     const result=await request(path,{...data,...collection});
     if(currentGeneration!==generation)return;
-    history=result.history;cursor=history.length;revision=result.revision;debugSection=result.debug_section||null;page=result.page;editMode=false;
+    history=result.history;revision=result.revision;debugSection=result.debug_section||null;
+    // Retained answers prefill required screens; visit each screen on the new path.
+    const nextIndex=path==='/api/edit'?data.edit_index+1:path==='/api/advance'?data.history.length+1:history.length;
+    cursor=Math.min(nextIndex,history.length);
+    page=cursor<history.length
+      ?await request('/api/state',{history:history.slice(0,cursor),revision,session_id:debugMode?null:sessionId})
+      :result.page;
+    if(currentGeneration!==generation)return;
+    editMode=false;
     drafts.clear();conversations.clear();save();render();
   } catch(error) {
     if(currentGeneration!==generation)return;
@@ -266,9 +274,7 @@ $('answer-form').addEventListener('submit',async event=>{
     if(editMode || old.value!==value || old.timing_basis) {
       await updateWorkflow('/api/edit',{history,revision,edit_index:cursor,value});
     } else {
-      let nextCursor=cursor+1;
-      while(nextCursor<history.length && history[nextCursor].automatic) nextCursor++;
-      await goto(nextCursor);
+      await goto(cursor+1);
     }
   } else {
     await updateWorkflow('/api/advance',{history:history.slice(0,cursor),revision,value});

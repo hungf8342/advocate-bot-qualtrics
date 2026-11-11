@@ -21,8 +21,10 @@ def test_formatting_is_reproducibly_extracted_from_the_current_word_document():
     source=ROOT/CONTENT['source']
     assert SOURCE_FORMATTING['source']==CONTENT['source']
     assert SOURCE_FORMATTING['source_sha256']==hashlib.sha256(source.read_bytes()).hexdigest()
-    assert module['extract_formatting'](source)==SOURCE_FORMATTING
-    assert len([p for p in SOURCE_FORMATTING['paragraphs'] if 'list_level' in p])==66
+    assert module['extract_prototype_formatting']()==SOURCE_FORMATTING
+    sol_source=ROOT/CONTENT['sol_source']
+    assert SOURCE_FORMATTING['sol_source_sha256']==hashlib.sha256(sol_source.read_bytes()).hexdigest()
+    assert SOURCE_FORMATTING['screen_headers']
 
 
 @pytest.mark.parametrize('defense',DEFENSES)
@@ -34,12 +36,12 @@ def test_each_defense_intro_uses_word_source_paragraphs(defense):
         if line.strip(): assert formatter.match(line) is not None,(defense,line)
 
 
-def test_ambiguity_keeps_three_real_bullets_and_following_paragraphs():
+def test_ambiguity_keeps_two_real_bullets_and_following_paragraphs():
     current=jump_to_section(GuidedSolReview(),'ambiguity')
     blocks=current.page()['body_blocks']
     assert [b['type'] for b in blocks]==['paragraph','list','paragraph','paragraph','paragraph']
     assert blocks[0]['text'].endswith('confused about:')
-    assert [i['text'] for i in blocks[1]['items']]==['the complaint; or','the amount sued for; or','what the charges are.']
+    assert [i['text'] for i in blocks[1]['items']]==['the complaint; or','the amount of money you are being sued for']
     assert blocks[2]['text'].startswith('The documents filed with the court')
     assert blocks[3]['text']=='Many people check off ambiguity, since it is a broad defense.'
     assert blocks[4]['text']=='Do you want to check off Ambiguity?'
@@ -58,22 +60,25 @@ def test_capacity_preserves_two_separate_lists():
     current=jump_to_section(GuidedSolReview(),'capacity')
     blocks=current.page()['body_blocks']
     assert [b['type'] for b in blocks[:4]]==['paragraph','list','paragraph','list']
-    assert [b['type'] for b in blocks[4:]]==['paragraph','paragraph']
-    assert blocks[4]['text'].startswith('According to the complaint')
-    assert blocks[5]['text'].startswith('If that date is incorrect')
-    assert len(blocks[1]['items'])==len(blocks[3]['items'])==2
+    assert len(blocks)==4
+    opening=submit(current,'continue').page()['body_blocks']
+    assert [b['type'] for b in opening]==['paragraph','paragraph']
+    assert opening[0]['text'].startswith('According to the complaint')
+    assert opening[1]['text'].startswith('If that date is incorrect')
+    assert len(blocks[1]['items'])==2
+    assert len(blocks[3]['items'])==1
     assert blocks[2]['text']=='Before sharing information about a mental condition:'
 
 
-def test_inline_laches_and_tender_responses_preserve_source_lists():
+def test_laches_and_tender_screens_preserve_source_lists():
     current=submit(reach('laches'),'no','no')
-    blocks=current.page()['answer_response_blocks']['yes']
+    blocks=submit(current,'yes').page()['body_blocks']
     assert [b['type'] for b in blocks]==['paragraph','list','paragraph']
     assert len(blocks[1]['items'])==3
     current=reach('tender_payment')
-    blocks=current.page()['answer_response_blocks']['unknown']
-    assert [b['type'] for b in blocks]==['paragraph','list','paragraph']
-    assert len(blocks[1]['items'])==4
+    blocks=submit(current,'unknown').page()['body_blocks']
+    lists=[b for b in blocks if b['type']=='list']
+    assert len(lists)==1 and len(lists[0]['items'])==4
 
 
 def test_overview_preserves_two_source_paragraphs():
@@ -89,9 +94,9 @@ def test_reviewer_outline_bullets_do_not_turn_whole_quoted_replies_into_lists():
 
 
 def test_source_lists_in_a_question_are_not_flattened_into_the_heading():
-    current=submit(reach('failure_to_mitigate'),'unknown','no')
+    current=submit(reach('failure_to_mitigate'),'no','continue','unknown')
     page=current.page()
-    assert page['title']=='Is this because:'
+    assert page['title']=='Ready to return to the pending question?'
     assert page['body_blocks'][-1]['type']=='list'
     assert len(page['body_blocks'][-1]['items'])==3
 

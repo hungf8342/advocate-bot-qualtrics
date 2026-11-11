@@ -37,14 +37,12 @@ def test_new_choice_replaces_positive_negative_and_uncertain_outcomes_without_co
     current = reach('waiver')
     original = deepcopy(current.__dict__)
     responses = current.page()['answer_responses']
-    assert 'This defense may apply' in ' '.join(responses['yes'])
-    assert 'does not apply' in ' '.join(responses['no'])
-    assert 'not sure' in ' '.join(responses['unknown'])
+    assert responses == {'yes': [], 'no': [], 'unknown': []}
     assert current.__dict__ == original
     assert 'waiver' not in current.session.checkbox_selections
     offered = advance_updated(current, 'yes')
     assert offered.current == 'waiver_decision'
-    assert offered.page()['body'] == []
+    assert 'This defense may apply' in ' '.join(offered.page()['body'])
     assert 'waiver' not in offered.session.checkbox_selections
 
 
@@ -56,63 +54,60 @@ def test_new_choice_replaces_positive_negative_and_uncertain_outcomes_without_co
     ('oral_modification', 'oral_modification_agreement', [], 'during a conversation'),
     ('tender_payment', 'tender_payment_refused', [], 'refused to accept it'),
 ])
-def test_eligibility_response_preamble_stays_with_its_screening_question(defense, node, values, phrase):
+def test_eligibility_response_preamble_stays_on_its_footnote_screen(defense, node, values, phrase):
     current = submit(reach(defense), *values)
     assert current.current == node
     response = current.page()['answer_responses']['yes']
-    assert phrase in ' '.join(response)
+    assert response == []
     following = advance_updated(current, 'yes')
+    assert phrase in ' '.join(following.page()['body'])
     assert TREE.node(following.current).selection_checkboxes
     assert all(text not in following.page()['body'] for text in response)
     assert following.page()['title'].startswith('Do you want to check off')
 
 
-def test_aggregate_laches_outcome_appears_on_last_fact_and_not_checkbox_question():
+def test_aggregate_laches_outcome_has_its_own_footnote_screen():
     current = submit(reach('laches'), 'no', 'no')
     assert current.current == 'laches_lost_info'
-    responses = current.page()['answer_responses']
-    assert 'Laches may apply' in ' '.join(responses['yes'])
-    assert 'does not apply' in ' '.join(responses['no'])
-    assert 'uncertain' in ' '.join(responses['unknown'])
+    assert all(response == [] for response in current.page()['answer_responses'].values())
     following = advance_updated(current, 'yes')
     assert following.current == 'laches_decision'
-    assert 'Laches may apply if:' not in ' '.join(following.page()['body'])
+    assert 'Laches may apply since' in ' '.join(following.page()['body'])
 
 
-def test_parent_outcome_is_inline_and_summary_keeps_the_checklist():
+def test_parent_outcome_has_its_own_screen_and_summary_keeps_the_checklist():
     current = submit(reach('excuse_breach'), 'no', 'no', 'no', 'no')
     assert current.current == 'excuse_fifth_checkbox'
     response = current.page()['answer_responses']['yes']
-    assert 'Check off the overall' in ' '.join(response)
+    assert response == []
     following = advance_updated(current, 'yes')
+    assert following.current == 'guided_excuse_breach_parent'
+    assert 'Check off the overall' in ' '.join(following.page()['body'])
+    following = advance_updated(following, 'continue')
     assert following.current == DEFENSES['excuse_breach']['summary']
     assert all(text not in following.page()['body'] for text in response)
     assert next(row for row in following.page()['rows'] if row['id'] == 'main')['checked']
 
 
-def test_mitigation_outcomes_attach_to_their_own_fact_questions():
+def test_mitigation_outcomes_stay_on_their_own_checkbox_screens():
     current = reach('failure_to_mitigate', consolidation='yes')
-    responses = current.page()['answer_responses']
-    assert 'second indented checkbox does not apply' in ' '.join(responses['yes'])
-    assert 'second indented checkbox may apply' in ' '.join(responses['no'])
-    assert 'debt consolidation company' in ' '.join(responses['no'])
-    current = submit(current, 'no')
-    assert current.current == 'mitigation_settlement'
-    assert 'first indented checkbox may apply' in ' '.join(current.page()['answer_responses']['yes'])
+    assert all(response == [] for response in current.page()['answer_responses'].values())
     current = submit(current, 'yes')
     assert current.current == 'mitigation_first_checkbox'
-    assert current.page()['body'] == []
-    # Deciding the first box does not repeat the earlier contact response.
+    assert 'first indented checkbox may apply' in ' '.join(current.page()['body'])
+    assert 'debt consolidation company' in ' '.join(current.page()['body'])
     assert current.page()['answer_responses']['no'] == []
     current = submit(current, 'no')
+    assert current.current == 'mitigation_contact'
+    current = submit(current, 'no')
     assert current.current == 'mitigation_second_checkbox'
-    assert current.page()['body'] == []
+    assert 'second indented checkbox may apply' in ' '.join(current.page()['body'])
 
 
-def test_conditional_followup_keeps_only_new_question_text():
+def test_conditional_followup_uses_the_full_source_header():
     current = submit(reach('lack_of_consideration'), 'no')
     assert current.current == 'consideration_other_user'
-    assert current.page()['title'] == 'Did you open the account explicitly for another person to use?'
+    assert current.page()['title'] == 'You said you have not used this card. Did you open the account explicitly for another person to use?'
     assert current.page()['body'] == []
 
 
@@ -124,12 +119,13 @@ def test_general_guidance_remains_with_its_own_checkbox():
     assert 'miscalculate' in ' '.join(current.page()['body'])
 
 
-def test_referral_response_is_inline_and_staff_confirmation_remains_required():
-    current = submit(reach('capacity'), 'no', 'yes')
+def test_referral_has_its_own_screen_and_staff_confirmation_remains_required():
+    current = submit(reach('capacity'), 'continue', 'no', 'yes')
     response = current.page()['answer_responses']['no']
-    assert 'Please raise your hand' in ' '.join(response)
+    assert response == []
     next_page = advance_updated(current, 'no')
     assert next_page.current == 'capacity_staff_help'
+    assert 'Please raise your hand' in ' '.join(next_page.page()['body'])
     assert all(text not in next_page.page()['body'] for text in response)
     assert advance_updated(next_page, 'unknown').current == 'capacity_staff_help'
 
@@ -181,17 +177,13 @@ def test_all_seventeen_sections_support_pure_previews_and_complete(path):
 
 
 @pytest.mark.parametrize('defense', ['unconscionable_contract'])
-def test_broad_checkbox_confirmation_is_inline_before_review(defense):
+def test_broad_checkbox_confirmation_is_on_the_review_screen(defense):
     current = reach(defense)
     responses = current.page()['answer_responses']
-    assert 'you’d like to check off' in ' '.join(responses['yes'])
-    assert 'Check this box' in ' '.join(responses['yes'])
-    assert 'don’t want to check off' in ' '.join(responses['no'])
-    assert 'Leave unchecked' in ' '.join(responses['no'])
+    assert responses == {'yes': [], 'no': [], 'unknown': []}
     following = advance_updated(current, 'yes')
     assert following.current == DEFENSES[defense]['summary']
-    assert 'Review the checkbox selections below' in following.page()['body'][0]
-    assert all(text not in following.page()['body'] for text in responses['yes'])
+    assert CONTENT['confirmation']['selected'] in following.page()['body']
 
 
 def test_chat_receives_inline_draft_as_unsubmitted_context(tmp_path):
@@ -210,7 +202,7 @@ def test_chat_receives_inline_draft_as_unsubmitted_context(tmp_path):
     assert result.json()['next_node_id'] is None
     draft = captured[0]['payload']['draft_answer']
     assert draft['submitted'] is False and draft['value'] == 'yes'
-    assert 'This defense may apply' in ' '.join(draft['response'])
+    assert draft['response'] == []
     assert 'unsubmitted selection' in captured[0]['system']
     assert client.post('/api/state', json={'history':history}).json()['node_id'] == current.current
 
@@ -218,6 +210,8 @@ def test_chat_receives_inline_draft_as_unsubmitted_context(tmp_path):
 def test_sol_oral_guidance_stays_with_checkbox_after_resolving_preliminary_fact():
     current = review(intake(oral='unknown'))
     current = submit(current, 'yes', 'yes', 'yes')
+    assert current.current == 'sol_oral_gate_resolve'
+    current = advance_updated(current, 'continue')
     assert current.current == 'guided_oral'
     assert current.page()['answer_responses']['yes'] == []
     following = advance_updated(current, 'yes')
@@ -238,24 +232,24 @@ def test_sol_main_checkbox_shares_page_with_its_complete_lead_in(creditor):
     if creditor == 'original':
         assert 'You agree with the complaint' not in body
         assert 'Consider raising this defense' in body
-        assert 'You think your last payment could be a year or more' in body
+        assert 'You said your last payment was on or before 2025-09-20' in body
     else:
         assert 'Debt buyers often sue on older accounts' in body
         assert 'You are being sued by a debt buyer' in body
-    assert page['title'] == 'Do you want to check off Statute of Limitations?'
+    assert page['title'] == 'Do you want to check off the Statute of Limitations checkbox?'
     assert page['input_type'] == 'choice'
 
 
-@pytest.mark.parametrize('timing', ['yes', 'unknown'])
+@pytest.mark.parametrize('timing', ['no', 'unknown'])
 def test_sol_personal_timing_lead_in_is_on_main_checkbox_page(timing):
     current = review(intake(payment='missing'))
     assert current.current == 'sol_payment_age'
-    assert ('You said your last payment was' if timing == 'yes' else 'You’re not sure whether your last payment') in ' '.join(current.page()['answer_responses'][timing])
+    assert ('You said your last payment was' if timing == 'no' else 'You’re not sure whether your last payment') in ' '.join(current.page()['answer_responses'][timing])
     assert 'Consider raising this defense' not in ' '.join(current.page()['answer_responses'][timing])
     current = advance_updated(current, timing)
     assert current.current == 'statute_of_limitations_decision'
     assert 'Consider raising this defense' in ' '.join(current.page()['body'])
-    assert ('You said your last payment was' if timing == 'yes' else 'You’re not sure whether your last payment') not in ' '.join(current.page()['body'])
+    assert ('You said your last payment was on or before 2025-09-20.' if timing == 'no' else 'You’re not sure whether your last payment') not in ' '.join(current.page()['body'])
 
 
 @pytest.mark.parametrize('main,group', [('yes','yes'), ('no','no')])
@@ -324,7 +318,10 @@ def test_sol_first_third_selection_keeps_later_instruction_blocks_on_next_screen
         assert following.page()['answer_responses']['yes'] == []
         following = advance_updated(following,'yes')
     else:
+        assert following.current == 'sol_written'
+        assert following.page()['title'] == 'The second indented Statute of Limitations checkbox'
         assert 'second indented checkbox does not apply' in ' '.join(following.page()['body'])
+        following = advance_updated(following, 'continue')
     assert following.current == DEFENSES['statute_of_limitations']['summary']
     assert 'Based on your answers to this defense section' in ' '.join(following.page()['body'])
     assert following.page()['rows']

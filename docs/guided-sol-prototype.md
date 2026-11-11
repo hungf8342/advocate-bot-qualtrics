@@ -12,66 +12,63 @@ fact-only example or `--blank` to start without prefilled examples.
 
 ## Source and scope
 
-The governing defense source is [the November 7 script](source-material/2026-11-07/2026.11.07%20Affirmative-Defense-Scripts.docx).
-The prototype covers 17 defenses in Attachment 4 order: 1, 2, 5, 8, and 9–21.
-Standing and Privity (3), Failure to State a Cause of Action (4), Identity Theft
-(6), and Wrong Party (7) are omitted, including Identity Theft from the previous
-prototype. The overview identifies those omissions and directs users to clinic staff.
-The preliminary section retains all 18 October 30 fields and its separate review.
+The current governing source is [the November 10 script](source-material/2026.11.10/2026.11.10%20Affirmative-Defense-Scripts.docx).
+The prototype includes defenses 1, 2, 5, 8, and 9–21. Standing and Privity (3),
+Failure to State a Cause of Action (4), Identity Theft (6), and Wrong Party (7)
+remain excluded. Preliminary intake retains its 18 October 30 fields and separate
+review.
 
-Each defense starts under its own name and displays its November 7 explanation.
-Defenses without screening branches put their checkbox question on that same page;
-defenses with screening branches show the explanation separately before the questions. Selecting an answer immediately shows its approved response below the answer
-controls, with the question and selection still visible. Changing the selection
-replaces that response. Next records the answer and advances; previewing does not
-write facts, choices, timestamps, or research events. Conditional response text is
-removed from the following page, while independent checkbox guidance stays with
-its question. In the SOL-only presentation demo, acknowledgments of payment-date or timing
-answers appear inline immediately after radio selection. Checkbox-specific guidance
-stays with each checkbox question: the main-defense eligibility explanation, combined
-first/third guidance, and oral-contract second-box guidance. In SOL, second-checkbox information belongs to the following step, and “Confirm
-selections” belongs to the review screen; neither appears as feedback to the
-first/third checkbox choice. Ambiguity also keeps its explanation and checkbox question together, followed by
-confirmation on a separate review screen. Mistake and Laches also confirm selections
-on the following review. Other defenses retain the inline response behavior. Outcomes requiring several facts appear beside the last needed
-question. Summaries retain the checklist and review evidence.
+The November 10 `NEW SCREEN:` footnotes determine headers and screen boundaries.
+`guided_screen_layout.yaml` maps their IDs to the prototype's nodes and conditional
+variants; `guided_script_formatting.yaml` extracts the actual headers, source
+paragraph indices, paragraph/list structure, and document fingerprint. All 111
+footnotes are accounted for. The Common Counts fourth nested checkbox is excluded
+because it depends on the excluded Identity Theft defense. Mistake has no new
+footnote and retains its combined explanation/checkbox screen under its name.
 
-Choice responses are supplied with the page for immediate display. Text/date
-questions that need a dynamic response use the read-only `/api/preview` endpoint;
-stale requests are discarded. Next waits for a dynamic response, with a retry
-control if it cannot load. Returning with Back or Change restores the response for
-the displayed answer. Clarification chat can explain a draft response, which is
-explicitly distinguished from confirmed case facts. Known preliminary facts are reused; unresolved fields return to their own
-intake page when required. Users explicitly choose each offered checkbox. Unknown
-answers stay separate from No, with clarification or clinic staff guidance when
-the script supplies no other outcome. Staff referrals require explicit resolution.
+A new screen's explanation stays with that screen and does not appear as feedback
+on the question leading to it. When the source supplies a response without a new
+screen (such as the SOL payment acknowledgments), it remains inline after answer
+selection. Draft previews never record facts, choices, or research events.
+Changing a selection replaces its preview. Next records the answer and advances.
+Paragraphs, lists, indentation, and full-month date formatting are preserved.
 
-Common Counts offers its first nested checkbox without an uncredited-payments
-screen. Excuse offers its second and fifth nested checkboxes without additional
-factual screening. Mitigation, Common Counts, and Excuse derive their main checkbox
-from the user's nested choices. Their parent has no separate choice question.
-Common Counts' fifth checkbox depends on the user's explicit Fraud selection;
-its fourth checkbox is not offered because the Identity Theft defense is excluded.
-Lack of Consideration can clarify suspected theft within its own screening when
-recognition does not establish the required fact; this does not include or select
-the excluded Identity Theft defense.
+Introductions remain separate where screening follows. Ambiguity, Mistake, and
+Unconscionable Contract keep their explanation and checkbox question together.
+No-offer results with their own footnotes are informational screens with Next,
+followed by review. Failure to Mitigate, Common Counts, and Excuse have separate
+main-checkbox explanation screens; those main boxes are derived from the user's
+explicit nested choices. No independent main-box question is added.
 
-The language section asks whether the creditor **gave** the translated agreement;
-a No can lead to an offer, while Yes finishes without one. A missing primary
-language is collected before language-specific questions. No answer selects a
-checkbox without an explicit choice, except the three parent boxes derived from
-explicit nested selections as directed by the script.
+Summary checklists use the source’s descriptive nested-option labels in each
+defense and the final review. Failure to Mitigate asks about the declined settlement
+offer first, shows its checkbox guidance or inapplicability result, then asks about
+contact and shows the second checkbox’s result. This order applies with and without
+a debt consolidation company.
+
+Capacity has an Account opening date screen between its introduction and age
+question. Oral Modification has a Contract Change screen only when the user
+previously reported an agreed change that was not honored. Conditional creditor,
+consolidation, and language text uses confirmed session facts. Unknowns remain
+separate from No. Shared clarification uses its source header and Next returns to
+the pending question. Staff referrals still require explicit resolution.
+
+Common Counts' first nested checkbox and Excuse's second and fifth are offered
+without additional screening, as directed by the script. Common Counts' fifth
+nested checkbox depends on the user's explicit Fraud selection. Its fourth nested
+checkbox is not offered. The language section asks whether the creditor gave the
+translated agreement; No can lead to an offer, while Yes finishes without one.
+Missing language is collected before language-specific questions.
 
 Each section ends in its own summary or no-offer result page. The final review
 shows all 17 defenses, nested options, selections, and unresolved questions. Case
 details remain accessible throughout. Short answers and date/amount formats follow
-the preliminary script. Browser progress is tab-local; the November 7 version uses
+the preliminary script. Browser progress is tab-local; the November 10 version uses
 a new storage key to start a fresh review instead of importing an obsolete path.
 
 ## Script wording and formatting
 
-The November 7 Word document governs both wording and user-facing paragraph/list
-structure. `guided_script_formatting.yaml` records source paragraphs, Word list
+The approved Word documents govern wording and user-facing paragraph/list structure. The formatting extractor reads all paragraphs, lists, and screen footnotes directly from November 10 and records its source fingerprint. `guided_script_formatting.yaml` records source paragraphs, Word list
 levels, and the source document's SHA-256 fingerprint. Regenerate and verify it with:
 
 ```bash
@@ -87,34 +84,44 @@ Reviewer-outline bullets around an entire quoted reply are not presented as
 user-facing list items. The source's actual lists inside quoted explanations are
 preserved, including their separate groups. Text is inserted safely as text.
 
-This formatting layer does not change the previously reviewed SOL/Ambiguity screen
-boundaries, answers, or routing. Tests compare the generated metadata and all 17
-defense introductions with the November 7 document.
+The formatting layer preserves paragraphs and lists; the SOL adapter separately implements November 10 footnote screen boundaries and routing. Tests compare the generated metadata and all 17
+defense introductions with the November 10 document.
 
 ## SOL screen placement
 
-Preserve formatting when reading the Word source. Bold **Ask** instructions mark
-questions; **If Yes/No/Not sure** instructions control the response to that
-question; **Continue to** instructions move to a named step. Do not merge those
-steps merely because deterministic routing can calculate their text immediately.
+November 10 footnotes define new screens and their headers. Bold directions remain internal;
+paragraphs, lists, and indentation preserve source structure within each screen.
 
-| Screen | Text before the choice | Inline after answering | Following step |
-| --- | --- | --- | --- |
-| Complaint payment date | Complaint date and timing comparison | Agreement or uncertainty acknowledgment | Personal timing question if needed; otherwise original-creditor result |
-| Personal payment timing | Timing question | Matching Yes/No/Not sure acknowledgment | Original-creditor result |
-| Main SOL checkbox | Debt-buyer explanation, or guidance beginning “Consider raising…” | Clarification only if undecided | First/third checkbox guidance |
-| First/third checkbox decision | First/third checkbox explanation | Clarification only if undecided | Second-checkbox step; no second-box information or confirmation inline |
-| Second-checkbox step, oral agreement | Oral-contract explanation and second checkbox question | Clarification only if undecided | Confirm selections |
-| Second-checkbox step, written agreement | Explanation that the second checkbox does not apply | No checkbox offered | Confirm selections on the same review page |
-| Confirm selections | Confirmation wording and checkbox checklist | No new checkbox decision | Next defense |
+| Screen | Content and behavior |
+| --- | --- |
+| Statute of Limitations | General explanation; when the original-creditor complaint omits payment date, its missing-date guidance stays here. |
+| Do you agree with the last payment date alleged in the complaint? | Complaint date and months before filing; agreement or uncertainty acknowledgment appears inline. |
+| Was your last payment after [filing date minus one calendar year]? | Yes means recent payment and no checkbox offer. No means payment on/before the cutoff. Not sure remains explicit uncertainty and permits the offers. The matching acknowledgment appears inline. |
+| Do you want to check off the Statute of Limitations checkbox? | Debt-buyer or qualifying/uncertain original-creditor guidance with the explicit main-box choice. |
+| Do you want to check off both the first and third indented Statute of Limitations checkboxes? | Combined checkbox guidance and choice. Continue to the matching oral/written second-checkbox screen. |
+| Do you want to check off the second indented Statute of Limitations checkbox? | Oral-contract guidance and explicit second-box choice. |
+| The second indented Statute of Limitations checkbox | Written-contract inapplicability guidance on a separate screen; Next opens confirmation. |
+| Confirm selections | Separate review with the approved selected/empty wording, checkbox visual, evidence, and Change controls; also used when no boxes were offered. |
+| Ready to return to the pending question? | Shared clarification wording, Ask a Question, and Next returning to the pending choice or unresolved preliminary field. No extra Yes/No response is required. |
 
-A recent original-creditor payment finishes without checkbox offers or selection
-confirmation; its no-offer review remains available. Unresolved facts follow their
-clarification routes. This map applies to the SOL presentation demo only.
+The payment cutoff uses calendar years, including February 28 for a leap-day
+anniversary. Editing the filing date invalidates a retained personal timing answer;
+checkbox eligibility and retained selections use the revised after-cutoff meaning.
+After Back/Change revisits payment timing, the main SOL checkbox screen appears
+again before nested choices. A prior main-box choice is prefilled for review;
+submitting it retains applicable nested choices. Back also visits every required screen still on the revised path. Retained answers prefill those screens; the browser waits for Next at each screen instead of jumping over reused answers. This applies across all defenses, including explanations and reviews.
+Disagreeing with the complaint payment date, or answering Not sure, always shows
+the personal cutoff-date question again. A saved personal timing answer may prefill
+that screen only if the filing date is unchanged; it cannot bypass the question.
+Displayed dates use full month names (for example, “September 20, 2025”), including headers, guidance, timelines, and case details. Date input controls and research values retain ISO formats.
+The main box remains an explicit user choice independently of the nested SOL boxes.
+Unresolved creditor type, oral agreement, or missing filing date must be clarified
+before the dependent questions proceed. Browser storage has a new November 10 screen-footnotes key so
+saved paths from earlier script versions cannot bypass the November 10 screen sequence.
 
 ## Ambiguity screen placement
 
-The November 7 source groups the explanation with **Ask about this checkbox**,
+The November 10 source groups the explanation with **Ask about this checkbox**,
 then explicitly directs **Continue to “Confirm selections.”** Preserve these as
 separate steps:
 
@@ -128,9 +135,9 @@ full explanation with the same checkbox question. Previews do not record a choic
 
 ## Initial defense screens
 
-Every defense starts with the defense name as its heading. For defenses without
+Every defense starts with its source heading; the Fraud heading includes the November 10 punctuation. For defenses without
 screening branches (Ambiguity, Mistake, and Unconscionable Contract), the full
-November 7 explanation and checkbox question appear in the body on that screen.
+November 10 explanation and checkbox question appear in the body on that screen.
 Word bullet lists and paragraph spacing are preserved.
 
 Laches has a separate general-explanation screen, headed “Laches,” followed by
@@ -146,6 +153,10 @@ with the defense name as the heading.** Defenses with screening branches retain
 their separate explanation screens before the follow-up questions.
 
 ## Editing and clarification
+
+Summary comparisons use earlier recorded choices or completed defense reviews.
+Defenses reached for the first time after an edit do not show “Previously” labels
+or an unchanged-selections notice.
 
 Back preserves answers. Change replays the updated path, retaining applicable
 facts and explicit choices. Newly relevant questions require an answer. A removed
@@ -165,7 +176,8 @@ advance the guide. Approved explanations stay available if the model is unavaila
 
 ## Implementation
 
-`guided_defense_content.yaml` contains November 7 copy and route overrides.
+`guided_defense_content.yaml` contains November 10 copy and route overrides.
+`guided_screen_layout.yaml` maps the source footnotes to headers and informational screens.
 `guided_sol.py` validates those overrides into a prototype-specific tree, renders
 pages and clarification context from that tree, and replays validated histories.
 The chatbot's canonical `interactive_tree.yaml` and its wording remain unchanged.

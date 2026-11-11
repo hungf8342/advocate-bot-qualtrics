@@ -16,7 +16,7 @@ from pydantic import BaseModel, ConfigDict, field_validator
 
 from .guided_sol import (
     COMPLETE, CONTINUE_PAGES, DEFENSES, PRELIMINARY_FIELDS, GuidedAdvanceRequest,
-    GuidedSolReview, advance_review, TREE,
+    GuidedSolReview, advance_review, TREE, PARENT_SCREENS, ACTION_SCREENS,
 )
 from .sol_dependency_map import affected_checkboxes
 
@@ -104,7 +104,12 @@ def snapshot(current: GuidedSolReview) -> tuple[dict, dict, set[str]]:
             offered |= any(b.defense_id == name for b in definition.selection_checkboxes)
         checked = any(v == 'include' for v in effective.session.checkbox_selections.get(name, {}).values())
         settled = (name in effective.finish_reasons or spec['summary'] in visited
-                   or effective.current == spec['summary'])
+                   or effective.current == spec['summary']
+                   or (name == 'statute_of_limitations' and effective.current == 'sol_written')
+                   or PARENT_SCREENS.get(effective.current) == name
+                   or (effective.current in ACTION_SCREENS and definition
+                       and name in defense_for(effective.current)
+                       and (definition.action or '').startswith('script_finish:')))
         # Reaching a checkbox question establishes an offer; starting the defense
         # does not. A negative result needs the completed no-offer path.
         projection = 'Yes' if offered else 'No' if settled else ''
@@ -138,11 +143,11 @@ class GuidedCollection:
         digest = hashlib.sha256()
         for filename in ('interactive_tree.yaml', 'guided_preliminary_fields.yaml',
                          'guided_defense_content.yaml', 'guided_script_formatting.yaml',
-                         'guided_script_formatting.py', 'sol_checkbox_dependencies.yaml',
+                         'guided_script_formatting.py', 'guided_screen_layout.yaml', 'sol_checkbox_dependencies.yaml',
                          'guided_sol.py', 'affirmative_defenses.py', 'sol_dependency_map.py',
                          'session.py', 'preliminary.py', 'guided_collection.py'):
             digest.update(Path(__file__).with_name(filename).read_bytes())
-        self.version = 'guided-17-defenses-2026-11-07-' + digest.hexdigest()[:16]
+        self.version = 'guided-17-defenses-2026-11-10-' + digest.hexdigest()[:16]
         with self.connect() as db:
             db.executescript('''
                 CREATE TABLE IF NOT EXISTS sessions (id TEXT PRIMARY KEY, data TEXT NOT NULL);
