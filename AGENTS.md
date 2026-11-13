@@ -18,7 +18,7 @@ Use these commands for normal work:
 
 ```bash
 .venv/bin/python -m pytest
-.venv/bin/python scripts/interactive_chat_demo.py
+.venv/bin/python scripts/guided_clickthrough_demo.py
 ```
 
 For an interactive human terminal only, activation remains optional:
@@ -29,11 +29,17 @@ source .venv/bin/activate
 
 ## Scope
 
-- The current application is interactive: user-driven progression via
-  `core/process_chat.py` and `core/engine.py`.
-- Consumer-debt questions and routing live in
-  `practice_areas/consumer_debt/interactive_tree.yaml`; screening rules live in
-  `affirmative_defenses.py` in the same directory.
+- The clickthrough prototype is the application to use and build on. Its entry
+  point is `scripts/guided_clickthrough_demo.py`, its UI is in
+  `scripts/assets/guided_sol/`, and its workflow is in
+  `practice_areas/consumer_debt/guided_sol.py`.
+- The old conversation-driven chatbot (`core/process_chat.py`, `core/engine.py`,
+  and `scripts/interactive_chat_demo.py`) is legacy code slated for retirement.
+  Do not add features there. See `docs/chatbot-retirement-audit.md` before deleting
+  modules: the clickthrough still uses shared tree, session, and defense logic.
+- Consumer-debt questions and routing use `interactive_tree.yaml` plus the
+  `guided_*.yaml` content/layout files. Screening rules remain in
+  `affirmative_defenses.py` in the same practice-area directory.
 - The old `decision_tree/` compatibility package has been removed. Use canonical
   `core/` and practice-area imports.
 - Document extraction, autonomous fact-sheet traversal, and the simulator are
@@ -41,21 +47,25 @@ source .venv/bin/activate
 
 ## Data contract
 
-- Case facts come from user answers and live in the active session.
-- The complaint filing date is collected in preliminary intake as `FILING-DATE`
-  and `session.filing_date`, then used directly by SOL screening.
+- Case facts come from user answers. Clickthrough requests replay answer history
+  into a session; normal mode collects research records through
+  `guided_collection.py` in SQLite with CSV exports. Debug mode disables collection.
+- The clickthrough filing-date field is `COMPLAINT.DATE`, bound to
+  `session.filing_date`, then used directly by SOL screening.
 - Defense analysis belongs in practice-area decision logic. If document
   extraction is restored, keep its output fact-only; do not add defense judgments
   to `ComplaintFactSheet` (`schema_version: "1.1"`).
 
 ## LLM output requirements
 
-- Interactive chat responses must remain structured with:
+- Clickthrough clarification-chat responses must remain structured with:
   - `user_intent`
   - `assistant_reply`
   - `next_node_id`
-- `next_node_id` must match one of the current node's branch IDs when advancing.
-- If intent is not an answer to the node question, `next_node_id` must be `null`.
+- Clarification chat must not record answers or advance the clickthrough;
+  `next_node_id` must be `null` in its API response.
+- While the legacy chatbot remains, its advancing responses must use a current
+  branch ID; non-answer responses must have `next_node_id: null`.
 
 ## Repository safety
 
@@ -66,7 +76,9 @@ source .venv/bin/activate
 ## Testing
 
 - Add or update tests whenever node schemas, routing validation, or prompts change.
-- Ensure engine traversal tests cover:
+- Ensure clickthrough tests cover:
   - valid branch constraints
   - terminal-node completion
   - summary/open-questions output
+  - edits, retained answers, and invalidations
+  - research collection and debug-mode isolation

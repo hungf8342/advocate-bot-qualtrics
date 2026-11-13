@@ -1,5 +1,12 @@
 # Advocate Bot Qualtrics
 
+**The guided clickthrough prototype is the application to use and build on.**
+Start it with `.venv/bin/python scripts/guided_clickthrough_demo.py` (add `--debug`
+for section jumping with collection disabled), then open <http://localhost:7861/>.
+The conversation-driven chatbot below is legacy. See the
+[retirement audit](docs/chatbot-retirement-audit.md) for deletion candidates and
+shared dependencies that must remain.
+
 This is a confidential consumer-debt decision-tree chatbot. It accepts fact-only preliminary fields from a separate complaint scraper, asks litigants to verify them, and then presents the 21 affirmative defenses in the October 25 conversation scripts. Parsed values and litigant corrections are kept in the active session. Complaint scraping itself is handled outside this application.
 
 ## Setup
@@ -11,7 +18,7 @@ python -m venv .venv
 
 Set `ZAI_API_KEY` in `.env` for the interactive chat model. Never commit `.env`.
 
-## Run the local demo
+## Legacy conversation-driven demo
 
 ```bash
 .venv/bin/python scripts/interactive_chat_demo.py
