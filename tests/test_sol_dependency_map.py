@@ -6,7 +6,7 @@ import pytest
 from advocate_bot_qualtrics.practice_areas.consumer_debt.sol_dependency_map import (
     affected_checkboxes, load_dependency_map, plan_checkbox_review,
 )
-from advocate_bot_qualtrics.practice_areas.consumer_debt.tree import INTERACTIVE_TREE_DEFINITION as TREE
+from advocate_bot_qualtrics.practice_areas.consumer_debt.base_tree import BASE_TREE_DEFINITION as TREE
 
 QUESTIONS = {'plaintiff_type': 'sol_creditor_type_resolve', 'payment_timing': 'sol_payment_age', 'oral_agreement': 'sol_oral_gate_resolve'}
 
@@ -87,25 +87,30 @@ def test_map_points_to_existing_questions_for_the_exact_checkbox_ids():
 
 
 @pytest.mark.parametrize('creditor,timing,oral', list(product(['original', 'buyer'], ['qualifying', 'recent', 'uncertain'], ['yes', 'no'])))
-def test_map_offers_match_actual_script_traversal(creditor, timing, oral, scripted_engine):
-    from advocate_bot_qualtrics.practice_areas.consumer_debt.session import apply_interactive_branch
+def test_map_offers_match_actual_clickthrough_traversal(creditor, timing, oral):
+    from advocate_bot_qualtrics.practice_areas.consumer_debt.workflow import (
+        CONTINUE_PAGES, SUMMARY, TREE as GUIDED_TREE,
+    )
+    from test_clickthrough_workflow import intake, review, answers
 
-    engine = scripted_engine('statute_of_limitations_intro', **{'PLAINTIFF.TYPE': creditor, 'LAST.PAYMENT.DATE': None})
-    apply_interactive_branch(engine.session, 'prelim_oral', oral)
-    engine._drain_hooks()
+    history = intake(creditor, payment='missing', oral=oral)
+    current = review(history)
     offered = set()
-    for _ in range(12):
-        node = TREE.node(engine.current_node_id)
-        if node.discussion_topic != 'Statute of Limitations' or node.discussion_mode == 'confirmation':
+    for _ in range(20):
+        if current.current == SUMMARY:
             break
+        node = GUIDED_TREE.node(current.current)
         if node.selection_checkboxes:
             offered.update(box.checkbox_id for box in node.selection_checkboxes)
             branch = 'no'
+        elif node.id in CONTINUE_PAGES:
+            branch = 'continue'
         elif node.id == 'sol_payment_age':
-            branch = {'qualifying': 'yes', 'recent': 'no', 'uncertain': 'unknown'}[timing]
+            branch = {'qualifying': 'no', 'recent': 'yes', 'uncertain': 'unknown'}[timing]
         else:
             pytest.fail(f'Unexpected question {node.id}')
-        assert engine.submit(branch).error is None
+        history += answers((node.id, branch))
+        current = review(history)
     else:
         pytest.fail('The SOL section did not finish')
     expected = plan(creditor, timing, oral)

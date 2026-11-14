@@ -1,4 +1,4 @@
-"""Structured chat responses for the decision tree."""
+"""Structured clarification responses for the clickthrough."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ def _chat_turn_openai_tool() -> dict[str, Any]:
         "type": "function",
         "function": {
             "name": CHAT_TOOL_NAME,
-            "description": "Submit the decision-tree chat turn.",
+            "description": "Submit the clickthrough clarification response.",
             "parameters": schema,
         },
     }
@@ -52,49 +52,9 @@ def _submit_chat_turn_zai(*, system: str, payload: dict[str, Any]) -> ChatTurnRe
         raise ChatError("LLM output failed chat schema validation.") from exc
 
 
-# --- Previous Haiku / Anthropic path (commented out; set CHAT_PROVIDER=anthropic and restore) ---
-#
-# from advocate_bot_qualtrics.config import get_anthropic_chat_model
-# from advocate_bot_qualtrics.llm.client import AnthropicClient
-#
-#
-# def _chat_turn_tool() -> dict[str, Any]:
-#     return {
-#         "name": CHAT_TOOL_NAME,
-#         "description": "Submit the decision-tree chat turn.",
-#         "input_schema": ChatTurnResponse.model_json_schema(),
-#     }
-#
-#
-# def _parse_anthropic_tool_use(response: Any) -> dict[str, Any]:
-#     for block in response.content:
-#         if block.type == "tool_use" and block.name == CHAT_TOOL_NAME:
-#             return block.input
-#     raise ChatError(f"Anthropic response did not include tool_use block '{CHAT_TOOL_NAME}'.")
-#
-#
-# def _submit_chat_turn_anthropic(*, system: str, payload: dict[str, Any]) -> ChatTurnResponse:
-#     client = AnthropicClient()
-#     user_text = payload if isinstance(payload, str) else str(payload)
-#     response = client.complete(
-#         model=get_anthropic_chat_model(),
-#         system=system,
-#         messages=[{"role": "user", "content": user_text}],
-#         temperature=0.0,
-#         tools=[_chat_turn_tool()],
-#         tool_choice={"type": "tool", "name": CHAT_TOOL_NAME},
-#     )
-#     tool_input = _parse_anthropic_tool_use(response)
-#     try:
-#         return ChatTurnResponse.model_validate(tool_input)
-#     except ValidationError as exc:
-#         raise ChatError("LLM output failed chat schema validation.") from exc
-
-
 def submit_chat_turn(*, system: str, payload: dict[str, Any]) -> ChatTurnResponse:
-    if get_chat_provider() == "anthropic":
+    if get_chat_provider() != "zai":
         raise ChatError(
-            "CHAT_PROVIDER=anthropic is disabled; restore _submit_chat_turn_anthropic in "
-            "chat_structured.py or set CHAT_PROVIDER=zai."
+            "Only CHAT_PROVIDER=zai is supported for clickthrough clarification."
         )
     return _submit_chat_turn_zai(system=system, payload=payload)

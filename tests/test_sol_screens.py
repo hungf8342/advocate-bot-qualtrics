@@ -8,10 +8,10 @@ import runpy
 import pytest
 from fastapi.testclient import TestClient
 
-from advocate_bot_qualtrics.practice_areas.consumer_debt.guided_sol import (
-    CONTENT, DEFENSE, SUMMARY, GuidedSolReview,
+from advocate_bot_qualtrics.practice_areas.consumer_debt.workflow import (
+    CONTENT, DEFENSE, SUMMARY, ClickthroughReview,
 )
-from test_guided_sol import intake, review, advance_updated, answers, change
+from test_clickthrough_workflow import intake, review, advance_updated, answers, change
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -134,7 +134,7 @@ def test_editing_after_cutoff_answer_removes_old_boxes_and_reopens_when_changed_
 
 
 def test_debug_api_uses_v2_cutoff_and_shared_return_without_collecting(tmp_path):
-    module = runpy.run_path(str(ROOT / 'scripts/guided_clickthrough_demo.py'))
+    module = runpy.run_path(str(ROOT / 'scripts/run_clickthrough.py'))
     client = TestClient(module['create_app'](debug=True, collection_dir=tmp_path / 'research'))
     history = intake(payment='missing')
     state = client.post('/api/state', json={'history': [a.model_dump() for a in history]}).json()
@@ -194,7 +194,7 @@ def test_revisiting_complaint_disagreement_always_asks_personal_timing(previous_
 
 
 def test_disagreement_api_cannot_jump_over_a_saved_personal_timing_answer(tmp_path):
-    module = runpy.run_path(str(ROOT / 'scripts/guided_clickthrough_demo.py'))
+    module = runpy.run_path(str(ROOT / 'scripts/run_clickthrough.py'))
     client = TestClient(module['create_app'](debug=True, collection_dir=tmp_path / 'research'))
     history = intake() + answers(('sol_payment_estimate_agree', 'no'), ('sol_payment_age', 'yes'))
     result = client.post('/api/edit', json={

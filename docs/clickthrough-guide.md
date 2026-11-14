@@ -3,7 +3,7 @@
 Run with the development/demo environment:
 
 ```bash
-.venv/bin/python scripts/guided_clickthrough_demo.py
+.venv/bin/python scripts/run_clickthrough.py
 ```
 
 Open <http://localhost:7861/>. The server binds to localhost and defaults to the
@@ -19,8 +19,8 @@ remain excluded. Preliminary intake retains its 18 October 30 fields and separat
 review.
 
 The November 10 `NEW SCREEN:` footnotes determine headers and screen boundaries.
-`guided_screen_layout.yaml` maps their IDs to the prototype's nodes and conditional
-variants; `guided_script_formatting.yaml` extracts the actual headers, source
+`screen_layout.yaml` maps their IDs to the prototype's nodes and conditional
+variants; `script_formatting.yaml` extracts the actual headers, source
 paragraph indices, paragraph/list structure, and document fingerprint. All 111
 footnotes are accounted for. The Common Counts fourth nested checkbox is excluded
 because it depends on the excluded Identity Theft defense. Mistake has no new
@@ -68,12 +68,12 @@ a new storage key to start a fresh review instead of importing an obsolete path.
 
 ## Script wording and formatting
 
-The approved Word documents govern wording and user-facing paragraph/list structure. The formatting extractor reads all paragraphs, lists, and screen footnotes directly from November 10 and records its source fingerprint. `guided_script_formatting.yaml` records source paragraphs, Word list
+The approved Word documents govern wording and user-facing paragraph/list structure. The formatting extractor reads all paragraphs, lists, and screen footnotes directly from November 10 and records its source fingerprint. `script_formatting.yaml` records source paragraphs, Word list
 levels, and the source document's SHA-256 fingerprint. Regenerate and verify it with:
 
 ```bash
-.venv/bin/python scripts/extract_guided_script_formatting.py
-.venv/bin/python scripts/extract_guided_script_formatting.py --check
+.venv/bin/python scripts/extract_script_formatting.py
+.venv/bin/python scripts/extract_script_formatting.py --check
 ```
 
 The renderer uses structured paragraphs and semantic HTML lists for explanations,
@@ -176,30 +176,31 @@ advance the guide. Approved explanations stay available if the model is unavaila
 
 ## Implementation
 
-`guided_defense_content.yaml` contains November 10 copy and route overrides.
-`guided_screen_layout.yaml` maps the source footnotes to headers and informational screens.
-`guided_sol.py` validates those overrides into a prototype-specific tree, renders
+`defense_content.yaml` contains November 10 copy and route overrides.
+`screen_layout.yaml` maps the source footnotes to headers and informational screens.
+`workflow.py` validates those overrides into a prototype-specific tree, renders
 pages and clarification context from that tree, and replays validated histories.
-The chatbot's canonical `interactive_tree.yaml` and its wording remain unchanged.
-`guided_preliminary_fields.yaml` retains the October 30 intake. SOL's dependency
+`base_tree.yaml` remains the shared base tree for these overlays and
+session bindings. Its historical node IDs are retained for validated replay.
+`intake_fields.yaml` retains the October 30 intake. SOL's dependency
 map remains in `sol_checkbox_dependencies.yaml` and `sol_dependency_map.py`.
 
-`scripts/guided_clickthrough_demo.py` serves the form and clarification endpoints;
-`scripts/assets/guided_sol/` contains the buildless browser assets. The progress
+`scripts/run_clickthrough.py` serves the form and clarification endpoints;
+`scripts/assets/clickthrough/` contains the buildless browser assets. The progress
 bar includes all sections and scrolls horizontally. The history limit accommodates
-all 17 sections and clarification returns. `guided_collection.py` collects the
-research datasets below. Tests cover source wording, allowed branches, full
+all 17 sections and clarification returns. `research_collection.py` collects the
+research datasets below. `rendering.py` provides shared fact substitution. Tests cover source wording, allowed branches, full
 traversal, no-offer outcomes, uncertainty, nested selections, editing, final review,
 CSV collection, and non-advancing clarification.
 
 The prototype performs no filing, document generation, Excel export, or account
 storage. The deterministic form works without model calls; clarification chat uses
-the configured model provider. Research records persist locally on the server.
+Z.ai through the OpenAI-compatible client. Research records persist locally on the server.
 
 ## Debug section navigation
 
 ```bash
-.venv/bin/python scripts/guided_clickthrough_demo.py --debug
+.venv/bin/python scripts/run_clickthrough.py --debug
 ```
 
 Debug mode displays a banner and makes the scrollable section header clickable,
@@ -214,7 +215,7 @@ a new jump starts the selected section fresh using the current confirmed intake.
 On the first debug visit, confirmed intake from the normal tab progress is copied
 into separate debug storage. Existing answers and a valid current intake draft
 are preserved. Missing values use the loaded example complaint where available;
-remaining fallbacks are in `guided_debug.py`: an original creditor, both claim
+remaining fallbacks are in `debug_navigation.py`: an original creditor, both claim
 types, $4,250, payment on March 15, 2021, filing on September 30, 2026, a recognized
 account, a written agreement, and no debt-consolidation company. Both claim types
 are used only when that field has not already been answered.
@@ -234,7 +235,7 @@ Normal browser progress and research files remain separate. Restart without
 Running the prototype without `--debug` automatically writes three UTF-8 CSVs to
 `output/clickthrough/`. Use `--collection-dir PATH` to choose another directory.
 All three use the requested variable names and share a random UUID `SESSION.ID`.
-The defense names in column headers match the 17 IDs in `guided_sol.DEFENSES`.
+The defense names in column headers match the 17 IDs in `workflow.DEFENSES`.
 The excluded defenses have no columns in new datasets. When an existing collection
 directory contains records from an older prototype, exports preserve its historical
 defense columns and rows alongside the new columns.
@@ -259,7 +260,7 @@ defense columns and rows alongside the new columns.
   Consideration; and opening date for Capacity. Independent preliminary fields and
   personalization-only names do not set a defense's CHANGED flag.
 - `responses.csv`: an append-only event dataset. Preliminary item IDs use the
-  field identifiers from `guided_preliminary_fields.yaml`, such as `CASE.NUMBER`,
+  field identifiers from `intake_fields.yaml`, such as `CASE.NUMBER`,
   `PLAINTIFF`, and `COMPLAINT.DATE` (the filing date). Defense questions and deterministic conditions
   use their tree node IDs. Derived original-creditor values and calculated
   `DEFENSE.<name>.CHECKED` / `TREE.PROJECTION` values are also recorded. Answers

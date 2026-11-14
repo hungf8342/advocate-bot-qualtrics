@@ -7,14 +7,14 @@ import runpy
 
 import pytest
 
-from advocate_bot_qualtrics.practice_areas.consumer_debt.guided_debug import jump_to_section
-from advocate_bot_qualtrics.practice_areas.consumer_debt.guided_script_formatting import SOURCE_FORMATTING
-from advocate_bot_qualtrics.practice_areas.consumer_debt.guided_sol import (
+from advocate_bot_qualtrics.practice_areas.consumer_debt.debug_navigation import jump_to_section
+from advocate_bot_qualtrics.practice_areas.consumer_debt.script_formatting import SOURCE_FORMATTING
+from advocate_bot_qualtrics.practice_areas.consumer_debt.workflow import (
     ACTION_SCREENS, COMPLETE, CONTENT, CONTINUE_PAGES, DEFENSES, EXTRA_SCREENS,
     INTRO_DEFENSES, PARENT_SCREENS, SCREEN_LAYOUT, SUMMARIES, TREE,
-    GuidedAdvanceRequest, GuidedAnswer, GuidedSolReview, _screen_header, advance_review,
+    GuidedAdvanceRequest, GuidedAnswer, ClickthroughReview, _screen_header, advance_review,
 )
-from test_guided_sol import intake
+from test_clickthrough_workflow import intake
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -23,7 +23,7 @@ def start(defense, *, creditor='buyer', consolidation='no', suit='both', oral='n
     history = intake(creditor, oral=oral, payment=payment)[:-2]
     changes = {'guided_consolidation': consolidation, 'guided_suit_type': suit}
     history = [a.model_copy(update={'value': changes[a.node_id]}) if a.node_id in changes else a for a in history]
-    return jump_to_section(GuidedSolReview().replay(history), defense)
+    return jump_to_section(ClickthroughReview().replay(history), defense)
 
 
 def step(current, value='continue'):
@@ -56,7 +56,7 @@ def test_screen_map_is_complete_and_headers_are_extracted_from_the_approved_word
         used.update(v['footnote'] for v in spec.get('variants', []))
     assert used == set(raw)
     assert set(SCREEN_LAYOUT['excluded_footnotes']) == {'42'}
-    module=runpy.run_path(str(ROOT/'scripts/extract_guided_script_formatting.py'))
+    module=runpy.run_path(str(ROOT/'scripts/extract_script_formatting.py'))
     assert module['extract_prototype_formatting']() == SOURCE_FORMATTING
 
 

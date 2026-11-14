@@ -7,10 +7,10 @@ from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
 
-from advocate_bot_qualtrics.practice_areas.consumer_debt.guided_sol import (
-    COMPLETE, CONTENT, CONTINUE_PAGES, DEFENSES, GuidedSolReview, TREE,
+from advocate_bot_qualtrics.practice_areas.consumer_debt.workflow import (
+    COMPLETE, CONTENT, CONTINUE_PAGES, DEFENSES, ClickthroughReview, TREE,
 )
-from test_guided_sol import intake, review, advance_updated, default_answer, answers
+from test_clickthrough_workflow import intake, review, advance_updated, default_answer, answers
 from test_guided_november_scripts import reach, submit
 
 
@@ -131,7 +131,7 @@ def test_referral_has_its_own_screen_and_staff_confirmation_remains_required():
 
 
 def test_dynamic_language_preview_is_validated_and_never_changes_research_records(tmp_path):
-    module = runpy.run_path(str(Path(__file__).resolve().parents[1] / 'scripts/guided_clickthrough_demo.py'))
+    module = runpy.run_path(str(Path(__file__).resolve().parents[1] / 'scripts/run_clickthrough.py'))
     app = module['create_app'](collection_dir=tmp_path)
     client = TestClient(app)
     current = reach('language_1632')
@@ -188,7 +188,7 @@ def test_broad_checkbox_confirmation_is_on_the_review_screen(defense):
 
 def test_chat_receives_inline_draft_as_unsubmitted_context(tmp_path):
     from advocate_bot_qualtrics.core.schemas import ChatTurnResponse
-    module = runpy.run_path(str(Path(__file__).resolve().parents[1] / 'scripts/guided_clickthrough_demo.py'))
+    module = runpy.run_path(str(Path(__file__).resolve().parents[1] / 'scripts/run_clickthrough.py'))
     captured = []
     def model(**kwargs):
         captured.append(kwargs)

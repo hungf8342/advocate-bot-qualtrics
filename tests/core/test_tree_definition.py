@@ -6,14 +6,14 @@ import pytest
 from pydantic import ValidationError
 
 from advocate_bot_qualtrics.core.tree_definition import TreeDefinition, load_tree_definition
-from advocate_bot_qualtrics.practice_areas.consumer_debt.tree import (
-    INTERACTIVE_TREE_DEFINITION,
-    INTERACTIVE_TREE_PATH,
+from advocate_bot_qualtrics.practice_areas.consumer_debt.base_tree import (
+    BASE_TREE_DEFINITION,
+    BASE_TREE_PATH,
 )
 
 
 def test_consumer_debt_tree_loads_from_yaml_with_string_branch_ids():
-    tree = load_tree_definition(INTERACTIVE_TREE_PATH)
+    tree = load_tree_definition(BASE_TREE_PATH)
 
     assert tree.id == "consumer_debt_interactive"
     assert tree.version == "2026.10.25"
@@ -26,9 +26,9 @@ def test_consumer_debt_tree_loads_from_yaml_with_string_branch_ids():
 
 
 def test_consumer_debt_tree_declares_inputs_actions_and_terminal_qa():
-    assert INTERACTIVE_TREE_DEFINITION.node("get_filing_date").input is not None
-    assert INTERACTIVE_TREE_DEFINITION.node("sol_finish").action.startswith("script_finish:")
-    assert INTERACTIVE_TREE_DEFINITION.node("review_questions").terminal_qa is True
+    assert BASE_TREE_DEFINITION.node("get_filing_date").input is not None
+    assert BASE_TREE_DEFINITION.node("sol_finish").action.startswith("script_finish:")
+    assert BASE_TREE_DEFINITION.node("review_questions").terminal_qa is True
 
 
 def test_tree_validator_rejects_unknown_branch_targets():
@@ -56,14 +56,14 @@ def test_tree_validator_rejects_unknown_branch_targets():
     ({'fact_key':''},'at least 1 character'),
 ])
 def test_script_metadata_cannot_bypass_node_kind_constraints(update,match):
-    data=INTERACTIVE_TREE_DEFINITION.model_dump()
+    data=BASE_TREE_DEFINITION.model_dump()
     node=data['nodes'][0]
     node.update(update)
     with pytest.raises(ValidationError,match=match):TreeDefinition.model_validate(data)
 
 
 def test_bound_condition_requires_an_unknown_branch():
-    data=INTERACTIVE_TREE_DEFINITION.model_dump()
+    data=BASE_TREE_DEFINITION.model_dump()
     node=next(n for n in data['nodes'] if n['condition_key'])
     node['branches']=[b for b in node['branches'] if b['id']!='unknown']
     with pytest.raises(ValidationError,match='unknown condition branch'):TreeDefinition.model_validate(data)
@@ -71,7 +71,7 @@ def test_bound_condition_requires_an_unknown_branch():
 
 @pytest.mark.parametrize('invalid_group', ['duplicate', 'mixed_defenses', 'both_forms'])
 def test_checkbox_groups_reject_ambiguous_metadata(invalid_group):
-    data = INTERACTIVE_TREE_DEFINITION.model_dump()
+    data = BASE_TREE_DEFINITION.model_dump()
     node = next(n for n in data['nodes'] if n['checkboxes'])
     if invalid_group == 'duplicate':
         node['checkboxes'].append(node['checkboxes'][0].copy())

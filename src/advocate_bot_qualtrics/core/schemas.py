@@ -1,4 +1,4 @@
-"""Pydantic schemas for decision-tree chat."""
+"""Shared tree, page-context, and clarification-response schemas."""
 
 from __future__ import annotations
 
@@ -119,7 +119,7 @@ class ChatTurnResponse(BaseModel):
     next_node_id: str | None = Field(
         default=None,
         description=(
-            "If and only if user_intent is 'answer_node', set next_node_id to one of the provided branch_id values."
+            "Always null: clarification chat cannot record answers or advance the clickthrough."
         ),
     )
     answer_confidence_pct: int | None = Field(
@@ -127,7 +127,6 @@ class ChatTurnResponse(BaseModel):
         ge=0,
         le=100,
         description=(
-            "Required when user_intent is 'answer_node': 0–100 confidence in the chosen branch, "
-            "per confidence_scoring_calibration."
+            "Leave null: answer confidence is not used by clickthrough clarification."
         ),
     )

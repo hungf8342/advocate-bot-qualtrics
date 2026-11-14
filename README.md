@@ -1,116 +1,110 @@
 # Advocate Bot Qualtrics
 
-**The guided clickthrough prototype is the application to use and build on.**
-Start it with `.venv/bin/python scripts/guided_clickthrough_demo.py` (add `--debug`
-for section jumping with collection disabled), then open <http://localhost:7861/>.
-The conversation-driven chatbot below is legacy. See the
-[retirement audit](docs/chatbot-retirement-audit.md) for deletion candidates and
-shared dependencies that must remain.
-
-This is a confidential consumer-debt decision-tree chatbot. It accepts fact-only preliminary fields from a separate complaint scraper, asks litigants to verify them, and then presents the 21 affirmative defenses in the October 25 conversation scripts. Parsed values and litigant corrections are kept in the active session. Complaint scraping itself is handled outside this application.
+A guided consumer-debt clickthrough with one question per page, Back and Change
+controls, defense summaries, an optional clarification chat, and research data
+collection. The clickthrough is the application to use and build on.
 
 ## Setup
+
+Use Python 3.11 or newer. Create the local environment and install dependencies:
 
 ```bash
 python -m venv .venv
 .venv/bin/python -m pip install -e ".[dev,demo]"
 ```
 
-Set `ZAI_API_KEY` in `.env` for the interactive chat model. Never commit `.env`.
+Run commands with the virtual environment's interpreter; activation is optional.
+On Windows, use `.venv\Scripts\python.exe` instead of `.venv/bin/python`.
 
-## Legacy conversation-driven demo
+The form and data collection work without a model key. For the optional
+clarification chat, create a local `.env` using `.env.example` and set
+`ZAI_API_KEY`. Only `CHAT_PROVIDER=zai` is supported. Never commit `.env`.
 
-```bash
-.venv/bin/python scripts/interactive_chat_demo.py
-```
-
-To try the preliminary verification flow with an imaginary complaint:
-
-```bash
-.venv/bin/python scripts/interactive_chat_demo.py --complaint-fields examples/complaints/original-creditor.json
-```
-
-Use `examples/complaints/debt-buyer.json` for a debt-buyer example with missing dates.
-The temporary JSON format and programmatic entry point are documented in
-[the sample input guide](examples/complaints/README.md). Without an input file,
-parsed fields are shown as unknown and can be filled through the correction questions.
-
-For debugging, add `--debug-shortcuts` and type **I agree with all** during
-preliminary intake to accept remaining parsed fields and continue to defenses.
-This option is off by default. Prior answers and corrections are retained;
-unanswered recognition, oral-agreement, and consolidation questions stay unknown.
-Synthetic confirmations are marked in the developer snapshot.
-
-The demo has no file-upload control. Do not use its public-share option with real client information.
-
-## Guided click-through prototype
-
-A separate interface presents one question per page with Back and Next controls,
-a payment timeline, a clarification chat window, and a summary for each defense.
-It follows the November 10 scripts for 17 defenses (1, 2, 5, 8, and 9–21), excluding
-Standing/Privity, Failure to State a Cause of Action, Wrong Party, and Identity Theft. Editing
-a field preserves independent answers and revisits only questions that could
-affect the checkbox choices:
-
-Preliminary fields form their own section, using all 18 fields in the October 30
-preliminary-fields script. Defenses reuse those recorded fields and ask only
-additional questions; unresolved fields return to the preliminary section.
+## Run the clickthrough
 
 ```bash
-.venv/bin/python scripts/guided_clickthrough_demo.py
+.venv/bin/python scripts/run_clickthrough.py
 ```
 
-For debugging, add `--debug` to enable clickable section headers and automatic
-defaults for unanswered intake fields. This mode disables research collection and
-uses separate browser progress.
+Open <http://localhost:7861/>. The fictional original-creditor example supplies
+prefilled intake values; those values become recorded facts only when submitted.
+To use a debt-buyer example or start with blank fields:
 
-Open <http://localhost:7861/>. The original-creditor example is prefilled for review.
-Use `--complaint-fields examples/complaints/debt-buyer.json` for the debt-buyer path,
-or `--blank` to start with blank fields. This prototype runs independently of the
-chatbot on port 7860 and finishes with a review of all 17 included defenses.
+```bash
+.venv/bin/python scripts/run_clickthrough.py --complaint-fields examples/complaints/debt-buyer.json
+.venv/bin/python scripts/run_clickthrough.py --blank
+```
 
-Session, defense, and longitudinal response data are collected automatically in
-`output/clickthrough/sessions.csv`, `defenses.csv`, and `responses.csv`. Use
-`--collection-dir PATH` to change the destination. Records persist across restarts;
-the [collection guide](docs/guided-sol-prototype.md#research-csvs) explains the fields
-and browser-exit timing limitation.
+The [example input guide](examples/complaints/README.md) describes the fact-only
+JSON format. The application has no document upload or extraction feature.
 
-The mini chat uses the existing `.env` model configuration and only explains the
-current page. It never records answers or advances the review. See the
-[guided prototype guide](docs/guided-sol-prototype.md) for behavior and limitations.
+For review and development:
 
-## Interactive flow
+```bash
+.venv/bin/python scripts/run_clickthrough.py --debug
+```
 
-The declarative consumer-debt tree is in [`interactive_tree.yaml`](src/advocate_bot_qualtrics/practice_areas/consumer_debt/interactive_tree.yaml). Preliminary Questions display approved explanations and ask whether the litigant agrees with each parsed field. A "No" asks for their preferred value; there is one agreement question per field. Account recognition, oral agreement, and debt consolidation remain direct questions. The sidebar shows all parsed fields before verification and labels their verification status. Ownership assertions and attached ownership evidence are separate fields.
+Debug mode enables clickable section headers and example defaults for unanswered
+intake fields. It uses separate browser progress and **disables research collection**.
+Run without `--debug` when collecting research results.
 
-The host (the Python conversation engine) reuses verified answers and preferred values, follows the YAML branches, and evaluates the scripts’ factual conditions. Original parsed values remain available for reference and complaint-presence checks. The complaint filing date is verified after the account-opening date and used without asking again. Original-creditor SOL screening asks the litigant to confirm the complaint's last-payment date, or answer whether payment was a year or more before filing. This one-year screen is separate from the legal filing deadline. The litigant decides whether to include the defense.
+## Scope and data
 
-The LLM classifies answers and answers questions using the active defense's approved text and recorded facts. The host validates every advancing branch. All 21 defenses follow the October 25 scripts. Each begins with its general explanation and follows the applicable fact questions and guidance. A “Finish this defense” instruction advances directly without offering a checkbox.
+The guide follows the November 10 scripts for 17 defenses: 1, 2, 5, 8, and 9–21.
+Standing/Privity, Failure to State a Cause of Action, Identity Theft, and Wrong
+Party are excluded. Preliminary intake follows the October 30 fields script.
+Facts determine which choices are offered; only explicit user choices select
+checkboxes. Unknown answers remain distinct from No.
 
-Offered checkboxes receive an explicit Yes/No choice. Indented boxes mentioned together in the script, such as the first and third SOL boxes, share one question and one answer for both. Facts never select boxes automatically. Each selection section ends with a checklist and a readiness confirmation. An uncertain choice stays local until the user chooses. Unresolved factual questions block advancement until answered; referrals require explicit confirmation that clinic staff addressed the issue. The final review recaps individual checkbox choices and any open clinic issues.
+Back preserves answers. Change reconciles the revised path, retains applicable
+answers, and revisits dependent questions. The final review includes all 17
+defenses, nested choices, and unresolved questions. Clarification chat explains
+the current page; it cannot record answers or advance the guide.
 
-The October 11 preliminary explanations and October 25 defense scripts govern the YAML. Intake additionally verifies `BREACH.DATE`, separately from the last-payment date, so the fourth Breach of Contract checkbox is offered only when both dates are absent. The source scripts and migration decisions are documented in [the October 25 source guide](docs/source-material/2026-10-25/README.md).
+Normal mode stores research records in `output/clickthrough/collection.sqlite3`
+and exports `sessions.csv`, `defenses.csv`, and `responses.csv`. SQLite is the
+authoritative store; records persist across server restarts. Use
+`--collection-dir PATH` to change the destination and one server process per
+collection directory. Keep research data out of Git. Browser progress is tab-local;
+there is no account sign-in or cross-device resume.
 
-Preliminary questions have headings, and conditional explanation paragraphs retain
-their original document positions. The [affirmative-defense integration review](docs/affirmative-defense-integration-review.md)
-preserves the earlier planning discussion. See [the current flow documentation](docs/decision-tree.md)
-for the implemented rules and subsequent user decisions.
+See the [clickthrough guide](docs/clickthrough-guide.md) for screen behavior,
+debug mode, data definitions, and browser-exit timing limitations.
 
-## Project structure
+## Implementation
 
-- `src/advocate_bot_qualtrics/core/`: reusable conversation engine, chat validation, node schemas, and shared utilities.
-- `src/advocate_bot_qualtrics/practice_areas/consumer_debt/`: YAML tree, session fields, field reuse, defense screening, rendering, and export mapping.
-- `src/advocate_bot_qualtrics/llm/`: structured model calls.
-- `prompts/`: chat instructions and confidence calibration.
-- `scripts/`: local demo and its UI assets.
-- `tests/`: automated routing, intake, screening, Q&A, presentation, and export checks.
+- `scripts/run_clickthrough.py`: FastAPI entry point and API routes.
+- `scripts/assets/clickthrough/`: buildless HTML, CSS, and JavaScript interface.
+- `src/advocate_bot_qualtrics/practice_areas/consumer_debt/workflow.py`: replay,
+  page rendering, edits, and traversal.
+- `defense_content.yaml`, `intake_fields.yaml`, `screen_layout.yaml`, and
+  `script_formatting.yaml`: current wording, intake, layout, and formatting.
+- `base_tree.yaml` and `base_tree.py`: shared base tree used by guided overrides
+  and answer bindings. Historical node IDs remain stable for saved histories.
+- `affirmative_defenses.py`, `session.py`, `preliminary.py`, `rendering.py`, and
+  `sol_dependency_map.py`: shared rules, facts, text substitution, and dependencies.
+- `research_collection.py`: durable research collection and CSV exports.
+- `core/`: shared node/response schemas, tree validation, and error types.
+- `llm/` and `prompts/clickthrough_clarification.md`: optional clarification.
+- `docs/source-material/`: approved Word documents and source history. Current
+  defense wording comes from `2026.11.10/`; intake comes from `2026-10-30/`.
 
-The former `advocate_bot_qualtrics.decision_tree` compatibility package has been removed; use the canonical modules above. The package-level `process_chat` import remains available. The current source documents are in `docs/source-material/2026-10-11/` (preliminary intake) and `docs/source-material/2026-10-25/` (affirmative defenses).
+The conversation-driven chatbot, Gradio interface, confidence scoring, and Excel
+export have been removed. Their pre-removal snapshot is Git commit `b7a72b0`.
+Base-tree nodes and source documents remain where needed by validation, replay,
+shared rules, and provenance tests. Do not prune them solely because they are not
+shown as clickthrough pages.
 
-See [decision-tree structure and field reuse](docs/decision-tree.md) for editing guidance. Restart the demo after changing YAML or Python, then refresh the browser to start a new session.
-
-## Tests
+## Verification
 
 ```bash
 .venv/bin/python -m pytest
+.venv/bin/python scripts/extract_script_formatting.py --check
 ```
+
+Tests cover allowed branches, complete traversal, summaries/open questions,
+intake, uncertainty, explicit selections, edits and invalidations, debug isolation,
+research collection, source wording/formatting, and non-advancing clarification.
+Restart the server after Python or YAML changes and refresh the browser. Changes
+to collection-fingerprinted sources change the recorded tree version; preserve
+historical data when updating the application.

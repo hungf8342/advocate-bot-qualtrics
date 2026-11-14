@@ -16,12 +16,12 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field
 
 from advocate_bot_qualtrics.core.schemas import CurrentNode, NodeExplanation
-from .guided_script_formatting import ScriptFormatter, SOURCE_FORMATTING, normalized
+from .script_formatting import ScriptFormatter, SOURCE_FORMATTING, normalized
 from advocate_bot_qualtrics.core.tree_definition import TreeDefinition
 from advocate_bot_qualtrics.practice_areas.consumer_debt.affirmative_defenses import calendar_cutoff, run_script_action, script_condition, script_fact
-from advocate_bot_qualtrics.practice_areas.consumer_debt.host_extras import _script_text
+from advocate_bot_qualtrics.practice_areas.consumer_debt.rendering import script_text
 from advocate_bot_qualtrics.practice_areas.consumer_debt.session import apply_interactive_branch, init_session
-from advocate_bot_qualtrics.practice_areas.consumer_debt.tree import INTERACTIVE_TREE_DEFINITION as CHAT_TREE
+from advocate_bot_qualtrics.practice_areas.consumer_debt.base_tree import BASE_TREE_DEFINITION as BASE_TREE
 from advocate_bot_qualtrics.practice_areas.consumer_debt.sol_dependency_map import SolDependencyPlan, load_dependency_map, plan_checkbox_review
 
 DEFENSE = "statute_of_limitations"
@@ -53,9 +53,9 @@ SUMMARIES = {spec["summary"] for spec in DEFENSES.values()}
 INTRO_DEFENSES = {spec["intro"]: key for key, spec in DEFENSES.items() if "intro" in spec}
 SUMMARY_DEFENSES = {spec["summary"]: key for key, spec in DEFENSES.items()}
 CONTINUE_PAGES = {*SUMMARIES, PRELIMINARY_SUMMARY, *INTRO_DEFENSES, "guided_welcome", "sol_written"}
-with Path(__file__).with_name("guided_defense_content.yaml").open(encoding="utf-8") as _content_file:
+with Path(__file__).with_name("defense_content.yaml").open(encoding="utf-8") as _content_file:
     CONTENT = yaml.safe_load(_content_file)
-with Path(__file__).with_name("guided_screen_layout.yaml").open(encoding="utf-8") as _layout_file:
+with Path(__file__).with_name("screen_layout.yaml").open(encoding="utf-8") as _layout_file:
     SCREEN_LAYOUT = yaml.safe_load(_layout_file)
 if SCREEN_LAYOUT["source"] != CONTENT["source"] or CONTENT["source"] != SOURCE_FORMATTING["source"]:
     raise ValueError("Screen layout, wording, and formatting must use the same approved source.")
@@ -63,7 +63,7 @@ ACTION_SCREENS = set(SCREEN_LAYOUT["information_screens"])
 PARENT_SCREENS = SCREEN_LAYOUT["parent_screens"]
 EXTRA_SCREENS = SCREEN_LAYOUT["extra_screens"]
 CONTINUE_PAGES.update(ACTION_SCREENS | PARENT_SCREENS.keys() | EXTRA_SCREENS.keys())
-with Path(__file__).with_name("guided_preliminary_fields.yaml").open(encoding="utf-8") as _preliminary_file:
+with Path(__file__).with_name("intake_fields.yaml").open(encoding="utf-8") as _preliminary_file:
     PRELIMINARY = yaml.safe_load(_preliminary_file)
 PRELIMINARY_FIELDS = PRELIMINARY["fields"]
 YES_NO = [
@@ -79,8 +79,8 @@ AMBIGUITY_BOX_LABELS = {"main": ("Ambiguity", "Main checkbox")}
 
 
 def _prototype_tree() -> TreeDefinition:
-    """Validate source-specific patches while leaving the chatbot tree intact."""
-    data = CHAT_TREE.model_dump()
+    """Validate source-specific patches against the shared base tree."""
+    data = BASE_TREE.model_dump()
     data["version"] = "2026.11.10"
     for node in data["nodes"]:
         patch = CONTENT["nodes"].get(node["id"], {})
@@ -117,7 +117,7 @@ def _screen_header(node_id: str, session) -> str | None:
         return None
     reference = next((variant["footnote"] for variant in spec.get("variants", [])
                       if _condition(session, variant["fact_key"]) == variant["equals"]), spec["footnote"])
-    return _script_text(SOURCE_FORMATTING["screen_headers"][reference], session)
+    return script_text(SOURCE_FORMATTING["screen_headers"][reference], session)
 
 
 for _node in TREE.nodes:
@@ -146,10 +146,10 @@ def render_node(node_id, facts, session):
                      if _condition(session, v.fact_key) == v.equals), node.question)
         restatements = [v.text for v in node.fact_restatements
                         if _condition(session, v.fact_key) == v.equals]
-        return _script_text("\n\n".join(part for part in [*restatements, text] if part), session)
+        return script_text("\n\n".join(part for part in [*restatements, text] if part), session)
 
     intro = TREE.node(defense + "_intro")
-    approved = _script_text(intro.explanation.text, session)
+    approved = script_text(intro.explanation.text, session)
     question = wording(definition)
     if node_id == defense + "_confirm":
         selected = any(v == "include" for v in session.checkbox_selections.get(defense, {}).values())
@@ -178,7 +178,7 @@ def _node_wording(node_id: str, session) -> str:
     node = TREE.node(node_id)
     text = next((v.text for v in node.question_variants
                  if _condition(session, v.fact_key) == v.equals), node.question)
-    return _script_text(text, session)
+    return script_text(text, session)
 
 
 def _response_prefix(node_id: str, session) -> tuple[str, str]:
@@ -236,12 +236,12 @@ class GuidedAdvanceRequest(GuidedRequest):
     value: str = Field(min_length=1, max_length=300)
 
 
-class GuidedSolReview:
+class ClickthroughReview:
     def __init__(self, defaults: dict[str, Any] | None = None, *, debug_section: str | None = None):
         if debug_section is not None and debug_section not in {*DEFENSES, "preliminary"}:
             raise ValueError("Choose an implemented defense or preliminary fields.")
         self.debug_section = debug_section
-        # Validate imported facts using the same fact-only contract as chat.
+        # Validate imported facts using the fact-only intake contract.
         init_session(defaults or {})
         self.defaults = defaults or {}
         self.session = init_session()
@@ -257,7 +257,7 @@ class GuidedSolReview:
         self.pending_preliminary_route: str | None = None
         self.calculations: dict[str, str] = {}
 
-    def replay(self, history: list[GuidedAnswer]) -> GuidedSolReview:
+    def replay(self, history: list[GuidedAnswer]) -> ClickthroughReview:
         for answer in history:
             self._restore_separate_intro(answer)
             if answer.node_id != self.current and not self._legacy_intro(answer):
@@ -327,7 +327,7 @@ class GuidedSolReview:
 
     def _finish_answer_response(self, value: str) -> None:
         if self.response_origin == "language_primary" and value != "unknown" and self.current not in ACTION_SCREENS:
-            self.answer_response = [_script_text("You said that your primary language is [LANGUAGE].", self.session)]
+            self.answer_response = [script_text("You said that your primary language is [LANGUAGE].", self.session)]
             return
         if _is_clarification(self.current):
             # The shared unresolved-answer instruction belongs on its own screen.
@@ -371,7 +371,7 @@ class GuidedSolReview:
                 self.answer_response.append(prefix)
                 self.moved_preamble = self.current
             if self.current == "language_negotiation":
-                self.answer_response.extend(_script_text(v.text, self.session) for v in definition.fact_restatements
+                self.answer_response.extend(script_text(v.text, self.session) for v in definition.fact_restatements
                                             if _condition(self.session, v.fact_key) == v.equals)
                 self.moved_preamble = self.current
         self.answer_response = list(dict.fromkeys(text for text in self.answer_response if text.strip()))
@@ -634,7 +634,7 @@ class GuidedSolReview:
                 continue
             if "payment_status" in block and (payment is None or block["payment_status"] != payment.complaint_status):
                 continue
-            help_blocks.append(_script_text(block["text"], self.session))
+            help_blocks.append(script_text(block["text"], self.session))
         help_text = "\n\n".join(help_blocks)
         is_personal = spec["field"] in {"ORAL", "RECOGNIZE", "CONSOLIDATION"}
         body = "Answer about your experience with this account." if is_personal else "Record what the complaint and its attachments say. This does not mean you agree with the claim."
@@ -700,7 +700,7 @@ class GuidedSolReview:
             for index, answer in enumerate(self.history):
                 node = TREE.node_map.get(answer.node_id)
                 if node and node.discussion_topic == DEFENSES[defense]["label"] and node.discussion_mode != "questions" and not node.selection_checkboxes:
-                    result.append({"node_id": node.id, "label": _script_text(node.question, self.session),
+                    result.append({"node_id": node.id, "label": script_text(node.question, self.session),
                                    "value": {"yes": "Yes", "no": "No", "unknown": "Not sure"}.get(answer.value, answer.value), "edit_index": index})
             return result
         if defense == "ambiguity":
@@ -761,7 +761,7 @@ class GuidedSolReview:
 
     def _summary_help(self, defense: str) -> str:
         if defense in self.finish_reasons:
-            intro = _script_text(CONTENT["nodes"][defense + "_intro"]["explanation"], self.session)
+            intro = script_text(CONTENT["nodes"][defense + "_intro"]["explanation"], self.session)
             return intro + "\n\n" + self.finish_reasons[defense]
         return render_node(defense + "_confirm", None, self.session).explanation.text
 
@@ -783,8 +783,8 @@ class GuidedSolReview:
                     "why": "You’ll review each defense using these recorded fields. You do not need to enter them again.",
                     "help_text": "Review the recorded preliminary fields before continuing. Recording a complaint field does not mean you agree with the plaintiff’s claim."}
         elif self.current in INTRO_DEFENSES:
-            explanation = _script_text(CONTENT["nodes"][defense + "_intro"]["explanation"], self.session)
-            restatements = [_script_text(v.text, self.session) for v in TREE.node(defense + "_intro").fact_restatements if _condition(self.session, v.fact_key) == v.equals]
+            explanation = script_text(CONTENT["nodes"][defense + "_intro"]["explanation"], self.session)
+            restatements = [script_text(v.text, self.session) for v in TREE.node(defense + "_intro").fact_restatements if _condition(self.session, v.fact_key) == v.equals]
             page = {"title": section, "body": [explanation, *restatements], "input_type": "continue", "stage": 1,
                     "next_label": "Review this defense", "why": "We’ll reuse your preliminary fields and ask only the additional questions needed for this defense.",
                     "help_text": explanation}
@@ -795,11 +795,11 @@ class GuidedSolReview:
                 text = _node_wording(self.current, self.session)
             elif self.current in PARENT_SCREENS:
                 selected = self.session.checkbox_selections.get(defense, {}).get("main") == "include"
-                text = _script_text(CONTENT["parent_outcomes"][defense]["selected" if selected else "empty"], self.session)
+                text = script_text(CONTENT["parent_outcomes"][defense]["selected" if selected else "empty"], self.session)
             else:
                 body = next(body for body in EXTRA_SCREENS[self.current]["bodies"]
                             if "fact_key" not in body or _condition(self.session, body["fact_key"]) == body["equals"])
-                text = _script_text(body["text"], self.session)
+                text = script_text(body["text"], self.session)
             page = {"title": _screen_header(self.current, self.session), "body": [text],
                     "input_type": "continue", "stage": 1, "help_text": text,
                     "why": "Review the guidance before confirming your selections."}
@@ -869,14 +869,14 @@ class GuidedSolReview:
             if self.current == "sol_payment_age":
                 # V3 retains the original footnote header and adds the plaintiff
                 # to the quoted question displayed within that screen.
-                page["title"] = _script_text("Was your last payment after [COMPLAINT.DATE - 1 year]?", self.session)
+                page["title"] = script_text("Was your last payment after [COMPLAINT.DATE - 1 year]?", self.session)
                 page["body"] = [*self.notices, _node_wording(self.current, self.session)]
                 page["question_text"] = _node_wording(self.current, self.session)
             if _is_clarification(self.current):
                 page.update(title=SOURCE_FORMATTING["screen_headers"][SCREEN_LAYOUT["clarification_footnote"]],
                             body=[CONTENT["shared_clarification"], *self.notices], input_type="continue", options=[])
         if self.current in PRESENTATION["explanation_on_question"].get(defense, []):
-            explanation = _script_text(CONTENT["nodes"][defense + "_intro"]["explanation"], self.session)
+            explanation = script_text(CONTENT["nodes"][defense + "_intro"]["explanation"], self.session)
             question = page["title"]
             page["body"] = [explanation, *[text for text in page["body"] if text != explanation], question]
             page["question_text"] = question
@@ -899,7 +899,7 @@ class GuidedSolReview:
                         (self.current != "sol_payment_age" or previous.filing_date == self.session.filing_date)):
                     page["default_value"] = previous.answer.value
             if self.current in {*SUMMARIES, COMPLETE}:
-                previous_review = GuidedSolReview(self.defaults, debug_section=self.debug_section).replay(self.revision.previous_history)
+                previous_review = ClickthroughReview(self.defaults, debug_section=self.debug_section).replay(self.revision.previous_history)
                 before = {(row["defense_id"], row["id"]): row for key in DEFENSES for row in previous_review._rows(key)}
                 visited = {answer.node_id for answer in previous_review.history}
                 settled = set(previous_review.finish_reasons) | {
@@ -948,7 +948,7 @@ class GuidedSolReview:
                            explanation=NodeExplanation(text=page["help_text"]))
 
 
-def _payment_date(review: GuidedSolReview) -> date | None:
+def _payment_date(review: ClickthroughReview) -> date | None:
     entry = review.session.preliminary_fields.get("LAST-PAYMENT-DATE")
     return entry.complaint_value if entry and isinstance(entry.complaint_value, date) else None
 
@@ -960,7 +960,7 @@ def _timing_result(payment: date | None, filing: date | None) -> bool | None:
 
 
 def _saved_answers(defaults: dict, history: list[GuidedAnswer], *, debug_section: str | None = None) -> dict[str, SavedAnswer]:
-    review = GuidedSolReview(defaults, debug_section=debug_section)
+    review = ClickthroughReview(defaults, debug_section=debug_section)
     saved = {}
     for answer in history:
         # Validate the source path before treating any of its answers as reusable.
@@ -973,7 +973,7 @@ def _saved_answers(defaults: dict, history: list[GuidedAnswer], *, debug_section
     return saved
 
 
-def _reusable_answer(review: GuidedSolReview, saved: dict[str, SavedAnswer], plan: SolDependencyPlan | None = None) -> GuidedAnswer | None:
+def _reusable_answer(review: ClickthroughReview, saved: dict[str, SavedAnswer], plan: SolDependencyPlan | None = None) -> GuidedAnswer | None:
     node = review.current
     record = saved.get(node)
     if node in {"laches", "laches_statements", "laches_lost_info"}:
@@ -1038,10 +1038,10 @@ def _reusable_answer(review: GuidedSolReview, saved: dict[str, SavedAnswer], pla
     return None
 
 
-def _dependency_plan(review: GuidedSolReview, saved: dict[str, SavedAnswer], changed_field: str | None) -> SolDependencyPlan:
+def _dependency_plan(review: ClickthroughReview, saved: dict[str, SavedAnswer], changed_field: str | None) -> SolDependencyPlan:
     """Work backward from the checkbox goals using all still-valid known facts."""
     records = {**saved, **_saved_answers(review.defaults, review.history, debug_section=review.debug_section)}
-    assessment = GuidedSolReview(review.defaults, debug_section=review.debug_section)
+    assessment = ClickthroughReview(review.defaults, debug_section=review.debug_section)
     for node in PRELIMINARY_FIELDS:
         if node in records:
             assessment._intake(node, records[node].answer.value, advance=False)
@@ -1080,7 +1080,7 @@ def _dependency_plan(review: GuidedSolReview, saved: dict[str, SavedAnswer], cha
     )
 
 
-def _resume_review(review: GuidedSolReview, revision: GuidedRevision) -> GuidedSolReview:
+def _resume_review(review: ClickthroughReview, revision: GuidedRevision) -> ClickthroughReview:
     saved = {record.answer.node_id: record for record in revision.saved_answers}
     plan = _dependency_plan(review, saved, revision.changed_field)
     revision = revision.model_copy(update={"plan": plan})
@@ -1119,8 +1119,8 @@ def _resume_review(review: GuidedSolReview, revision: GuidedRevision) -> GuidedS
     return review
 
 
-def edit_review(defaults: dict, request: GuidedEditRequest) -> GuidedSolReview:
-    current = GuidedSolReview(defaults, debug_section=request.debug_section).replay(request.history)
+def edit_review(defaults: dict, request: GuidedEditRequest) -> ClickthroughReview:
+    current = ClickthroughReview(defaults, debug_section=request.debug_section).replay(request.history)
     if request.edit_index >= len(request.history):
         raise ValueError("Choose an answer that is already part of the review.")
     original = request.history[request.edit_index]
@@ -1155,14 +1155,14 @@ def edit_review(defaults: dict, request: GuidedEditRequest) -> GuidedSolReview:
     revision = GuidedRevision(previous_history=request.revision.previous_history if in_progress else request.history,
                               saved_answers=list(saved.values()), changed_field=original.node_id)
     history = request.history[:request.edit_index] + [GuidedAnswer(node_id=original.node_id, value=request.value)]
-    return _resume_review(GuidedSolReview(defaults, debug_section=request.debug_section).replay(history), revision)
+    return _resume_review(ClickthroughReview(defaults, debug_section=request.debug_section).replay(history), revision)
 
 
-def advance_review(defaults: dict, request: GuidedAdvanceRequest) -> GuidedSolReview:
-    current = GuidedSolReview(defaults, debug_section=request.debug_section).replay(request.history)
+def advance_review(defaults: dict, request: GuidedAdvanceRequest) -> ClickthroughReview:
+    current = ClickthroughReview(defaults, debug_section=request.debug_section).replay(request.history)
     answer = GuidedAnswer(node_id=current.current, value=request.value)
     history = request.history + [answer]
-    updated = GuidedSolReview(defaults, debug_section=request.debug_section).replay(history)
+    updated = ClickthroughReview(defaults, debug_section=request.debug_section).replay(history)
     if request.revision is None or updated.current == COMPLETE:
         updated.revision = request.revision
         return updated

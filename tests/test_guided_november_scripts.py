@@ -1,11 +1,11 @@
 """November 10 source: scope, nested choices, uncertainty, and full traversal."""
 import pytest
 
-from advocate_bot_qualtrics.practice_areas.consumer_debt.guided_sol import (
+from advocate_bot_qualtrics.practice_areas.consumer_debt.workflow import (
     COMPLETE, CONTENT, CONTINUE_PAGES, DEFENSES, TREE, GuidedAdvanceRequest, GuidedEditRequest,
-    GuidedRequest, GuidedSolReview, advance_review, edit_review,
+    GuidedRequest, ClickthroughReview, advance_review, edit_review,
 )
-from test_guided_sol import intake, review, advance_updated, default_answer
+from test_clickthrough_workflow import intake, review, advance_updated, default_answer
 
 
 def reach(defense, *, suit='both', consolidation='no', recognize='yes'):
@@ -13,7 +13,7 @@ def reach(defense, *, suit='both', consolidation='no', recognize='yes'):
     values = {'guided_suit_type': suit, 'guided_consolidation': consolidation, 'guided_recognize': recognize}
     history = [a.model_copy(update={'value': values[a.node_id]}) if a.node_id in values else a for a in history]
     current = review(history)
-    from advocate_bot_qualtrics.practice_areas.consumer_debt.guided_sol import PRESENTATION
+    from advocate_bot_qualtrics.practice_areas.consumer_debt.workflow import PRESENTATION
     combined = defense in PRESENTATION['explanation_on_question']
     target = TREE.node(defense+'_intro').next if combined else DEFENSES[defense].get('intro', defense + '_decision')
     for _ in range(250):

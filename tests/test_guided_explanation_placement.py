@@ -1,16 +1,16 @@
 """Defense headings and explanation placement follow the screening structure."""
 import pytest
 
-from advocate_bot_qualtrics.practice_areas.consumer_debt.guided_debug import jump_to_section
-from advocate_bot_qualtrics.practice_areas.consumer_debt.guided_sol import (
-    CONTENT,DEFENSES,GuidedSolReview,GuidedAnswer,GuidedEditRequest,edit_review,
+from advocate_bot_qualtrics.practice_areas.consumer_debt.debug_navigation import jump_to_section
+from advocate_bot_qualtrics.practice_areas.consumer_debt.workflow import (
+    CONTENT,DEFENSES,ClickthroughReview,GuidedAnswer,GuidedEditRequest,edit_review,
 )
-from test_guided_sol import review,advance_updated,both_defenses_history,answers
+from test_clickthrough_workflow import review,advance_updated,both_defenses_history,answers
 
 
 @pytest.mark.parametrize('choice',['yes','no'])
 def test_mistake_general_explanation_and_checkbox_share_one_screen(choice):
-    current=jump_to_section(GuidedSolReview(),'mistake')
+    current=jump_to_section(ClickthroughReview(),'mistake')
     page=current.page()
     assert current.current=='mistake_decision'
     assert page['title']=='Mistake'
@@ -36,7 +36,7 @@ def test_normal_traversal_goes_directly_from_ambiguity_review_to_mistake_questio
 
 
 def test_laches_explanation_has_its_own_page_before_screening():
-    current=jump_to_section(GuidedSolReview(),'laches')
+    current=jump_to_section(ClickthroughReview(),'laches')
     assert current.current=='guided_laches_intro'
     assert current.page()['title']=='Laches'
     assert current.page()['input_type']=='continue'
@@ -59,7 +59,7 @@ def test_laches_explanation_has_its_own_page_before_screening():
 
 
 def test_laches_general_explanation_is_shown_even_if_no_checkbox_is_offered():
-    current=jump_to_section(GuidedSolReview(),'laches')
+    current=jump_to_section(ClickthroughReview(),'laches')
     assert 'Laches may apply if:' in ' '.join(current.page()['body'])
     current=advance_updated(current,'continue')
     for answer in ['no','no','no']:
@@ -72,9 +72,9 @@ def test_laches_general_explanation_is_shown_even_if_no_checkbox_is_offered():
 
 @pytest.mark.parametrize('defense,question',[('mistake','mistake_decision'),('laches','laches')])
 def test_old_saved_intro_records_remain_replayable_and_editable(defense,question):
-    fresh=jump_to_section(GuidedSolReview(),defense)
+    fresh=jump_to_section(ClickthroughReview(),defense)
     history=fresh.history+[GuidedAnswer(node_id=DEFENSES[defense]['intro'],value='continue')]
-    current=GuidedSolReview(debug_section=defense).replay(history)
+    current=ClickthroughReview(debug_section=defense).replay(history)
     assert current.current==question
     assert current.page()['input_type']=='choice'
     index=next(i for i,a in enumerate(history) if a.node_id=='guided_plaintiff')
@@ -83,7 +83,7 @@ def test_old_saved_intro_records_remain_replayable_and_editable(defense,question
 
 
 def test_general_explanation_survives_mistake_uncertainty_retry():
-    current=jump_to_section(GuidedSolReview(),'mistake')
+    current=jump_to_section(ClickthroughReview(),'mistake')
     original=current.page()['body_blocks']
     current=advance_updated(current,'unknown')
     current=advance_updated(current,'retry')
@@ -112,14 +112,14 @@ def test_old_completed_path_keeps_choices_after_an_unrelated_edit():
 
 @pytest.mark.parametrize('defense', DEFENSES)
 def test_every_defense_starts_with_its_name_as_the_heading(defense):
-    current=jump_to_section(GuidedSolReview(),defense)
-    from advocate_bot_qualtrics.practice_areas.consumer_debt.guided_sol import _screen_header
+    current=jump_to_section(ClickthroughReview(),defense)
+    from advocate_bot_qualtrics.practice_areas.consumer_debt.workflow import _screen_header
     assert current.page()['title']==(_screen_header(current.current,current.session) or DEFENSES[defense]['label'])
 
 
 @pytest.mark.parametrize('defense',['ambiguity','mistake','unconscionable_contract'])
 def test_defenses_without_screening_have_the_question_in_the_body(defense):
-    current=jump_to_section(GuidedSolReview(),defense)
+    current=jump_to_section(ClickthroughReview(),defense)
     page=current.page()
     assert page['input_type']=='choice'
     assert page['question_text']==f"Do you want to check off {DEFENSES[defense]['label']}?"
@@ -128,10 +128,10 @@ def test_defenses_without_screening_have_the_question_in_the_body(defense):
 
 
 def test_saved_laches_path_without_intro_replays_and_edits():
-    current=jump_to_section(GuidedSolReview(),'laches')
+    current=jump_to_section(ClickthroughReview(),'laches')
     history=current.history+answers(('laches','yes'),('laches_statements','no'),
                                     ('laches_lost_info','no'),('laches_decision','yes'))
-    current=GuidedSolReview(debug_section='laches').replay(history)
+    current=ClickthroughReview(debug_section='laches').replay(history)
     assert current.current==DEFENSES['laches']['summary']
     assert current.history==history
     index=next(i for i,a in enumerate(history) if a.node_id=='guided_plaintiff')

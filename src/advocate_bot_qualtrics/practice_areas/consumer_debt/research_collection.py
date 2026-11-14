@@ -14,9 +14,9 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
-from .guided_sol import (
+from .workflow import (
     COMPLETE, CONTINUE_PAGES, DEFENSES, PRELIMINARY_FIELDS, GuidedAdvanceRequest,
-    GuidedSolReview, advance_review, TREE, PARENT_SCREENS, ACTION_SCREENS,
+    ClickthroughReview, advance_review, TREE, PARENT_SCREENS, ACTION_SCREENS,
 )
 from .sol_dependency_map import affected_checkboxes
 
@@ -68,7 +68,7 @@ def defense_for(node: str) -> set[str]:
             if definition and definition.discussion_topic == spec['label']}
 
 
-def snapshot(current: GuidedSolReview) -> tuple[dict, dict, set[str]]:
+def snapshot(current: ClickthroughReview) -> tuple[dict, dict, set[str]]:
     """Include valid retained answers beyond a revision's intermediate summary.
 
     Walk only previously visited continuation pages. This does not confirm anything
@@ -130,7 +130,7 @@ def snapshot(current: GuidedSolReview) -> tuple[dict, dict, set[str]]:
     return values, defenses, pending
 
 
-class GuidedCollection:
+class ResearchCollection:
     """SQLite is authoritative; CSVs are atomically replaced after each write.
 
     One local prototype server owns an output directory. A lock serializes its
@@ -141,11 +141,11 @@ class GuidedCollection:
         self.directory.mkdir(parents=True, exist_ok=True)
         self.lock = RLock()
         digest = hashlib.sha256()
-        for filename in ('interactive_tree.yaml', 'guided_preliminary_fields.yaml',
-                         'guided_defense_content.yaml', 'guided_script_formatting.yaml',
-                         'guided_script_formatting.py', 'guided_screen_layout.yaml', 'sol_checkbox_dependencies.yaml',
-                         'guided_sol.py', 'affirmative_defenses.py', 'sol_dependency_map.py',
-                         'session.py', 'preliminary.py', 'guided_collection.py'):
+        for filename in ('base_tree.yaml', 'intake_fields.yaml',
+                         'defense_content.yaml', 'script_formatting.yaml',
+                         'script_formatting.py', 'screen_layout.yaml', 'sol_checkbox_dependencies.yaml',
+                         'workflow.py', 'affirmative_defenses.py', 'sol_dependency_map.py',
+                         'session.py', 'preliminary.py', 'rendering.py', 'research_collection.py'):
             digest.update(Path(__file__).with_name(filename).read_bytes())
         self.version = 'guided-17-defenses-2026-11-10-' + digest.hexdigest()[:16]
         with self.connect() as db:
@@ -185,7 +185,7 @@ class GuidedCollection:
     def save(db, session_id, data):
         db.execute('INSERT OR REPLACE INTO sessions VALUES (?, ?)', (str(session_id), json.dumps(data)))
 
-    def record(self, context: CollectionContext, current: GuidedSolReview, node: str, value: str):
+    def record(self, context: CollectionContext, current: ClickthroughReview, node: str, value: str):
         values, defenses, pending = snapshot(current)
         submitted = item_id(node)
         with self.lock, self.connect() as db:

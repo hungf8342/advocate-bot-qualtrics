@@ -1,10 +1,10 @@
 """November 10 summary descriptors, source changes, and ordered mitigation edits."""
 import pytest
 
-from advocate_bot_qualtrics.practice_areas.consumer_debt.guided_sol import (
+from advocate_bot_qualtrics.practice_areas.consumer_debt.workflow import (
     CONTENT, DEFENSES, GuidedEditRequest, edit_review,
 )
-from advocate_bot_qualtrics.practice_areas.consumer_debt.guided_script_formatting import SOURCE_FORMATTING
+from advocate_bot_qualtrics.practice_areas.consumer_debt.script_formatting import SOURCE_FORMATTING
 from test_guided_november9_screens import begin, start, step
 
 

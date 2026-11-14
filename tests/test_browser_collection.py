@@ -36,7 +36,7 @@ const context = vm.createContext({
   Date: class extends Date { constructor(...args) { super(...(args.length ? args : [clock])); } },
   fetch(path, options) { requests.push({path, data:JSON.parse(options.body)}); return new Promise(() => {}); },
 });
-vm.runInContext(fs.readFileSync('scripts/assets/guided_sol/app.js','utf8'), context);
+vm.runInContext(fs.readFileSync('scripts/assets/clickthrough/app.js','utf8'), context);
 vm.runInContext(`
   renderVisual = () => {}; inputControls = () => {}; detailsRows = () => {}; renderChat = () => {};
   page = {node_id:'test-question',section:'Test',section_number:1,section_count:5,
@@ -138,7 +138,7 @@ const context = vm.createContext({
   crypto:{randomUUID() {return 'test-uuid';}},
   fetch(path, options) {return new Promise(resolve=>requests.push({path,data:JSON.parse(options.body),signal:options.signal,resolve}));},
 });
-vm.runInContext(fs.readFileSync('scripts/assets/guided_sol/app.js','utf8'),context);
+vm.runInContext(fs.readFileSync('scripts/assets/clickthrough/app.js','utf8'),context);
 function run(code) {return vm.runInContext(code,context);}
 function responseText() {return node('answer-response').children.map(n=>n.textContent).filter(Boolean).join(' ');}
 function fireTimer() {const [id,callback]=[...timers.entries()].at(-1);timers.delete(id);return callback();}

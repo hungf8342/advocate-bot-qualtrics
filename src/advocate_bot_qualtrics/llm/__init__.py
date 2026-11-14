@@ -1,1 +1,1 @@
-"""LLM integrations used by the interactive chatbot."""
+"""Model integration for optional clickthrough clarification."""

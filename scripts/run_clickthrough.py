@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the guided defense prototype: .venv/bin/python scripts/guided_clickthrough_demo.py."""
+"""Run the guided defense prototype: .venv/bin/python scripts/run_clickthrough.py."""
 from __future__ import annotations
 
 import argparse
@@ -17,15 +17,15 @@ from pydantic import BaseModel, ConfigDict, Field
 from advocate_bot_qualtrics.config import PROMPTS_DIR
 from advocate_bot_qualtrics.core.schemas import ChatTurnResponse
 from advocate_bot_qualtrics.llm.chat_structured import submit_chat_turn
-from advocate_bot_qualtrics.practice_areas.consumer_debt.guided_sol import (
-    GuidedAdvanceRequest, GuidedEditRequest, GuidedRequest, GuidedSolReview,
+from advocate_bot_qualtrics.practice_areas.consumer_debt.workflow import (
+    GuidedAdvanceRequest, GuidedEditRequest, GuidedRequest, ClickthroughReview,
     advance_review, edit_review,
 )
-from advocate_bot_qualtrics.practice_areas.consumer_debt.guided_collection import CollectionContext, GuidedCollection
-from advocate_bot_qualtrics.practice_areas.consumer_debt.guided_debug import jump_to_section
+from advocate_bot_qualtrics.practice_areas.consumer_debt.research_collection import CollectionContext, ResearchCollection
+from advocate_bot_qualtrics.practice_areas.consumer_debt.debug_navigation import jump_to_section
 
 ROOT = Path(__file__).resolve().parents[1]
-ASSETS = ROOT / "scripts/assets/guided_sol"
+ASSETS = ROOT / "scripts/assets/clickthrough"
 
 
 class HelpMessage(BaseModel):
@@ -65,19 +65,19 @@ class EndRequest(BaseModel):
 
 def create_app(complaint_fields: dict | None = None, *, collection_dir: Path | None = None, debug: bool = False) -> FastAPI:
     defaults = dict(complaint_fields or {})
-    GuidedSolReview(defaults)  # Fail early on an invalid example input.
+    ClickthroughReview(defaults)  # Fail early on an invalid example input.
     app = FastAPI(title="Debt case guide · Guided defense prototype", docs_url=None, redoc_url=None)
-    collection = None if debug else GuidedCollection(collection_dir or ROOT / "output/clickthrough")
+    collection = None if debug else ResearchCollection(collection_dir or ROOT / "output/clickthrough")
     app.state.collection = collection
     app.mount("/assets", StaticFiles(directory=ASSETS), name="assets")
 
-    def review(request: GuidedRequest) -> GuidedSolReview:
+    def review(request: GuidedRequest) -> ClickthroughReview:
         try:
             if request.debug_section is not None and not debug:
                 raise ValueError("Section jumping is available only in debug mode.")
             if request.revision:
-                GuidedSolReview(defaults, debug_section=request.debug_section).replay(request.revision.previous_history)
-            current = GuidedSolReview(defaults, debug_section=request.debug_section).replay(request.history)
+                ClickthroughReview(defaults, debug_section=request.debug_section).replay(request.revision.previous_history)
+            current = ClickthroughReview(defaults, debug_section=request.debug_section).replay(request.history)
             current.revision = request.revision
             return current
         except ValueError as exc:
@@ -118,7 +118,7 @@ def create_app(complaint_fields: dict | None = None, *, collection_dir: Path | N
             raise HTTPException(status_code=422, detail=str(exc)) from exc
         return {"saved": True}
 
-    def workflow_result(current: GuidedSolReview):
+    def workflow_result(current: ClickthroughReview):
         return {"history": [a.model_dump(mode="json") for a in current.history],
                 "revision": current.revision.model_dump(mode="json") if current.revision else None,
                 "debug_section": current.debug_section,
@@ -189,7 +189,7 @@ def create_app(complaint_fields: dict | None = None, *, collection_dir: Path | N
                 raise HTTPException(status_code=422, detail=str(exc)) from exc
         try:
             turn = submit_chat_turn(
-                system=(PROMPTS_DIR / "guided_sol_clarification_system.md").read_text(encoding="utf-8"),
+                system=(PROMPTS_DIR / "clickthrough_clarification.md").read_text(encoding="utf-8"),
                 payload=payload,
             )
         except Exception as exc:

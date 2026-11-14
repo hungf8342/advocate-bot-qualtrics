@@ -1,8 +1,8 @@
 """Revision comparisons need an actual earlier choice or completed review."""
-from advocate_bot_qualtrics.practice_areas.consumer_debt.guided_sol import (
+from advocate_bot_qualtrics.practice_areas.consumer_debt.workflow import (
     COMPLETE, DEFENSE, SUMMARY, SUMMARIES,
 )
-from test_guided_sol import (
+from test_clickthrough_workflow import (
     advance_updated, answers, change, completed_history, default_answer, intake,
 )
 

@@ -6,7 +6,7 @@ import re
 
 import yaml
 
-from .host_extras import _script_text
+from .rendering import script_text
 
 with Path(__file__).with_suffix('.yaml').open(encoding='utf-8') as source:
     SOURCE_FORMATTING = yaml.safe_load(source)
@@ -47,7 +47,7 @@ class ScriptFormatter:
                 rendered=paragraph['text']
                 for token in tokens:
                     if token not in self.tokens:
-                        self.tokens[token]=_script_text(token,self.session)
+                        self.tokens[token]=script_text(token,self.session)
                     rendered=rendered.replace(token,self.tokens[token])
                 entries.append((normalized(rendered),{**paragraph,'text':rendered}))
             self.dynamic[first]=entries

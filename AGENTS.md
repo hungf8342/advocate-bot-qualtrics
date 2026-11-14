@@ -2,83 +2,74 @@
 
 ## Environment and common commands
 
-This repository uses a local virtual environment at `.venv/`. It is intentionally
-gitignored. Do not rely on activating it: agent command sessions may be fresh
-shells. Use its interpreter explicitly instead.
-
-Create the environment and install development/demo dependencies (once per
-checkout):
+Use Python 3.11 or newer and the gitignored `.venv/` interpreter explicitly;
+agent command sessions may be fresh shells.
 
 ```bash
 python -m venv .venv
 .venv/bin/python -m pip install -e ".[dev,demo]"
-```
-
-Use these commands for normal work:
-
-```bash
 .venv/bin/python -m pytest
-.venv/bin/python scripts/guided_clickthrough_demo.py
+.venv/bin/python scripts/run_clickthrough.py
+.venv/bin/python scripts/run_clickthrough.py --debug
+.venv/bin/python scripts/extract_script_formatting.py --check
 ```
 
-For an interactive human terminal only, activation remains optional:
-
-```bash
-source .venv/bin/activate
-```
+Activation is optional for interactive human terminals. On Windows, use
+`.venv\Scripts\python.exe` in place of `.venv/bin/python`.
 
 ## Scope
 
-- The clickthrough prototype is the application to use and build on. Its entry
-  point is `scripts/guided_clickthrough_demo.py`, its UI is in
-  `scripts/assets/guided_sol/`, and its workflow is in
-  `practice_areas/consumer_debt/guided_sol.py`.
-- The old conversation-driven chatbot (`core/process_chat.py`, `core/engine.py`,
-  and `scripts/interactive_chat_demo.py`) is legacy code slated for retirement.
-  Do not add features there. See `docs/chatbot-retirement-audit.md` before deleting
-  modules: the clickthrough still uses shared tree, session, and defense logic.
-- Consumer-debt questions and routing use `interactive_tree.yaml` plus the
-  `guided_*.yaml` content/layout files. Screening rules remain in
-  `affirmative_defenses.py` in the same practice-area directory.
-- The old `decision_tree/` compatibility package has been removed. Use canonical
-  `core/` and practice-area imports.
-- Document extraction, autonomous fact-sheet traversal, and the simulator are
-  not present in this checkout.
+- The clickthrough is the application to use and build on. Entry point:
+  `scripts/run_clickthrough.py`; UI: `scripts/assets/clickthrough/`;
+  workflow: `practice_areas/consumer_debt/workflow.py` under the package.
+- The conversation engine, `process_chat`, bundle registry, Gradio interface,
+  confidence scoring, and Excel export have been removed. Do not restore them
+  as dependencies of the clickthrough. The pre-removal snapshot is `b7a72b0`.
+- `base_tree.yaml` is still the shared base tree. Guided content/layout
+  overlays and answer bindings depend on its node IDs. Keep it and its source
+  documents; do not prune nodes merely because the interface skips them.
+- Current defense wording/formatting follows the November 10 source for 17
+  defenses (1, 2, 5, 8, 9–21); preliminary fields follow the October 30 source.
+- Screening rules belong in `affirmative_defenses.py`; page traversal and edits
+  belong in `workflow.py`; text substitution lives in `rendering.py`.
+- Document extraction, autonomous traversal, account sign-in, and cross-device
+  resume are not implemented.
 
 ## Data contract
 
-- Case facts come from user answers. Clickthrough requests replay answer history
-  into a session; normal mode collects research records through
-  `guided_collection.py` in SQLite with CSV exports. Debug mode disables collection.
-- The clickthrough filing-date field is `COMPLAINT.DATE`, bound to
-  `session.filing_date`, then used directly by SOL screening.
-- Defense analysis belongs in practice-area decision logic. If document
-  extraction is restored, keep its output fact-only; do not add defense judgments
-  to `ComplaintFactSheet` (`schema_version: "1.1"`).
+- Facts come from submitted form answers. Requests replay validated history into
+  a session. Example defaults are not effective facts until submitted.
+- The clickthrough filing-date field is `COMPLAINT.DATE`, bound to the internal
+  `FILING-DATE` field and `session.filing_date` for SOL screening.
+- Unknown, missing, and No remain distinct. Only explicit user choices select
+  checkboxes. Changes retain independent answers and invalidate affected results.
+- Normal mode collects through `research_collection.py`: SQLite is authoritative,
+  with session, defense, and longitudinal response CSV exports. Use one server
+  process per collection directory. Preserve historical research records.
+- Debug mode disables collection and keeps separate browser progress.
 
-## LLM output requirements
+## Clarification chat
 
-- Clickthrough clarification-chat responses must remain structured with:
-  - `user_intent`
-  - `assistant_reply`
-  - `next_node_id`
-- Clarification chat must not record answers or advance the clickthrough;
+- Keep structured responses with `user_intent`, `assistant_reply`, and
+  `next_node_id`. Clarification must not record answers or advance the guide;
   `next_node_id` must be `null` in its API response.
-- While the legacy chatbot remains, its advancing responses must use a current
-  branch ID; non-answer responses must have `next_node_id: null`.
+- Use only the current approved page context and recorded facts. Keep approved
+  explanations available when the provider is unavailable.
+- The optional provider is Z.ai through the OpenAI-compatible client. Form
+  traversal and research collection require no model calls.
 
 ## Repository safety
 
-- Never commit `.env`.
-- Never commit generated files in `output/`.
-- Keep `.env.example` secret-free.
+- Never commit `.env` or generated files in `output/`.
+- Keep `.env.example` secret-free and do not change local credentials.
+- Preserve approved Word source documents and formatting metadata.
 
 ## Testing
 
 - Add or update tests whenever node schemas, routing validation, or prompts change.
-- Ensure clickthrough tests cover:
-  - valid branch constraints
-  - terminal-node completion
-  - summary/open-questions output
-  - edits, retained answers, and invalidations
-  - research collection and debug-mode isolation
+- Keep shared rule/intake tests independent of a conversational engine.
+- Cover valid branch constraints, terminal completion, summaries/open questions,
+  edits/retained answers/invalidations, collection persistence, debug isolation,
+  and non-advancing clarification.
+- Collection fingerprints include source files; test version transitions while
+  retaining historical records when changing those sources.

@@ -6,9 +6,9 @@ from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
 
-from advocate_bot_qualtrics.practice_areas.consumer_debt.guided_debug import jump_to_section
-from advocate_bot_qualtrics.practice_areas.consumer_debt.guided_sol import (
-    DEFENSES, PRELIMINARY_FIELDS, PRELIMINARY_SUMMARY, GuidedAnswer, GuidedSolReview,
+from advocate_bot_qualtrics.practice_areas.consumer_debt.debug_navigation import jump_to_section
+from advocate_bot_qualtrics.practice_areas.consumer_debt.workflow import (
+    DEFENSES, PRELIMINARY_FIELDS, PRELIMINARY_SUMMARY, GuidedAnswer, ClickthroughReview,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 @pytest.fixture
 def debug_client(tmp_path):
-    module = runpy.run_path(str(ROOT/'scripts/guided_clickthrough_demo.py'))
+    module = runpy.run_path(str(ROOT/'scripts/run_clickthrough.py'))
     app = module['create_app'](debug=True, collection_dir=tmp_path/'research')
     return TestClient(app), tmp_path/'research'
 
@@ -33,7 +33,7 @@ def test_jump_to_every_defense_fills_intake_without_answering_skipped_defenses(d
     response = client.post('/api/debug/jump',json={'section':section})
     assert response.status_code == 200,response.text
     result = response.json()
-    current = GuidedSolReview(debug_section=section).replay([GuidedAnswer(**a) for a in result['history']])
+    current = ClickthroughReview(debug_section=section).replay([GuidedAnswer(**a) for a in result['history']])
     assert current._current_defense() == section
     assert current.session.preliminary_fields['SUIT-TYPE'].value == 'both'
     assert current.session.preliminary_fields['ORAL'].value == 'no'
@@ -49,7 +49,7 @@ def test_jump_to_every_defense_fills_intake_without_answering_skipped_defenses(d
 
 
 def test_partial_intake_and_valid_current_draft_are_preserved():
-    current = GuidedSolReview().replay([
+    current = ClickthroughReview().replay([
         GuidedAnswer(node_id='guided_welcome',value='continue'),
         GuidedAnswer(node_id='guided_case_number',value='MY-CASE'),
     ])
@@ -65,7 +65,7 @@ def test_repeated_jumps_keep_case_details_and_never_mark_prior_defenses_complete
     first = client.post('/api/debug/jump',json={'section':'capacity'}).json()
     second = client.post('/api/debug/jump',json={'history':first['history'],'debug_section':'capacity','section':'common_counts'}).json()
     assert second['debug_section'] == 'common_counts'
-    current = GuidedSolReview(debug_section='common_counts').replay([GuidedAnswer(**a) for a in second['history']])
+    current = ClickthroughReview(debug_section='common_counts').replay([GuidedAnswer(**a) for a in second['history']])
     assert current.session.preliminary_fields['SUIT-TYPE'].value == 'both'
     assert current.session.defense_results == {}
     assert not any(a.node_id=='capacity_minor' for a in current.history)
@@ -102,7 +102,7 @@ def test_debug_never_creates_research_records_even_if_collection_context_is_sent
 
 
 def test_normal_mode_rejects_debug_jumps_and_debug_anchors(tmp_path):
-    module=runpy.run_path(str(ROOT/'scripts/guided_clickthrough_demo.py'))
+    module=runpy.run_path(str(ROOT/'scripts/run_clickthrough.py'))
     client=TestClient(module['create_app'](collection_dir=tmp_path))
     assert 'data-debug-mode="true"' not in client.get('/').text
     assert client.post('/api/debug/jump',json={'section':'ambiguity'}).status_code == 404
@@ -135,11 +135,11 @@ def test_jump_after_back_preserves_other_confirmed_fields_and_current_draft(debu
 def test_page_versions_assets_and_refreshes_version_when_asset_changes(tmp_path):
     import re
     import shutil
-    module=runpy.run_path(str(ROOT/'scripts/guided_clickthrough_demo.py'))
+    module=runpy.run_path(str(ROOT/'scripts/run_clickthrough.py'))
     assets=tmp_path/'assets'
     assets.mkdir()
     for name in ['index.html','app.js','style.css']:
-        shutil.copyfile(ROOT/'scripts/assets/guided_sol'/name, assets/name)
+        shutil.copyfile(ROOT/'scripts/assets/clickthrough'/name, assets/name)
     module['create_app'].__globals__['ASSETS']=assets
     client=TestClient(module['create_app'](debug=True))
     first=client.get('/')

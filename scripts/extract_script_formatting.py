@@ -12,7 +12,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / 'docs/source-material/2026.11.10/2026.11.10 Affirmative-Defense-Scripts.docx'
-OUTPUT = ROOT / 'src/advocate_bot_qualtrics/practice_areas/consumer_debt/guided_script_formatting.yaml'
+OUTPUT = ROOT / 'src/advocate_bot_qualtrics/practice_areas/consumer_debt/script_formatting.yaml'
 NS = {'w':'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
 W = '{'+NS['w']+'}'
 

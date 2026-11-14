@@ -1,18 +1,20 @@
-# Imaginary complaint inputs
+# Fictional complaint inputs
 
-These two JSON objects simulate facts returned by an external complaint scraper.
+These fact-only JSON objects provide fictional defaults for clickthrough intake.
 All names, case numbers, and facts are fictional. Neither file contains defense
-judgments. This is a temporary format for exercising the prototype.
+judgments. They are examples, not a document-extraction feature.
 
 ```bash
-.venv/bin/python scripts/interactive_chat_demo.py --complaint-fields examples/complaints/original-creditor.json
-.venv/bin/python scripts/interactive_chat_demo.py --complaint-fields examples/complaints/debt-buyer.json
+.venv/bin/python scripts/run_clickthrough.py --complaint-fields examples/complaints/original-creditor.json
+.venv/bin/python scripts/run_clickthrough.py --complaint-fields examples/complaints/debt-buyer.json
 ```
 
 The original-creditor example has complete dates and attachments. The debt-buyer
 example has an original-creditor name, both claim types, missing payment/opening
-dates, and no attached statement or ownership documents. To try corrections,
-answer "No" to an agreement question and provide your preferred value.
+dates, and no attached statement or ownership documents. Defaults prefill relevant
+intake controls; they become facts only after the user submits those screens.
+Use `--blank` to start without example defaults, or `--debug` for section jumping
+with collection disabled.
 
 | Fields | JSON value |
 | --- | --- |
@@ -23,44 +25,31 @@ answer "No" to an agreement question and provide your preferred value.
 | `LAST.PAYMENT.DATE`, `BREACH.DATE`, `OPEN.DATE`, `COMPLAINT.DATE` | ISO date strings (`YYYY-MM-DD`) |
 | `OWNERSHIP`, `STATEMENT`, `OWNERSHIP.PROOF`, `VERIFIED` | JSON `true` or `false` |
 
-Any field may be `null`, meaning the scraper found that it was absent from the
-complaint. An omitted key means extraction did not determine the answer. A `false`
-answer is a known negative, distinct from either missing or unknown information.
-`ORIGINAL.CREDITOR` is verified when the plaintiff is a debt buyer or its type is
-unknown; the original-creditor path skips that question.
+A `null` field represents missing complaint information; an omitted key represents
+information not determined. A `false` value is a known negative. Unknown keys and
+invalid values are rejected. `RECOGNIZE`, `CONSOLIDATION`, and `ORAL` must be
+answered by the user and cannot be supplied in the example JSON.
 
-`RECOGNIZE`, `CONSOLIDATION`, and `ORAL` are answered by the litigant and are rejected
-in scraper input. Unknown keys and invalid values are rejected. The application
-does not accept documents through this entry point.
-
-Programmatic use:
+Programmatic use from the project root:
 
 ```python
 import json
 from pathlib import Path
-from advocate_bot_qualtrics.core.engine import InteractiveChatEngine
+from advocate_bot_qualtrics.practice_areas.consumer_debt.workflow import (
+    GuidedAnswer, ClickthroughReview,
+)
 
 values = json.loads(Path("examples/complaints/debt-buyer.json").read_text())
-engine = InteractiveChatEngine.from_user_input(complaint_fields=values)
-engine.initial_messages()
+review = ClickthroughReview(values)
+review.replay([GuidedAnswer(node_id="guided_welcome", value="continue")])
+page = review.page()  # First preliminary field; defaults have not been submitted.
 ```
 
-All parsed fields immediately appear in the sidebar as awaiting verification.
-They become effective answers only after agreement or correction. "I don't know"
-leaves a field unknown for screening. A correction preserves the original parsed
-value; date-presence checks still distinguish what was present in the complaint
-from the litigant's preferred date. Reset restores the original input for fresh
-verification.
+`COMPLAINT.DATE` binds to internal `FILING-DATE` and `session.filing_date`.
+`PLAINTIFF` binds to `PLAINTIFF-NAME`, while `PLAINTIFF.TYPE` binds to `PLAINTIFF`.
+`BREACH.DATE` binds to `BREACH-DATE` and is separate from payment date. These
+internal bindings remain stable for shared rules and answer replay.
 
-`COMPLAINT.DATE` maps to the established internal `FILING-DATE` field and
-`session.filing_date`. `PLAINTIFF` maps to internal `PLAINTIFF-NAME`, while
-`PLAINTIFF.TYPE` maps to internal `PLAINTIFF`. These aliases keep downstream
-screening compatible with the existing session fields. The selected clinic SOL
-workflow preserves the defense for every debt buyer without asking for another
-payment date. For original creditors, the litigant confirms the complaint's timing
-estimate or answers a separate one-year question; this leaves the scraped date intact.
-
-`BREACH.DATE` maps to `BREACH-DATE` and `session.breach_date`. It is a separate
-verification after the filing date. A correction reports what the complaint
-states and updates its recorded breach date, while retaining `parsed_value`.
-An omitted breach date remains unknown; it is never assumed to be absent.
+Use Back or Change in the interface to review submitted values. Changes reconcile
+the subsequent path and retain applicable answers. For current intake and editing
+behavior, see the [clickthrough guide](../../docs/clickthrough-guide.md).

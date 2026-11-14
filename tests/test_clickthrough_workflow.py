@@ -7,10 +7,10 @@ import pytest
 from fastapi.testclient import TestClient
 
 from advocate_bot_qualtrics.core.schemas import ChatTurnResponse
-from advocate_bot_qualtrics.practice_areas.consumer_debt.guided_sol import (
-    DEFENSES, SUMMARIES, INTRO_DEFENSES, CONTINUE_PAGES, AMBIGUITY_SUMMARY, LACHES_INTRO, LACHES_SUMMARY, BOX_LABELS, COMPLETE, PRELIMINARY_FIELDS, PRELIMINARY_SUMMARY, SOL_INTRO, SUMMARY, GuidedAnswer, GuidedSolReview,
+from advocate_bot_qualtrics.practice_areas.consumer_debt.workflow import (
+    DEFENSES, SUMMARIES, INTRO_DEFENSES, CONTINUE_PAGES, AMBIGUITY_SUMMARY, LACHES_INTRO, LACHES_SUMMARY, BOX_LABELS, COMPLETE, PRELIMINARY_FIELDS, PRELIMINARY_SUMMARY, SOL_INTRO, SUMMARY, GuidedAnswer, ClickthroughReview,
 )
-from advocate_bot_qualtrics.practice_areas.consumer_debt.guided_sol import TREE
+from advocate_bot_qualtrics.practice_areas.consumer_debt.workflow import TREE
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -36,11 +36,11 @@ def intake(creditor='original', payment='2024-03-15', filing='2026-09-20', oral=
 
 
 def review(history):
-    return GuidedSolReview().replay(history)
+    return ClickthroughReview().replay(history)
 
 
 def test_opening_overview_has_requested_text_and_continues_to_preliminary_fields():
-    current = GuidedSolReview()
+    current = ClickthroughReview()
     page = current.page()
     assert page['title'] == 'Overview'
     assert page['body'] == [
@@ -56,7 +56,7 @@ def test_opening_overview_has_requested_text_and_continues_to_preliminary_fields
 
 
 def test_prefilled_examples_are_not_effective_facts_until_confirmed():
-    guided = GuidedSolReview({'PLAINTIFF':'Prefilled Bank','COMPLAINT.DATE':'2026-09-20'})
+    guided = ClickthroughReview({'PLAINTIFF':'Prefilled Bank','COMPLAINT.DATE':'2026-09-20'})
     assert not guided.session.preliminary_fields
     guided.replay(answers(('guided_welcome','continue'), ('guided_case_number','26CV-EXAMPLE')))
     assert guided.page()['default_value']=='Prefilled Bank'
@@ -65,7 +65,7 @@ def test_prefilled_examples_are_not_effective_facts_until_confirmed():
 
 @pytest.mark.parametrize('creditor', ['original', 'buyer', 'unknown'])
 def test_sol_has_a_dedicated_general_explanation_after_preliminary_review(creditor):
-    from advocate_bot_qualtrics.practice_areas.consumer_debt.guided_sol import CONTENT
+    from advocate_bot_qualtrics.practice_areas.consumer_debt.workflow import CONTENT
     history = intake(creditor)[:-1]
     current = review(history)
     assert current.current == SOL_INTRO
@@ -160,7 +160,7 @@ def test_preliminary_default_formats_and_approved_help():
     history = intake()
     for node, default in [('guided_amount', '4250.00'), ('guided_statement', 'yes')]:
         index = next(i for i, a in enumerate(history) if a.node_id == node)
-        current = GuidedSolReview(defaults).replay(history[:index])
+        current = ClickthroughReview(defaults).replay(history[:index])
         assert current.page()['default_value'] == default
     index = next(i for i, a in enumerate(history) if a.node_id == 'guided_oral')
     page = review(history[:index]).page()
@@ -348,9 +348,9 @@ def test_injected_or_out_of_order_answers_are_rejected(node,value):
 
 
 @pytest.fixture
-def api():
-    module=runpy.run_path(str(ROOT/'scripts/guided_clickthrough_demo.py'))
-    return module,TestClient(module['create_app']({'PLAINTIFF':'Example Bank'}))
+def api(tmp_path):
+    module=runpy.run_path(str(ROOT/'scripts/run_clickthrough.py'))
+    return module,TestClient(module['create_app']({'PLAINTIFF':'Example Bank'}, collection_dir=tmp_path))
 
 
 def test_api_uses_independent_request_state_and_serves_assets(api):
@@ -383,7 +383,7 @@ def test_help_can_never_select_boxes_or_advance_even_if_model_returns_a_branch(a
     assert before==after
     assert captured[0]['payload']['current_node']['branches']==[]
     assert 'first and third' in captured[0]['payload']['current_node']['question']
-    assert (ROOT/'prompts/guided_sol_clarification_system.md').read_text()==captured[0]['system']
+    assert (ROOT/'prompts/clickthrough_clarification.md').read_text()==captured[0]['system']
 
 
 def test_chat_provider_errors_are_safe_and_do_not_erase_answers(api):
@@ -410,13 +410,13 @@ def completed_history(creditor='original', payment='2024-03-15', filing='2026-09
 
 
 def change(history, node, value, revision=None):
-    from advocate_bot_qualtrics.practice_areas.consumer_debt.guided_sol import GuidedEditRequest, edit_review
+    from advocate_bot_qualtrics.practice_areas.consumer_debt.workflow import GuidedEditRequest, edit_review
     index = next(i for i, answer in enumerate(history) if answer.node_id == node)
     return edit_review({}, GuidedEditRequest(history=history, edit_index=index, value=value, revision=revision))
 
 
 def advance_updated(current, value):
-    from advocate_bot_qualtrics.practice_areas.consumer_debt.guided_sol import GuidedAdvanceRequest, advance_review
+    from advocate_bot_qualtrics.practice_areas.consumer_debt.workflow import GuidedAdvanceRequest, advance_review
     return advance_review({}, GuidedAdvanceRequest(history=current.history, revision=current.revision, value=value, debug_section=current.debug_section))
 
 
@@ -574,7 +574,7 @@ def test_explicit_uncertainty_replaces_an_old_choice_instead_of_restoring_it():
 
 
 def test_timing_reuse_cannot_cross_a_changed_screening_boundary():
-    from advocate_bot_qualtrics.practice_areas.consumer_debt.guided_sol import TimingBasis
+    from advocate_bot_qualtrics.practice_areas.consumer_debt.workflow import TimingBasis
     history = intake(payment='2026-07-01')
     history += [GuidedAnswer(node_id='sol_payment_estimate_agree', value='reuse_comparison', automatic=True,
                             timing_basis=TimingBasis(kind='comparison', payment_date=date(2024, 3, 15), filing_date=date(2026, 9, 20)))]
@@ -761,11 +761,11 @@ def test_ambiguity_chat_receives_current_script_and_never_advances(api):
     assert client.post('/api/state', json={'history': history}).json()['node_id'] == 'ambiguity_decision'
 
 
-def test_current_explanations_match_source_and_do_not_change_chatbot_copy():
+def test_current_explanations_match_source_and_preserve_base_tree():
     import re
     from zipfile import ZipFile
     from xml.etree import ElementTree as ET
-    from advocate_bot_qualtrics.practice_areas.consumer_debt.guided_sol import CONTENT
+    from advocate_bot_qualtrics.practice_areas.consumer_debt.workflow import CONTENT
     with ZipFile(ROOT / CONTENT['source']) as document:
         root = ET.fromstring(document.read('word/document.xml'))
     namespace = {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
@@ -781,8 +781,8 @@ def test_current_explanations_match_source_and_do_not_change_chatbot_copy():
     for text in CONTENT['confirmation'].values():
         assert normalize(text) in normalize(source)
     assert 'strong defense' in review(intake()[:-1]).page()['body'][0]
-    from advocate_bot_qualtrics.practice_areas.consumer_debt.tree import INTERACTIVE_TREE_DEFINITION as CHAT_TREE
-    assert 'strong defense' not in CHAT_TREE.node('statute_of_limitations_intro').explanation.text
+    from advocate_bot_qualtrics.practice_areas.consumer_debt.base_tree import BASE_TREE_DEFINITION as BASE_TREE
+    assert 'strong defense' not in BASE_TREE.node('statute_of_limitations_intro').explanation.text
     buyer = review(intake('buyer')).page()
     assert any('Debt buyers often sue on older accounts' in text for text in buyer['body'])
     assert 'even if their last payment' not in buyer['help_text']

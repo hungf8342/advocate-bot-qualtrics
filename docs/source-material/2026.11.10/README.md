@@ -13,15 +13,16 @@ consolidation paths. Summaries and final review use descriptive nested-option
 labels. The wording changes include SOL, Ambiguity, Mistake, Laches, Fraud,
 Capacity, Waiver, and the shared clarification instruction.
 
-`guided_screen_layout.yaml` maps the document's screen footnotes. The extractor
+`screen_layout.yaml` maps the document's screen footnotes. The extractor
 repairs the missing space in “variesdepending” in the SOL introduction; the Word
 file itself is preserved.
 
 Regenerate and check formatting metadata with:
 
 ```bash
-.venv/bin/python scripts/extract_guided_script_formatting.py
-.venv/bin/python scripts/extract_guided_script_formatting.py --check
+.venv/bin/python scripts/extract_script_formatting.py
+.venv/bin/python scripts/extract_script_formatting.py --check
 ```
 
-The canonical interactive-chat tree and October 30 preliminary intake are separate.
+The shared base tree and October 30 preliminary-intake source remain separate
+from the current guided defense overlays.

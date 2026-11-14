@@ -7,11 +7,11 @@ import runpy
 
 import pytest
 
-from advocate_bot_qualtrics.practice_areas.consumer_debt.guided_sol import (
+from advocate_bot_qualtrics.practice_areas.consumer_debt.workflow import (
     CONTENT, DEFENSE, SUMMARY,
 )
-from advocate_bot_qualtrics.practice_areas.consumer_debt.guided_script_formatting import SOURCE_FORMATTING
-from test_guided_sol import intake, review, advance_updated
+from advocate_bot_qualtrics.practice_areas.consumer_debt.script_formatting import SOURCE_FORMATTING
+from test_clickthrough_workflow import intake, review, advance_updated
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -21,7 +21,7 @@ def test_v3_is_the_current_source_and_matches_the_download():
     assert source.name == '2026.11.10 Affirmative-Defense-Scripts.docx'
     assert CONTENT['sol_source'] == CONTENT['source'] == SOURCE_FORMATTING['source']
     assert hashlib.sha256(source.read_bytes()).hexdigest() == SOURCE_FORMATTING['source_sha256']
-    module = runpy.run_path(str(ROOT / 'scripts/extract_guided_script_formatting.py'))
+    module = runpy.run_path(str(ROOT / 'scripts/extract_script_formatting.py'))
     assert module['extract_prototype_formatting']() == SOURCE_FORMATTING
 
 

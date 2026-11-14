@@ -6,7 +6,7 @@
 - `2026.10.11 explanations-aff-defenses.docx`: historical defense source, superseded
   by the October 25 conversation scripts.
 
-The chatbot implements preliminary field verification and 21 defenses using the
-October 11 preliminary source and October 25 conversation scripts. Triage and
-fee waivers are outside this implementation. The external scraper
-supplies facts only; it does not decide which defenses apply.
+These documents underpin the historical base tree and its provenance tests. The
+current clickthrough uses November 10 defense wording and October 30 preliminary
+fields; see [the clickthrough guide](../../clickthrough-guide.md). Triage and fee
+waivers are outside this implementation.

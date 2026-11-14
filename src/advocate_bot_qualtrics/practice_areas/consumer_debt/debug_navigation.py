@@ -1,6 +1,6 @@
 """Explicit debug navigation without inventing answers to skipped defenses."""
-from .guided_sol import (
-    DEFENSES, PRELIMINARY_FIELDS, PRELIMINARY_SUMMARY, GuidedAnswer, GuidedSolReview,
+from .workflow import (
+    DEFENSES, PRELIMINARY_FIELDS, PRELIMINARY_SUMMARY, GuidedAnswer, ClickthroughReview,
 )
 
 # Used only to fill unanswered intake fields after an explicit debug jump.
@@ -17,8 +17,8 @@ DEBUG_ANSWERS = {
 }
 
 
-def jump_to_section(current: GuidedSolReview, section: str, draft_value: str | None = None,
-                    *, draft_node: str | None = None) -> GuidedSolReview:
+def jump_to_section(current: ClickthroughReview, section: str, draft_value: str | None = None,
+                    *, draft_node: str | None = None) -> ClickthroughReview:
     if section not in {*DEFENSES, "preliminary"}:
         raise ValueError("Choose an implemented defense or preliminary fields.")
     # Retain confirmed intake, including fields after a Back/Change cursor.
@@ -33,7 +33,7 @@ def jump_to_section(current: GuidedSolReview, section: str, draft_value: str | N
         if draft_node not in PRELIMINARY_FIELDS:
             raise ValueError("Only a preliminary field can be submitted with a section jump.")
         confirmed[draft_node] = GuidedAnswer(node_id=draft_node, value=draft_value)
-    target = GuidedSolReview(current.defaults, debug_section=section)
+    target = ClickthroughReview(current.defaults, debug_section=section)
     for _ in range(len(PRELIMINARY_FIELDS) + 2):
         if target.current == PRELIMINARY_SUMMARY:
             break

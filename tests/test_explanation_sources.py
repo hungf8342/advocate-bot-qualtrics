@@ -7,7 +7,7 @@ from pydantic import ValidationError
 
 from advocate_bot_qualtrics.core.tree_definition import TreeDefinition
 from advocate_bot_qualtrics.practice_areas.consumer_debt.affirmative_defenses import DOCUMENTED_DEFENSES
-from advocate_bot_qualtrics.practice_areas.consumer_debt.tree import INTERACTIVE_TREE_DEFINITION as TREE
+from advocate_bot_qualtrics.practice_areas.consumer_debt.base_tree import BASE_TREE_DEFINITION as TREE
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -44,16 +44,7 @@ def test_preliminary_explanations_keep_their_source_except_new_breach_date_field
         for text in [b.text for b in n.explanation.blocks] or [n.explanation.text]:assert text in approved
 
 
-@pytest.mark.parametrize('defense',['ambiguity','mistake','unconscionable_contract'])
-def test_general_only_defenses_have_no_added_fact_quiz(defense,scripted_engine):
-    e=scripted_engine(defense+'_intro');messages=e._drain_hooks()
-    assert e.current_node_id==defense+'_decision'
-    assert len(messages)==1 and TREE.node(defense+'_intro').explanation.text in messages[0]
-    assert not e.session.checkbox_selections
-
-
-def test_each_condition_is_automatic_and_declares_an_uncertainty_path(scripted_engine):
-    e=scripted_engine()
+def test_each_condition_is_automatic_and_declares_an_uncertainty_path():
     for n in TREE.nodes:
         if n.kind!='condition':continue
         assert n.question=='' and n.explanation is None

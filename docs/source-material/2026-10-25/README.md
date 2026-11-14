@@ -1,9 +1,9 @@
 # October 25 affirmative-defense scripts
 
-`2026.10.25 Affirmative-Defense-Scripts.docx` governs the wording and conditional
-flow for all 21 defenses, replacing the October 20 defense source. The October 11
-preliminary source remains in effect, with a separate complaint breach-date
-verification added to support the new scripts.
+`2026.10.25 Affirmative-Defense-Scripts.docx` is the historical wording and conditional
+flow source for the shared base tree, replacing the October 20 defense source.
+The current clickthrough applies November 10 defense overlays and October 30
+intake; the source and base node IDs remain for rule bindings and provenance.
 
 Implementation decisions confirmed by the user:
 

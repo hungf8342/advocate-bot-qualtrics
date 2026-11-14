@@ -1,17 +1,16 @@
 import pytest
 
 from advocate_bot_qualtrics.core.errors import ChatError
-from advocate_bot_qualtrics.core.schemas import ChatTurnResponse
 from advocate_bot_qualtrics.llm import chat_structured
 
 
 def test_submit_chat_turn_zai_validates_response(monkeypatch):
     def fake_complete_with_tools(**_kwargs):
         return {
-            "user_intent": "answer_node",
-            "assistant_reply": "Got it.",
-            "next_node_id": "yes",
-            "answer_confidence_pct": 90,
+            "user_intent": "ask_about_complaint",
+            "assistant_reply": "An explanation of this page.",
+            "next_node_id": None,
+            "answer_confidence_pct": None,
         }
 
     monkeypatch.setattr(chat_structured, "get_zai_api_key", lambda: "test-key")
@@ -21,11 +20,11 @@ def test_submit_chat_turn_zai_validates_response(monkeypatch):
         lambda self, **_kwargs: fake_complete_with_tools(),
     )
 
-    turn = chat_structured.submit_chat_turn(system="sys", payload={"user": "yes"})
+    turn = chat_structured.submit_chat_turn(system="sys", payload={"user": "What does this mean?"})
 
-    assert turn.user_intent == "answer_node"
-    assert turn.next_node_id == "yes"
-    assert turn.answer_confidence_pct == 90
+    assert turn.user_intent == "ask_about_complaint"
+    assert turn.next_node_id is None
+    assert turn.answer_confidence_pct is None
 
 
 def test_submit_chat_turn_zai_requires_api_key(monkeypatch):
@@ -35,10 +34,11 @@ def test_submit_chat_turn_zai_requires_api_key(monkeypatch):
         chat_structured.submit_chat_turn(system="sys", payload="hello")
 
 
-def test_submit_chat_turn_anthropic_disabled(monkeypatch):
-    monkeypatch.setattr(chat_structured, "get_chat_provider", lambda: "anthropic")
+@pytest.mark.parametrize("provider", ["anthropic", "unsupported"])
+def test_submit_chat_turn_rejects_unsupported_provider(monkeypatch, provider):
+    monkeypatch.setattr(chat_structured, "get_chat_provider", lambda: provider)
 
-    with pytest.raises(ChatError, match="anthropic is disabled"):
+    with pytest.raises(ChatError, match="Only CHAT_PROVIDER=zai is supported"):
         chat_structured.submit_chat_turn(system="sys", payload="hello")
 
 

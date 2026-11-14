@@ -8,10 +8,10 @@ from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
 
-from advocate_bot_qualtrics.practice_areas.consumer_debt.guided_collection import (
+from advocate_bot_qualtrics.practice_areas.consumer_debt.research_collection import (
     DEFENSE_COLUMNS, RESPONSE_COLUMNS, SESSION_COLUMNS,
 )
-from test_guided_sol import (
+from test_clickthrough_workflow import (
     LACHES_SUMMARY, answers, both_defenses_history, completed_history, intake, laches_history,
 )
 
@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 @pytest.fixture
 def collector(tmp_path):
-    module = runpy.run_path(str(ROOT / 'scripts/guided_clickthrough_demo.py'))
+    module = runpy.run_path(str(ROOT / 'scripts/run_clickthrough.py'))
     app = module['create_app'](collection_dir=tmp_path)
     client = TestClient(app)
     sid = str(uuid4())
@@ -80,7 +80,7 @@ def test_headers_completion_exit_and_restart_persistence(collector):
     module['create_app'](collection_dir=directory)
     assert rows(directory, 'sessions.csv')[0]['SESSION.COMPLETED'] == 'Yes'
     defense = rows(directory, 'defenses.csv')[0]
-    from advocate_bot_qualtrics.practice_areas.consumer_debt.guided_sol import DEFENSES
+    from advocate_bot_qualtrics.practice_areas.consumer_debt.workflow import DEFENSES
     assert len(DEFENSES) == 17
     for name in DEFENSES:
         assert defense[f'DEFENSE.{name}.CHECKED'] in {'Yes', 'No'}
@@ -133,7 +133,7 @@ def test_edits_invalidation_revisions_and_fresh_checkbox_answer(collector):
     assert result['page']['node_id'] == 'laches_finish'
     result = step(client, sid, result, 'continue')
     result = edit(client, sid, result, 'laches', 'yes')
-    from advocate_bot_qualtrics.practice_areas.consumer_debt.guided_sol import GuidedAnswer
+    from advocate_bot_qualtrics.practice_areas.consumer_debt.workflow import GuidedAnswer
     advance(client, sid, [GuidedAnswer(**a) for a in result['history']], result['revision'], 'no')
     events = [r for r in rows(directory, 'responses.csv') if r['RESPONSE.ITEM.ID'] == 'laches_decision']
     assert events[-1]['RESPONSE.EVENT.TYPE'] == 'User change'
@@ -279,7 +279,7 @@ def defense_events(directory, defense, field):
 
 
 def step(client, sid, result, value):
-    from advocate_bot_qualtrics.practice_areas.consumer_debt.guided_sol import GuidedAnswer
+    from advocate_bot_qualtrics.practice_areas.consumer_debt.workflow import GuidedAnswer
     return advance(client, sid, [GuidedAnswer(**a) for a in result['history']], result['revision'], value)
 
 

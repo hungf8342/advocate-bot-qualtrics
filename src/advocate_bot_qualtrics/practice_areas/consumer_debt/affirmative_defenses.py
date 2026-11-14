@@ -176,10 +176,10 @@ def script_condition(session: InteractiveSessionState, key: str) -> str:
 
 def run_script_action(session: InteractiveSessionState, action: str) -> str:
     """Record workflow progress without turning screening facts into selections."""
-    from advocate_bot_qualtrics.practice_areas.consumer_debt.tree import INTERACTIVE_TREE_DEFINITION
+    from advocate_bot_qualtrics.practice_areas.consumer_debt.base_tree import BASE_TREE_DEFINITION
 
     operation, defense, *parts = action.split(":")
-    definition = next(node for node in INTERACTIVE_TREE_DEFINITION.nodes if node.action == action)
+    definition = next(node for node in BASE_TREE_DEFINITION.nodes if node.action == action)
     session.script_visited.append(definition.id)
     if operation == "script_finish":
         session.defense_results[defense] = {"status": "finished", "reason": definition.question}
@@ -187,7 +187,7 @@ def run_script_action(session: InteractiveSessionState, action: str) -> str:
         session.defense_results[defense] = {"status": "confirmed", "reason": "Choices confirmed by the user."}
     elif operation == "script_issue":
         key = parts[0]
-        help_node = INTERACTIVE_TREE_DEFINITION.node(definition.next)
+        help_node = BASE_TREE_DEFINITION.node(definition.next)
         retry = next((b.target for b in help_node.branches if b.id == "retry"), "")
         session.defense_open_questions[key] = {"defense": defense, "reason": definition.question, "retry_node": retry}
         session.defense_results[defense] = {"status": "unresolved", "reason": definition.question}
@@ -197,38 +197,3 @@ def run_script_action(session: InteractiveSessionState, action: str) -> str:
     elif operation != "script_say":
         raise ValueError(f"Unsupported script action: {action}")
     return ""
-
-
-def checkbox_summary(session: InteractiveSessionState, defense: str) -> str:
-    """Display each box's explicit choice, including decisions made for a group."""
-    from advocate_bot_qualtrics.practice_areas.consumer_debt.tree import INTERACTIVE_TREE_DEFINITION
-
-    labels = {box.checkbox_id: box.label for n in INTERACTIVE_TREE_DEFINITION.nodes
-              for box in n.selection_checkboxes if box.defense_id == defense}
-    choices = session.checkbox_selections.get(defense, {})
-    if not choices:
-        return "No checkboxes were selected or offered in this section."
-    return "\n".join(f"- [{'x' if value == 'include' else ' '}] {labels[key]}" for key, value in choices.items())
-
-
-def script_summary(session: InteractiveSessionState) -> str:
-    """Keep user selections, script finishes, and open clinic issues distinct."""
-    lines = ["Your defense choices:"]
-    for defense, label in DEFENSE_LABELS.items():
-        if defense in session.checkbox_selections:
-            lines.extend([f"\n{label}:", checkbox_summary(session, defense)])
-        elif defense in session.defense_results:
-            result = session.defense_results[defense]
-            text = {"finished": "The script completed this section without offering a checkbox.",
-                    "referred": "Clinic staff addressed this issue; no checkbox choice was recorded.",
-                    "confirmed": "No checkbox choices were recorded."}.get(result["status"], "This section needs clarification.")
-            lines.append(f"- {label}: {text}")
-    lines.append("\nOpen questions / clinic review:")
-    issues = [f"- {DEFENSE_LABELS[item['defense']]}: {personalize(session, item['reason'])}"
-              for item in session.defense_open_questions.values()]
-    lines.extend(issues or ["None recorded."])
-    return "\n".join(lines)
-
-
-def defense_summary(session: InteractiveSessionState) -> str:
-    return script_summary(session)

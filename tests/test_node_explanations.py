@@ -1,17 +1,13 @@
 """Node-approved help and explicit plaintiff-type categories."""
 
 from pathlib import Path
-import runpy
 
 import pytest
 from pydantic import ValidationError
 
-from advocate_bot_qualtrics.core.engine import InteractiveChatEngine
-from advocate_bot_qualtrics.core.process_chat import _post_validate_turn
-from advocate_bot_qualtrics.core.schemas import ChatTurnResponse, ExplanationImage
+from advocate_bot_qualtrics.core.schemas import ExplanationImage
 from advocate_bot_qualtrics.core.tree_definition import TreeDefinition
-from advocate_bot_qualtrics.practice_areas.consumer_debt.tree import INTERACTIVE_TREE_DEFINITION as TREE
-from advocate_bot_qualtrics.practice_areas.consumer_debt.host_extras import render_node
+from advocate_bot_qualtrics.practice_areas.consumer_debt.base_tree import BASE_TREE_DEFINITION as TREE
 
 
 def test_plaintiff_explanation_points_to_a_real_image_and_no_text_validation():
@@ -38,11 +34,6 @@ def test_plaintiff_type_enum_covers_all_and_only_three_branches():
     assert rendered.explanation == node.explanation
     for branch in ("original", "buyer", "unknown"):
         assert TREE.route(node.id, branch) == "prelim_original_creditor_needed"
-        accepted = _post_validate_turn(
-            ChatTurnResponse(user_intent="answer_node", assistant_reply="Got it.", next_node_id=branch, answer_confidence_pct=90),
-            current_node=rendered, latest_user_message=branch,
-        )
-        assert accepted.next_node_id == branch
 
 
 def test_enum_rejects_a_missing_category():
@@ -64,37 +55,3 @@ def test_enum_rejects_a_missing_category():
 def test_explanation_image_requires_project_relative_image_path(path):
     with pytest.raises(ValidationError, match="relative image path"):
         ExplanationImage(path=path, alt="Example")
-
-
-@pytest.mark.parametrize("node_id,phrase,image_expected", [
-    ("get_plaintiff_name", "The plaintiff is who is suing you for money.", True),
-    ("prelim_creditor_type", 'An "original creditor" is the company', False),
-])
-def test_help_uses_approved_node_text_and_stays_on_the_question(monkeypatch, node_id, phrase, image_expected):
-    from advocate_bot_qualtrics.core import engine as engine_module
-
-    def fake_chat(*args, **kwargs):
-        return ChatTurnResponse(user_intent="ask_about_complaint", assistant_reply="Unapproved reply.")
-
-    monkeypatch.setattr(engine_module, "process_chat", fake_chat)
-    engine = InteractiveChatEngine.from_user_input()
-    engine.current_node_id = node_id
-    step = engine.submit("What does that mean?")
-    assert step.error is None
-    assert step.user_intent == "ask_about_complaint"
-    assert step.current_node_id == node_id
-    assert phrase in step.assistant_messages[0]
-    assert "Unapproved reply" not in step.assistant_messages[0]
-    assert ("![Example complaint" in step.assistant_messages[0]) == image_expected
-    assert step.assistant_messages[0].startswith(f"### {TREE.node(node_id).title}\n\n")
-    assert step.assistant_messages[-1] == render_node(node_id, None, engine.session).question.removeprefix(f"### {TREE.node(node_id).title}\n\n")
-
-
-def test_demo_maps_approved_image_reference_to_served_project_file():
-    project = Path(__file__).resolve().parents[1]
-    demo = runpy.run_path(str(project / "scripts/interactive_chat_demo.py"))
-    engine = InteractiveChatEngine.from_user_input()
-    engine.transcript.append(("assistant", "![Example complaint](complaint-examples/plaintiff.png)"))
-    content = demo["_chat_history"](engine)[-1]["content"]
-    assert "/gradio_api/file=" in content
-    assert "/complaint-examples/plaintiff.png" in content

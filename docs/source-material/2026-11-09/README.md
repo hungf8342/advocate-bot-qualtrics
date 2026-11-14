@@ -8,7 +8,7 @@ The prototype includes defenses 1, 2, 5, 8, and 9–21. Defenses 3, 4, 6, and 7 
 excluded. The Common Counts fourth nested option, which depends on the excluded
 Identity Theft defense, is not offered.
 
-`guided_screen_layout.yaml` maps the document's footnote IDs to prototype screens.
+`screen_layout.yaml` maps the document's footnote IDs to prototype screens.
 Headers are extracted from `NEW SCREEN:` footnotes rather than rewritten in code.
 Conditional variants use confirmed facts. Informational outcomes and derived
 parent-checkbox explanations have their own Next screens before confirmation.
@@ -18,9 +18,9 @@ and checkbox question under the defense name.
 Regenerate the checked-in source metadata with:
 
 ```bash
-.venv/bin/python scripts/extract_guided_script_formatting.py
-.venv/bin/python scripts/extract_guided_script_formatting.py --check
+.venv/bin/python scripts/extract_script_formatting.py
+.venv/bin/python scripts/extract_script_formatting.py --check
 ```
 
-These assets describe the guided prototype. The canonical interactive-chat tree
-and the October 30 preliminary-intake source remain separate.
+These assets describe the guided prototype. The shared base tree and October 30 preliminary-intake source are retained
+alongside the guided defense overlays.
